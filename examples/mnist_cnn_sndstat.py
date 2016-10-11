@@ -24,10 +24,11 @@ from keras.layers import SecondaryStatistic, WeightedProbability
 from keras.utils import np_utils
 from keras import backend as K
 
-
 batch_size = 128
 nb_classes = 10
 nb_epoch = 12
+
+ratio = 0.1     # Sepcify the ratio of true data used.
 
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -38,8 +39,25 @@ pool_size = (2, 2)
 # convolution kernel size
 kernel_size = (3, 3)
 
+''' Modify this to read local data, reference from MNIST example.'''
 # the data, shuffled and split between train and test sets
-(X_train, y_train), (X_test, y_test) = mnist.load_data()
+data = mnist.load_data()
+if len(data) == 3:
+    (X_train, y_train), (X_valid, y_valid), (X_test, y_test) = data
+else:
+    (X_train, y_train), (X_test, y_test) = data
+
+nb_train = 10000 # len(X_train)
+nb_valid = 200 # len(X_valid)
+nb_test = 200 #  len(X_test)
+
+
+X_train = X_train[:nb_train,]
+y_train = y_train[:nb_train,]
+X_valid = X_valid[:nb_valid,]
+y_valid = y_valid[:nb_valid,]
+X_test = X_test[:nb_test,]
+y_test = y_test[:nb_test,]
 
 if K.image_dim_ordering() == 'th':
     X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
@@ -73,15 +91,22 @@ model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=pool_size))
 model.add(Dropout(0.25))
 
-model.add(Flatten())
-model.add(Dense(128))
-model.add(Activation('relu'))
-model.add(Dropout(0.5))
-model.add(Dense(nb_classes))
+# Start of secondary layer
+print('Adding secondary statistic layer ')
+model.add(SecondaryStatistic(activation='linear'))
+model.add(WeightedProbability(nb_classes,activation='linear'))
+# model.add(Dense(nb_classes))
 model.add(Activation('softmax'))
+#
+# model.add(Flatten())
+# model.add(Dense(128))
+# model.add(Activation('relu'))
+# model.add(Dropout(0.5))
+# model.add(Dense(nb_classes))
+# model.add(Activation('softmax'))
 
 model.compile(loss='categorical_crossentropy',
-              optimizer='adadelta',
+              optimizer='SGD',
               metrics=['accuracy'])
 
 model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
