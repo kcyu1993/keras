@@ -3,6 +3,7 @@
 Gets to 99.25% test accuracy after 12 epochs
 (there is still a lot of margin for parameter tuning).
 16 seconds per epoch on a GRID K520 GPU.
+19 seconds per epoch on a Titan Z GPU with CuDNN and CnMeM
 39 seconds per epoch on a Titan Z GPU
 =================
 auther: Kaicheng Yu
@@ -10,6 +11,13 @@ Modification on network structure, add the two additional layer,
 1 conv to cov
 1 cov to prob
 Basic for debugging purpose.
+
+Issue 2016.10.11
+After various test, the model didn't work when combing the two layers
+however, it is working only with Second-order statistics.
+
+Suspection is the correctness of the layer weighted parameters.
+It is necessary to test, with 
 '''
 
 from __future__ import print_function
@@ -23,10 +31,11 @@ from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import SecondaryStatistic, WeightedProbability
 from keras.utils import np_utils
 from keras import backend as K
+from keras import optimizers
 
 batch_size = 128
 nb_classes = 10
-nb_epoch = 12
+nb_epoch = 100
 
 ratio = 0.1     # Sepcify the ratio of true data used.
 
@@ -47,15 +56,15 @@ if len(data) == 3:
 else:
     (X_train, y_train), (X_test, y_test) = data
 
-nb_train = 10000 # len(X_train)
+nb_train = 50000 # len(X_train)
 nb_valid = 200 # len(X_valid)
-nb_test = 200 #  len(X_test)
+nb_test = 10000 #  len(X_test)
 
 
 X_train = X_train[:nb_train,]
 y_train = y_train[:nb_train,]
-X_valid = X_valid[:nb_valid,]
-y_valid = y_valid[:nb_valid,]
+# X_valid = X_valid[:nb_valid,]
+# y_valid = y_valid[:nb_valid,]
 X_test = X_test[:nb_test,]
 y_test = y_test[:nb_test,]
 
@@ -94,19 +103,28 @@ model.add(Dropout(0.25))
 # Start of secondary layer
 print('Adding secondary statistic layer ')
 model.add(SecondaryStatistic(activation='linear'))
-model.add(WeightedProbability(nb_classes,activation='linear'))
-# model.add(Dense(nb_classes))
-model.add(Activation('softmax'))
-#
-# model.add(Flatten())
-# model.add(Dense(128))
+# model.add(WeightedProbability(10,activation='linear', init='normal'))
+model.add(Flatten())
+
+model.add(Dense(128))
+model.add(Activation('relu'))
+model.add(Dropout(0.5))
+model.add(Dense(nb_classes))
 # model.add(Activation('relu'))
-# model.add(Dropout(0.5))
+model.add(Activation('softmax'))
+
+
 # model.add(Dense(nb_classes))
 # model.add(Activation('softmax'))
+#
+# model.add(Flatten())
+
+# Define the optimizers:
+# opt = optimizers.sgd(lr=0.01)
+opt = optimizers.rmsprop()
 
 model.compile(loss='categorical_crossentropy',
-              optimizer='SGD',
+              optimizer=opt,
               metrics=['accuracy'])
 
 model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
