@@ -17,3 +17,7 @@ Keras.egg-info
 
 # developer environments
 .idea
+
+# new image models
+/examples/ImageModels-master/docs/
+/examples/ImageModels-master/Model/
