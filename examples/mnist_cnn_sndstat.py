@@ -17,11 +17,19 @@ After various test, the model didn't work when combing the two layers
 however, it is working only with Second-order statistics.
 
 Suspection is the correctness of the layer weighted parameters.
-It is necessary to test, with 
+It is necessary to test, with
+
+Issue 2016.10.24
+Trying the new experiments:
+    Pre-trained the model, save the point
+
 '''
 
 from __future__ import print_function
 import numpy as np
+
+
+
 np.random.seed(1337)  # for reproducibility
 
 from keras.datasets import mnist
@@ -127,8 +135,11 @@ model.compile(loss='categorical_crossentropy',
               optimizer=opt,
               metrics=['accuracy'])
 
-model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
+model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=10,
           verbose=1, validation_data=(X_test, Y_test))
+model.summary()
 score = model.evaluate(X_test, Y_test, verbose=0)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
+
+print('saving model to location')
