@@ -21,3 +21,4 @@ Keras.egg-info
 # new image models
 /examples/ImageModels-master/docs/
 /examples/ImageModels-master/Model/
+/model_saved/log/

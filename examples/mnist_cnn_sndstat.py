@@ -29,7 +29,6 @@ from __future__ import print_function
 import numpy as np
 
 
-
 np.random.seed(1337)  # for reproducibility
 
 from keras.datasets import mnist
@@ -38,6 +37,7 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import SecondaryStatistic, WeightedProbability
 from keras.utils import np_utils
+from keras.utils.data_utils import get_absolute_dir_project
 from keras import backend as K
 from keras import optimizers
 
@@ -76,6 +76,7 @@ y_train = y_train[:nb_train,]
 X_test = X_test[:nb_test,]
 y_test = y_test[:nb_test,]
 
+# Data loading and manipulation.
 if K.image_dim_ordering() == 'th':
     X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
     X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
@@ -89,57 +90,135 @@ X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
 X_train /= 255
 X_test /= 255
-print('X_train shape:', X_train.shape)
-print(X_train.shape[0], 'train samples')
-print(X_test.shape[0], 'test samples')
+# print('X_train shape:', X_train.shape)
+# print(X_train.shape[0], 'train samples')
+# print(X_test.shape[0], 'test samples')
 
 # convert class vectors to binary class matrices
 Y_train = np_utils.to_categorical(y_train, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
 
-model = Sequential()
 
-model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
-                        border_mode='valid',
-                        input_shape=input_shape))
-model.add(Activation('relu'))
-model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=pool_size))
-model.add(Dropout(0.25))
+def mnist_model1():
+    model = Sequential()
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                            border_mode='valid',
+                            input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=pool_size))
+    model.add(Dropout(0.25))
 
-# Start of secondary layer
-print('Adding secondary statistic layer ')
-model.add(SecondaryStatistic(activation='linear'))
-# model.add(WeightedProbability(10,activation='linear', init='normal'))
-model.add(Flatten())
+    # Start of secondary layer
+    # print('Adding secondary statistic layer ')
+    model.add(SecondaryStatistic(activation='linear'))
+    model.add(WeightedProbability(10,activation='linear', init='normal'))
 
-model.add(Dense(128))
-model.add(Activation('relu'))
-model.add(Dropout(0.5))
-model.add(Dense(nb_classes))
-# model.add(Activation('relu'))
-model.add(Activation('softmax'))
+    model.add(Dense(128))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(nb_classes))
+    # model.add(Activation('relu'))
+    model.add(Activation('softmax'))
 
 
-# model.add(Dense(nb_classes))
-# model.add(Activation('softmax'))
-#
-# model.add(Flatten())
+    # model.add(Dense(nb_classes))
+    # model.add(Activation('softmax'))
+    #
+    # model.add(Flatten())
 
-# Define the optimizers:
-# opt = optimizers.sgd(lr=0.01)
-opt = optimizers.rmsprop()
+    # Define the optimizers:
+    # opt = optimizers.sgd(lr=0.01)
+    opt = optimizers.rmsprop()
 
-model.compile(loss='categorical_crossentropy',
-              optimizer=opt,
-              metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=opt,
+                  metrics=['accuracy'])
+    return model
 
-model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=10,
+def model_without_dense():
+    model = Sequential()
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                            border_mode='valid',
+                            input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=pool_size))
+    model.add(Dropout(0.25))
+
+    # Start of secondary layer
+    # print('Adding secondary statistic layer ')
+    model.add(SecondaryStatistic(activation='linear'))
+    model.add(WeightedProbability(10, activation='linear', init='normal'))
+    # model.add(Flatten())
+
+    # model.add(Dense(128))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.5))
+    # model.add(Dense(nb_classes))
+    # model.add(Activation('relu'))
+    model.add(Activation('softmax'))
+
+    # model.add(Dense(nb_classes))
+    # model.add(Activation('softmax'))
+    #
+    # model.add(Flatten())
+    # Define the optimizers:
+    # opt = optimizers.sgd(lr=0.01)
+    opt = optimizers.rmsprop()
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=opt,
+                  metrics=['accuracy'])
+    return model
+
+def test_more_parameters():
+    print("Model 1 ")
+
+
+def main_loop():
+    print("fitting the whole model ")
+    model = mnist_model1()
+    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
           verbose=1, validation_data=(X_test, Y_test))
-model.summary()
-score = model.evaluate(X_test, Y_test, verbose=0)
-print('Test score:', score[0])
-print('Test accuracy:', score[1])
+    model.summary()
+    score = model.evaluate(X_test, Y_test, verbose=0)
+    print('Test score:', score[0])
+    print('Test accuracy:', score[1])
 
-print('saving model to location')
+    # Save the model to another location.
+    output_name = 'model_saved/mnist_cnn_sndstat.weights'
+    out_dir = get_absolute_dir_project(output_name)
+    print('saving model to location -> {} '.format(out_dir))
+    model.save_weights(out_dir)
+    model2 = model_without_dense()
+    model2.load_weights(out_dir, by_name=True)
+    model2.summary()
+    model2.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
+    score = model2.evaluate(X_test, Y_test, verbose=0)
+    print('Test score:', score[0])
+    print('Test accuracy:', score[1])
+
+def evaluate_model():
+    model = mnist_model1()
+    output_name = 'model_saved/mnist_cnn_sndstat.weights'
+    out_dir = get_absolute_dir_project(output_name)
+    model.load_weights(out_dir)
+    score = model.evaluate(X_test, Y_test, verbose=0)
+    print('Test score:', score[0])
+    print('Test accuracy:', score[1])
+
+
+def test_loader():
+    # Save the model to another location.
+    output_name = 'model_saved/mnist_cnn_sndstat.weights'
+    out_dir = get_absolute_dir_project(output_name)
+    print('saving model to location -> {} '.format(out_dir))
+
+
+if __name__ == '__main__':
+    # main_loop()
+    # test_loader()
+    evaluate_model()
