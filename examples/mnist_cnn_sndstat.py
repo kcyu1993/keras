@@ -56,17 +56,26 @@ pool_size = (2, 2)
 # convolution kernel size
 kernel_size = (3, 3)
 
+useInfiMNIST = False
+
 ''' Modify this to read local data, reference from MNIST example.'''
 # the data, shuffled and split between train and test sets
-data = mnist.load_data()
-if len(data) == 3:
-    (X_train, y_train), (X_valid, y_valid), (X_test, y_test) = data
+if useInfiMNIST:
+    print('Use infi mnist / original mnist')
+    X_train, y_train = mnist.load_infimnist('mnist60k')
+    X_test, y_test = mnist.load_infimnist('t10k')
 else:
-    (X_train, y_train), (X_test, y_test) = data
+    print('Use original keras mnist')
+    data = mnist.load_data()
 
-nb_train = 50000 # len(X_train)
+    if len(data) == 3:
+        (X_train, y_train), (X_valid, y_valid), (X_test, y_test) = data
+    else:
+        (X_train, y_train), (X_test, y_test) = data
+
+nb_train = len(X_train)
 nb_valid = 200 # len(X_valid)
-nb_test = 10000 #  len(X_test)
+nb_test = len(X_test)
 
 
 X_train = X_train[:nb_train,]
@@ -97,7 +106,7 @@ X_test /= 255
 # convert class vectors to binary class matrices
 Y_train = np_utils.to_categorical(y_train, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
-
+print("Load in total {} train sample and {} test sample".format(len(X_train), len(X_test)))
 
 def mnist_model1():
     model = Sequential()
@@ -201,6 +210,16 @@ def main_loop():
     print('Test score:', score[0])
     print('Test accuracy:', score[1])
 
+
+def test_withoutdense():
+    model2 = model_without_dense()
+    model2.summary()
+    model2.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
+    score = model2.evaluate(X_test, Y_test, verbose=0)
+    print('Test score:', score[0])
+    print('Test accuracy:', score[1])
+
+
 def evaluate_model():
     model = mnist_model1()
     output_name = 'model_saved/mnist_cnn_sndstat.weights'
@@ -219,6 +238,8 @@ def test_loader():
 
 
 if __name__ == '__main__':
+    useInfiMNIST = True
     # main_loop()
     # test_loader()
-    evaluate_model()
+    # evaluate_model()
+    test_withoutdense()
