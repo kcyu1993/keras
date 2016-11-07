@@ -24,6 +24,7 @@ from __future__ import print_function
 import numpy as np
 np.random.seed(1337)  # for reproducibility
 
+
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
@@ -106,14 +107,14 @@ model.add(Dropout(0.25))
 print('Adding secondary statistic layer ')
 model.add(SecondaryStatistic(activation='linear'))
 print("Adding WP with glorot_uniform")
-model.add(WeightedProbability(10, activation='linear'))
+model.add(WeightedProbability(10, activation='linear', init='normal'))
 # model.add(Flatten())
 
 # model.add(Dense(128))
 # model.add(Activation('relu'))
 # model.add(Dropout(0.5))
 # model.add(Dense(nb_classes))
-# model.add(Activation('relu'))
+# model.add(Activation('relu', name='relu'))
 # model.add(Activation('softmax'))
 
 
@@ -124,10 +125,11 @@ model.add(WeightedProbability(10, activation='linear'))
 
 # Define the optimizers:
 # opt = optimizers.sgd(lr=0.01)
+model.summary()
 opt = optimizers.rmsprop()
-
+print("use rmsprop")
 model.compile(loss='categorical_crossentropy',
-              optimizer='SGD',
+              optimizer=opt,
               metrics=['accuracy'])
 
 model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,

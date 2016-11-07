@@ -27,7 +27,7 @@ class SecondaryStatistic(Layer):
         This is just the 2D covariance matrix for all samples feed in.
 
     # Arguments
-        out_dim         weight matrix, if none, make it align with
+        out_dim         weight matrix, if none, make it align with nb filters
         weights         initial weights.
         W_regularizer   regularize the weight if possible in future
         init:           initialization of function.
@@ -36,11 +36,12 @@ class SecondaryStatistic(Layer):
 
     '''
 
-    def __init__(self, out_dim=None,
+    def __init__(self, out_dim=None, parametrized=False,
                  init='glorot_uniform', activation='linear', weights=None,
                  W_regularizer=None, dim_ordering='default', **kwargs):
         # TODO Finish this
         self.out_dim = out_dim
+        self.parametrized = parametrized
 
         # input parameter preset
         self.nb_filter = 0
@@ -59,6 +60,12 @@ class SecondaryStatistic(Layer):
         super(SecondaryStatistic, self).__init__(**kwargs)
 
     def build(self, input_shape):
+        """
+        Build the model based on input shape
+        Should not set the weight vector here.
+        :param input_shape:
+        :return:
+        """
         # TODO Weight is not supported at this moment, just write them as exp
         # print('secondary_stat: input shape lenth', len(input_shape))
 
@@ -71,14 +78,19 @@ class SecondaryStatistic(Layer):
             self.rows = input_shape[2]
             self.cols = input_shape[3]
 
-            if self.out_dim is not None:
-                self.W_shape = (self.out_dim, self.out_dim)
+            # Set out_dim accordingly.
+            if self.parametrized:
+                if self.out_dim is None:
+                    self.out_dim = self.cov_dim
+                # Create the weight vector
+                self.W_shape = (self.cov_dim, self.out_dim)
                 if self.initial_weights is not None:
                     self.set_weights(self.initial_weights)
                     del self.initial_weights
                 else:
                     self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
                 self.trainable_weights = [self.W]
+
             else:
                 # No input parameters, set the weights to identity matrix
                 self.W_shape = (self.cov_dim, self.cov_dim)
@@ -107,8 +119,9 @@ class SecondaryStatistic(Layer):
         # Step 1: reshape the 3D array into 2D array
 
         # type (theano.config.floatX, matrix)
-        # TODO Compute the covariance matrix Y, by sum( <x_ij - x, x_ij.T - x.T> )
-        components, updates = scan(fn=lambda tx: self.calculate_covariance(tx),
+        # Compute the covariance matrix Y, by sum( <x_ij - x, x_ij.T - x.T> )
+        # cov_mat, updates = scan(fn=lambda tx:  self.calculate_covariance(tx),
+        cov_mat, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(self.calculate_covariance(tx), self.W)),
                                    outputs_info=None,
                                    sequences=[x],
                                    non_sequences=None)
@@ -116,8 +129,11 @@ class SecondaryStatistic(Layer):
         # print(components.eval().shape)
         # print(components.eval())
 
+        # Times the weight vector
+
+        # result = K.dot(K.eye(self.out_dim), K.dot(cov_mat, K.eye(self.out_dim)))
         # return the (samples, cov-mat) as 3D tensor.
-        return components
+        return cov_mat
 
     def get_config(self):
         config = {'init': self.init.__name__,
@@ -135,8 +151,13 @@ class SecondaryStatistic(Layer):
                           self.nb_filter))
 
     def calculate_covariance(self, x):
-        # Input shall be 3D tensor (nb_filter,ncol,nrow)
-        # Return just (nb_filter, nb_filter)
+        """
+        Input shall be 3D tensor (nb_filter,ncol,nrow)
+        Return just (nb_filter, nb_filter)
+        :param x:   data matrix (nb_filter, ncol, nrow)
+        :return:    Covariance matrix (nb_filter, nb_filter)
+        """
+
         tx = self.reshape_tensor2d(x)
         # Calcualte the covariance
         tx_mean = K.mean(tx, axis=0)
