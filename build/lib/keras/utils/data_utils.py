@@ -146,9 +146,10 @@ def get_dataset_dir():
     Get current dataset directory
     :return:
     """
-    current_dir = get_project_dir()
-    return os.path.join(current_dir, 'data')
-
+    # current_dir = get_project_dir()
+    # return os.path.join(current_dir, 'data')
+    datadir_base = os.path.expanduser(os.path.join('~', '.keras'))
+    return os.path.join(datadir_base, 'datasets')
 
 def get_absolute_dir_project(filepath):
     """

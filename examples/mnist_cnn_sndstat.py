@@ -43,7 +43,7 @@ from keras import optimizers
 
 batch_size = 128
 nb_classes = 10
-nb_epoch = 100
+nb_epoch = 50
 
 ratio = 0.1     # Sepcify the ratio of true data used.
 
@@ -56,13 +56,12 @@ pool_size = (2, 2)
 # convolution kernel size
 kernel_size = (3, 3)
 
-useInfiMNIST = False
-
 ''' Modify this to read local data, reference from MNIST example.'''
 # the data, shuffled and split between train and test sets
+useInfiMNIST = False
 if useInfiMNIST:
-    print('Use infi mnist / original mnist')
-    X_train, y_train = mnist.load_infimnist('mnist60k')
+    print('Use infi mnist / 80k mnist')
+    X_train, y_train = mnist.load_infimnist('mnist8m')
     X_test, y_test = mnist.load_infimnist('t10k')
 else:
     print('Use original keras mnist')
@@ -121,12 +120,12 @@ def mnist_model1():
 
     # Start of secondary layer
     # print('Adding secondary statistic layer ')
-    model.add(SecondaryStatistic(activation='linear'))
-    model.add(WeightedProbability(10,activation='linear', init='normal'))
-
-    model.add(Dense(128))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
+    # model.add(SecondaryStatistic(activation='linear'))
+    # model.add(WeightedProbability(10, activation='linear', init='normal'))
+    model.add(Flatten())
+    # model.add(Dense(128))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.5))
     model.add(Dense(nb_classes))
     # model.add(Activation('relu'))
     model.add(Activation('softmax'))
@@ -187,6 +186,44 @@ def test_more_parameters():
     print("Model 1 ")
 
 
+def model_parametrized():
+    model = Sequential()
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                            border_mode='valid',
+                            input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=pool_size))
+    model.add(Dropout(0.25))
+
+    # Start of secondary layer
+    # print('Adding secondary statistic layer ')
+    model.add(SecondaryStatistic(activation='linear', parametrized=True, out_dim=10, init='normal'))
+    model.add(WeightedProbability(10, activation='linear', init='normal'))
+    # model.add(Flatten())
+
+    # model.add(Dense(128))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.5))
+    # model.add(Dense(nb_classes))
+    # model.add(Activation('relu'))
+    model.add(Activation('softmax'))
+
+    # model.add(Dense(nb_classes))
+    # model.add(Activation('softmax'))
+    #
+    # model.add(Flatten())
+    # Define the optimizers:
+    # opt = optimizers.sgd(lr=0.01)
+    opt = optimizers.rmsprop()
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=opt,
+                  metrics=['accuracy'])
+    return model
+
+
 def main_loop():
     print("fitting the whole model ")
     model = mnist_model1()
@@ -211,13 +248,26 @@ def main_loop():
     print('Test accuracy:', score[1])
 
 
-def test_withoutdense():
-    model2 = model_without_dense()
-    model2.summary()
-    model2.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
-    score = model2.evaluate(X_test, Y_test, verbose=0)
+def mnist_baseline_comparison():
+    """
+    Comparison CNN + FC 10 vs CNN + Cov WP.
+    :return:
+    """
+    print('BEGIN TEST 1')
+    model1 = mnist_model1()
+    model1.summary()
+    model1.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
+    score = model1.evaluate(X_test, Y_test, verbose=0)
     print('Test score:', score[0])
     print('Test accuracy:', score[1])
+
+    # print("BEGIN TEST 2 ")
+    # model2 = model_without_dense()
+    # model2.summary()
+    # model2.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
+    # score = model2.evaluate(X_test, Y_test, verbose=0)
+    # print('Test score:', score[0])
+    # print('Test accuracy:', score[1])
 
 
 def evaluate_model():
@@ -237,9 +287,21 @@ def test_loader():
     print('saving model to location -> {} '.format(out_dir))
 
 
+def test_para():
+    model = model_parametrized()
+    model.summary()
+    model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
+    score = model.evaluate(X_test, Y_test, verbose=0)
+    print('Test score:', score[0])
+    print('Test accuracy:', score[1])
+
+
 if __name__ == '__main__':
-    useInfiMNIST = True
+
     # main_loop()
     # test_loader()
     # evaluate_model()
-    test_withoutdense()
+
+    # mnist_baseline_comparison()
+    print("test parametrized layer false")
+    test_para()

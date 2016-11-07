@@ -7,6 +7,7 @@ from ..engine import Layer, InputSpec
 from ..utils.np_utils import conv_output_length, conv_input_length
 
 from theano.tensor.elemwise import *
+# from theano.tensor.basic import DimShuffle
 from theano import scalar
 
 
@@ -67,6 +68,8 @@ class WeightedProbability(Layer):
         :return: final output vector with w_i^T * W * w_i as item i, and propagate to all
             samples. Output Shape (nb_samples, vector c)
         '''
+        print("prob_out: x_shape {}".format(x.shape))
+        # new_W = K.expand_dims(self.W, dim=1)
         output = K.sum(Elemwise(scalar_op=scalar.mul)(self.W, K.dot(x, self.W)), axis=1)
         if self.bias:
             output += self.b
