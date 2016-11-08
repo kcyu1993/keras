@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import gzip
 from ..utils.data_utils import get_file, get_file_from_dir, get_dataset_dir
+from ..utils.io_utils import HDF5Matrix
 import numpy as np
 import cPickle
 import sys
@@ -8,6 +9,8 @@ from PIL import Image
 import os.path
 from os import listdir
 import h5py
+from keras.preprocessing.image import DirectoryIteratorWithFile, DirectoryIterator, ImageDataGenerator
+
 
 class MincLoader(object):
     """
@@ -16,9 +19,9 @@ class MincLoader(object):
     """
     def __init__(self, dirpath='minc-2500', category='categories.txt',
                  label_dir='labels', image_dir='images'):
-        self.__name__ = 'MINCloader :'
+        # self.__name__ = 'MINCloader :'
         self.r_dirpath = dirpath
-        print(self.__name__ + dirpath)
+        # print(self.__name__ + dirpath)
         self.abs_dirpath = os.path.join(get_dataset_dir(), dirpath)
         self.image_dir = os.path.join(self.abs_dirpath, image_dir)
         self.labels_dir = os.path.join(self.abs_dirpath, label_dir)
@@ -68,7 +71,7 @@ class MincLoader(object):
         :param file:
         :return: list.
         """
-        print(self.abs_dirpath + file)
+        # print(self.abs_dirpath + file)
         fpath = get_file(os.path.join(self.abs_dirpath, file), origin=None)
         with open(fpath, 'r') as f:
             return dict((name, ind) for ind, name in enumerate([line.rstrip() for line in f]))
@@ -92,12 +95,23 @@ class MincLoader(object):
             if path.endswith(".gz"):
                 f = gzip.open(path, 'rb')
             elif path.endswith("hdf5"):
-                f = h5py.File(os.path.join(self.abs_dirpath, filename), "r")
+                # Old loading into nparray
+                # f = h5py.File(os.path.join(self.abs_dirpath, filename), "r")
+                # tdata = []
+                # # group = f.get('data')
+                # for ind, name in enumerate(self.hd5f_label):
+                #     # tdata[ind] = group[name[ind]]
+                #     tdata.append(f.get(name).value)
+                # data = (tdata[0], tdata[1]), (tdata[2], tdata[3]), (tdata[4], tdata[5])
+                # return data
+                #####
+
+                # load into HDF5Matrix
                 tdata = []
-                # group = f.get('data')
                 for ind, name in enumerate(self.hd5f_label):
-                    # tdata[ind] = group[name[ind]]
-                    tdata.append(f.get(name).value)
+                    print("normalized version")
+                    data = HDF5Matrix(path, name, normalizer=lambda x: x*1.0/255)
+                    tdata.append(data)
                 data = (tdata[0], tdata[1]), (tdata[2], tdata[3]), (tdata[4], tdata[5])
                 return data
             else:
@@ -128,7 +142,7 @@ class MincLoader(object):
             data = (self.image, self.label)
             output_file = 'minc-2500-whole.plk'
 
-        if ftype is 'gz':
+        if ftype is 'gz' or ftype is 'gzip':
             print("compress with gz")
             f = gzip.open(os.path.join(self.abs_dirpath, output_file + "." + ftype), 'wb')
         elif ftype is '':
@@ -236,18 +250,27 @@ class Minc2500(MincLoader):
         tr_img = []
         te_img = []
         va_img = []
+        # tr_label = np.array()
+        # te_label = np.array()
+        # va_label = np.array()
+        # tr_img = np.array()
+        # te_img = np.array()
+        # va_img = np.array()
         print("Load training {}".format(len(tr_list)))
-        for file in tr_list:
+        # for file in tr_list:
+        for file in tr_list[:100]:
             index, img = self._load(file)
             tr_label.append(index)
             tr_img.append(img)
         print("Load validate {}".format(len(va_list)))
-        for file in va_list:
+        # for file in va_list:
+        for file in va_list[:100]:
             index, img = self._load(file)
             va_label.append(index)
             va_img.append(img)
         print("Load test {}".format(len(te_list)))
-        for file in te_list:
+        # for file in te_list:
+        for file in te_list[:100]:
             index, img = self._load(file)
             te_label.append(index)
             te_img.append(img)
@@ -260,8 +283,6 @@ class Minc2500(MincLoader):
                (np.array(va_img), np.array(va_label)), \
                (np.array(te_img), np.array(te_label))
 
-
-
     def getimagepath(self, fpath, index=None):
         """
         Get image absolute path.
@@ -272,6 +293,19 @@ class Minc2500(MincLoader):
         cate_name,_ = fpath.split('_')
         dir = os.path.join(self.image_dir, cate_name)
         return os.path.join(dir, fpath)
+
+    def generator(self, file='train1.txt', shuffle=True, batch_size=32):
+        gen = ImageDataGenerator(rescale=1./255)
+        print("generate the image with batch size {} shuffle {}".format(batch_size, shuffle))
+        if file is None:
+            iterator = DirectoryIterator(self.image_dir, gen, shuffle=shuffle, target_size=(362,362),
+                                         batch_size=batch_size, classes=self.categories)
+        else:
+            fpath = os.path.join(self.labels_dir, file)
+            iterator = DirectoryIteratorWithFile(self.abs_dirpath, fpath, gen, shuffle=shuffle, target_size=(362,362),
+                                                 batch_size=batch_size, classes=self.categories)
+        # batch_x, batch_y = iterator.next()
+        return iterator
 
     def test_hd5f(self):
         tr = [np.random.rand(1000,3,362,362), np.array(range(10), dtype='byte')]
