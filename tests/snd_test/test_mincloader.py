@@ -11,7 +11,7 @@ def save_data(type='hdf5'):
     print('load split from raw image file within {}s'.format((tend - tstart).total_seconds()))
     print('saving data {}'.format(type))
     tstart = datetime.datetime.now()
-    loader.save(data, ftype=type)
+    loader.save(data, output_file='minc-2500.plk', ftype=type)
     tend = datetime.datetime.now()
     print('saved within {}s'.format((tend - tstart).total_seconds()))
 
@@ -37,18 +37,19 @@ def test_load():
     # print(data)
     tend = datetime.datetime.now()
     print('load split from hdf5 file within {}s'.format((tend - tstart).total_seconds()))
-
-    print('load from saved pickle')
-    tstart = datetime.datetime.now()
-    loader2.loadfromfile("minc-2500.plk.gz")
-    tend = datetime.datetime.now()
-    print('load split from gzip pickle file within {}s'.format((tend - tstart).total_seconds()))
-
-    print('load from saved raw pickle')
-    tstart = datetime.datetime.now()
-    loader2.loadfromfile("minc-2500.plk")
-    tend = datetime.datetime.now()
-    print('load split from gzip pickle file within {}s'.format((tend - tstart).total_seconds()))
+    for d in data:
+        print(d.shape)
+    # print('load from saved pickle')
+    # tstart = datetime.datetime.now()
+    # loader2.loadfromfile("minc-2500.plk.gz")
+    # tend = datetime.datetime.now()
+    # print('load split from gzip pickle file within {}s'.format((tend - tstart).total_seconds()))
+    #
+    # print('load from saved raw pickle')
+    # tstart = datetime.datetime.now()
+    # loader2.loadfromfile("minc-2500.plk")
+    # tend = datetime.datetime.now()
+    # print('load split from gzip pickle file within {}s'.format((tend - tstart).total_seconds()))
 
 def test_hdf5():
     loader = Minc2500()
@@ -57,7 +58,7 @@ def test_hdf5():
 
 if __name__ == '__main__':
     # test_hdf5()
-    save_data()
+    save_data('gz')
     # test_load()
     # loader2 = Minc2500()
 

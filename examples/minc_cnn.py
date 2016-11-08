@@ -1,4 +1,4 @@
-'''Trains a simple convnet on the MNIST dataset.
+'''Trains a simple convnet on the minc dataset.
 
 Gets to 99.25% test accuracy after 12 epochs
 (there is still a lot of margin for parameter tuning).
@@ -31,7 +31,7 @@ import numpy as np
 
 np.random.seed(1337)  # for reproducibility
 
-from keras.datasets import mnist
+from keras.datasets import minc
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
@@ -48,7 +48,9 @@ nb_epoch = 50
 ratio = 0.1     # Sepcify the ratio of true data used.
 
 # input image dimensions
-img_rows, img_cols = 28, 28
+img_rows, img_cols = 362, 362
+# input image channel
+img_channel = 3
 # number of convolutional filters to use
 nb_filters = 32
 # size of pooling area for max pooling
@@ -56,58 +58,52 @@ pool_size = (2, 2)
 # convolution kernel size
 kernel_size = (3, 3)
 
-''' Modify this to read local data, reference from MNIST example.'''
+''' Modify this to read local data, reference from minc example.'''
 # the data, shuffled and split between train and test sets
-useInfiMNIST = False
-if useInfiMNIST:
-    print('Use infi mnist / 80k mnist')
-    X_train, y_train = mnist.load_infimnist('mnist8m')
-    X_test, y_test = mnist.load_infimnist('t10k')
-else:
-    print('Use original keras mnist')
-    data = mnist.load_data()
+loader = minc.Minc2500()
+data = loader.loadfromfile("minc-2500.plk.hdf5")
 
-    if len(data) == 3:
-        (X_train, y_train), (X_valid, y_valid), (X_test, y_test) = data
-    else:
-        (X_train, y_train), (X_test, y_test) = data
+if len(data) == 3:
+    (X_train, y_train), (X_valid, y_valid), (X_test, y_test) = data
+else:
+    (X_train, y_train), (X_test, y_test) = data
 
 nb_train = len(X_train)
 nb_valid = 200 # len(X_valid)
 nb_test = len(X_test)
 
 
-X_train = X_train[:nb_train,]
-y_train = y_train[:nb_train,]
+# X_train = X_train[:nb_train,]
+# y_train = y_train[:nb_train,]
 # X_valid = X_valid[:nb_valid,]
 # y_valid = y_valid[:nb_valid,]
-X_test = X_test[:nb_test,]
-y_test = y_test[:nb_test,]
-
+# X_test = X_test[:nb_test,]
+# y_test = y_test[:nb_test,]
+input_shape = (img_channel, img_rows, img_cols)
 # Data loading and manipulation.
-if K.image_dim_ordering() == 'th':
-    X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
-    X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
-    input_shape = (1, img_rows, img_cols)
-else:
-    X_train = X_train.reshape(X_train.shape[0], img_rows, img_cols, 1)
-    X_test = X_test.reshape(X_test.shape[0], img_rows, img_cols, 1)
-    input_shape = (img_rows, img_cols, 1)
+# if K.image_dim_ordering() == 'th':
+#     X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
+#     X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
+#     input_shape = (img_channel, img_rows, img_cols)
+# else:
+#     X_train = X_train.reshape(X_train.shape[0], img_rows, img_cols, 1)
+#     X_test = X_test.reshape(X_test.shape[0], img_rows, img_cols, 1)
+#     input_shape = (img_rows, img_cols, img_channel)
 
 X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
-X_train /= 255
-X_test /= 255
-# print('X_train shape:', X_train.shape)
-# print(X_train.shape[0], 'train samples')
-# print(X_test.shape[0], 'test samples')
+# X_train /= 255
+# X_test /= 255
+print('X_train shape:', X_train.shape)
+print(X_train.shape[0], 'train samples')
+print(X_test.shape[0], 'test samples')
 
 # convert class vectors to binary class matrices
 Y_train = np_utils.to_categorical(y_train, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
 print("Load in total {} train sample and {} test sample".format(len(X_train), len(X_test)))
 
-def mnist_model1():
+def minc_model1():
     model = Sequential()
     model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
                             border_mode='valid',
@@ -119,25 +115,12 @@ def mnist_model1():
     model.add(Dropout(0.25))
 
     # Start of secondary layer
-    # print('Adding secondary statistic layer ')
-    # model.add(SecondaryStatistic(activation='linear'))
-    # model.add(WeightedProbability(10, activation='linear', init='normal'))
     model.add(Flatten())
-    # model.add(Dense(128))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
+
     model.add(Dense(nb_classes))
     # model.add(Activation('relu'))
     model.add(Activation('softmax'))
 
-
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('softmax'))
-    #
-    # model.add(Flatten())
-
-    # Define the optimizers:
-    # opt = optimizers.sgd(lr=0.01)
     opt = optimizers.rmsprop()
 
     model.compile(loss='categorical_crossentropy',
@@ -157,23 +140,10 @@ def model_without_dense():
     model.add(Dropout(0.25))
 
     # Start of secondary layer
-    # print('Adding secondary statistic layer ')
     model.add(SecondaryStatistic(activation='linear'))
     model.add(WeightedProbability(10, activation='linear', init='normal'))
-    # model.add(Flatten())
 
-    # model.add(Dense(128))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('relu'))
     model.add(Activation('softmax'))
-
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('softmax'))
-    #
-    # model.add(Flatten())
-    # Define the optimizers:
     # opt = optimizers.sgd(lr=0.01)
     opt = optimizers.rmsprop()
 
@@ -201,19 +171,8 @@ def model_parametrized():
     # print('Adding secondary statistic layer ')
     model.add(SecondaryStatistic(activation='linear', parametrized=True, output_dim=10, init='normal'))
     model.add(WeightedProbability(10, activation='linear', init='normal'))
-    # model.add(Flatten())
 
-    # model.add(Dense(128))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('relu'))
     model.add(Activation('softmax'))
-
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('softmax'))
-    #
-    # model.add(Flatten())
     # Define the optimizers:
     # opt = optimizers.sgd(lr=0.01)
     opt = optimizers.rmsprop()
@@ -226,7 +185,7 @@ def model_parametrized():
 
 def main_loop():
     print("fitting the whole model ")
-    model = mnist_model1()
+    model = minc_model1()
     model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
           verbose=1, validation_data=(X_test, Y_test))
     model.summary()
@@ -235,7 +194,7 @@ def main_loop():
     print('Test accuracy:', score[1])
 
     # Save the model to another location.
-    output_name = 'model_saved/mnist_cnn_sndstat.weights'
+    output_name = 'model_saved/minc_cnn_sndstat.weights'
     out_dir = get_absolute_dir_project(output_name)
     print('saving model to location -> {} '.format(out_dir))
     model.save_weights(out_dir)
@@ -248,13 +207,13 @@ def main_loop():
     print('Test accuracy:', score[1])
 
 
-def mnist_baseline_comparison():
+def minc_baseline_comparison():
     """
     Comparison CNN + FC 10 vs CNN + Cov WP.
     :return:
     """
     print('BEGIN TEST 1')
-    model1 = mnist_model1()
+    model1 = minc_model1()
     model1.summary()
     model1.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
     score = model1.evaluate(X_test, Y_test, verbose=0)
@@ -271,8 +230,8 @@ def mnist_baseline_comparison():
 
 
 def evaluate_model():
-    model = mnist_model1()
-    output_name = 'model_saved/mnist_cnn_sndstat.weights'
+    model = minc_model1()
+    output_name = 'model_saved/minc_cnn_sndstat.weights'
     out_dir = get_absolute_dir_project(output_name)
     model.load_weights(out_dir)
     score = model.evaluate(X_test, Y_test, verbose=0)
@@ -282,13 +241,12 @@ def evaluate_model():
 
 def test_loader():
     # Save the model to another location.
-    output_name = 'model_saved/mnist_cnn_sndstat.weights'
+    output_name = 'model_saved/minc_cnn_sndstat.weights'
     out_dir = get_absolute_dir_project(output_name)
     print('saving model to location -> {} '.format(out_dir))
 
 
-def test_para():
-    model = model_parametrized()
+def test_model(model):
     model.summary()
     model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_test, Y_test))
     score = model.evaluate(X_test, Y_test, verbose=0)
@@ -296,12 +254,23 @@ def test_para():
     print('Test accuracy:', score[1])
 
 
+def test_para():
+    model = model_parametrized()
+    test_model(model)
+
+
+def test_non_para():
+    model = model_without_dense()
+    test_model(model)
+
 if __name__ == '__main__':
 
     # main_loop()
     # test_loader()
     # evaluate_model()
 
-    # mnist_baseline_comparison()
+    # minc_baseline_comparison()
     print("test parametrized layer false")
-    test_para()
+    test_non_para()
+    # test_para()
+

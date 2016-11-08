@@ -6,9 +6,17 @@ try:
 except ImportError:
     # fall back on pydot if necessary
     import pydot
-if not pydot.find_graphviz():
-    raise RuntimeError('Failed to import pydot. You must install pydot'
-                       ' and graphviz for `pydotprint` to work.')
+
+if hasattr(pydot, 'find_graphviz'):
+    if not pydot.find_graphviz():
+        raise RuntimeError('Failed to import pydot. You must install pydot'
+                           ' and graphviz for `pydotprint` to work.')
+else:
+    pydot.Dot.create(pydot.Dot())
+
+# if not pydot.find_graphviz():
+#     raise RuntimeError('Failed to import pydot. You must install pydot'
+#                        ' and graphviz for `pydotprint` to work.')
 
 
 def model_to_dot(model, show_shapes=False, show_layer_names=True):

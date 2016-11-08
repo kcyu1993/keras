@@ -1,7 +1,10 @@
-from keras.engine import Layer, InputSpec
-from keras import initializations
-from keras import backend as K
+from ..engine import Layer, InputSpec
+from .. import initializations
+from .. import backend as K
 
+"""
+Hold the third party code for custom layers.
+"""
 
 class LRN2D(Layer):
 

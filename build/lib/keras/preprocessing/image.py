@@ -626,3 +626,107 @@ class DirectoryIterator(Iterator):
         else:
             return batch_x
         return batch_x, batch_y
+
+class DirectoryIteratorWithFile(DirectoryIterator):
+    """
+    Directory with the text file
+
+    """
+    def __init__(self, directory, container_file,
+                 image_data_generator,
+                 target_size=(256, 256), color_mode='rgb',
+                 dim_ordering='default',
+                 classes=None, class_mode='categorical',
+                 batch_size=32, shuffle=True, seed=None,
+                 save_to_dir=None, save_prefix='', save_format='jpeg'):
+        """
+
+        :param directory:               root directory
+        :param container_file:          absolute path, contains " path/under/root/to/image.type /n ... "
+        :param image_data_generator:
+        :param target_size:
+        :param color_mode:
+        :param dim_ordering:
+        :param classes:
+        :param class_mode:
+        :param batch_size:
+        :param shuffle:
+        :param seed:
+        :param save_to_dir:
+        :param save_prefix:
+        :param save_format:
+        """
+        if dim_ordering == 'default':
+            dim_ordering = K.image_dim_ordering()
+        self.directory = directory
+        self.container_file = container_file
+        self.image_data_generator = image_data_generator
+        self.target_size = tuple(target_size)
+        if color_mode not in {'rgb', 'grayscale'}:
+            raise ValueError('Invalid color mode:', color_mode,
+                             '; expected "rgb" or "grayscale".')
+        self.color_mode = color_mode
+        self.dim_ordering = dim_ordering
+        if self.color_mode == 'rgb':
+            if self.dim_ordering == 'tf':
+                self.image_shape = self.target_size + (3,)
+            else:
+                self.image_shape = (3,) + self.target_size
+        else:
+            if self.dim_ordering == 'tf':
+                self.image_shape = self.target_size + (1,)
+            else:
+                self.image_shape = (1,) + self.target_size
+        self.classes = classes
+        if class_mode not in {'categorical', 'binary', 'sparse', None}:
+            raise ValueError('Invalid class_mode:', class_mode,
+                             '; expected one of "categorical", '
+                             '"binary", "sparse", or None.')
+        self.class_mode = class_mode
+        self.save_to_dir = save_to_dir
+        self.save_prefix = save_prefix
+        self.save_format = save_format
+
+        white_list_formats = {'png', 'jpg', 'jpeg', 'bmp'}
+
+        # first, count the number of samples and classes
+        self.nb_sample = 0
+
+        if not classes:
+            raise NotImplementedError
+
+        self.nb_class = len(classes)
+        self.class_indices = dict(zip(classes, range(len(classes))))
+        container_path = container_file
+        with(open(container_path, 'r')) as f:
+            file_list = [line.rstrip() for line in f]
+            f.close()
+        for fname in sorted(file_list):
+            is_valid = False
+            for extension in white_list_formats:
+                if fname.lower().endswith('.' + extension) and os.path.exists(os.path.join(directory, fname)):
+                    is_valid = True
+                    break
+            if is_valid:
+                self.nb_sample += 1
+        print('Found %d images belonging to %d classes.' % (self.nb_sample, self.nb_class))
+
+        # second, build an index of the images in the different class subfolders
+        self.filenames = []
+        self.classes = np.zeros((self.nb_sample,), dtype='int32')
+
+        i = 0
+        for fname in sorted(file_list):
+            is_valid = False
+            _, file_name = os.path.split(fname)
+            class_name, _ = file_name.split("_")
+            for extension in white_list_formats:
+                if fname.lower().endswith('.' + extension) and os.path.exists(os.path.join(directory, fname)):
+                    is_valid = True
+                    break
+            if is_valid:
+                self.classes[i] = self.class_indices[class_name]
+                self.filenames.append(os.path.join(directory, fname))
+                i += 1
+
+        super(DirectoryIterator, self).__init__(self.nb_sample, batch_size, shuffle, seed)

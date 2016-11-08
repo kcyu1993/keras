@@ -36,11 +36,11 @@ class SecondaryStatistic(Layer):
 
     '''
 
-    def __init__(self, out_dim=None, parametrized=False,
+    def __init__(self, output_dim=None, parametrized=False,
                  init='glorot_uniform', activation='linear', weights=None,
                  W_regularizer=None, dim_ordering='default', **kwargs):
         # TODO Finish this
-        self.out_dim = out_dim
+        self.out_dim = output_dim
         self.parametrized = parametrized
 
         # input parameter preset
