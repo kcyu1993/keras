@@ -177,7 +177,7 @@ def test_routine1():
     # print("Test snd model without pre-loading data")
     # test_snd_layer()
     # print('Test snd model with pre-trained')
-    # test_snd_layer(load=True)
+    # test_snd_layer(loadcompleteimages=True)
 
 def test_routine2():
     """

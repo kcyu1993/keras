@@ -16,17 +16,18 @@ is also different.
 
 '''
 from __future__ import print_function
-from __future__ import absolute_import
 
+import numpy as np
 import warnings
 
-from ..models import Model
-from ..layers import Flatten, Dense, Input, BatchNormalization, merge
-from ..layers import Convolution2D, MaxPooling2D, AveragePooling2D
-from ..utils.layer_utils import convert_all_kernels_in_model
-from ..utils.data_utils import get_file
-from .. import backend as K
-from .imagenet_utils import decode_predictions
+from keras.models import Model
+from keras.layers import Flatten, Dense, Input, BatchNormalization, merge
+from keras.layers import Convolution2D, MaxPooling2D, AveragePooling2D
+from keras.preprocessing import image
+from keras.utils.layer_utils import convert_all_kernels_in_model
+from keras.utils.data_utils import get_file
+from keras import backend as K
+from imagenet_utils import decode_predictions
 
 
 TH_WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/inception_v3_weights_th_dim_ordering_th_kernels.h5'
@@ -106,7 +107,7 @@ def InceptionV3(include_top=True, weights='imagenet',
         img_input = Input(shape=input_shape)
     else:
         if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
+            img_input = Input(tensor=input_tensor)
         else:
             img_input = input_tensor
 
@@ -310,3 +311,17 @@ def preprocess_input(x):
     x -= 0.5
     x *= 2.
     return x
+
+
+if __name__ == '__main__':
+    model = InceptionV3(include_top=True, weights='imagenet')
+
+    img_path = 'elephant.jpg'
+    img = image.load_img(img_path, target_size=(299, 299))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+
+    x = preprocess_input(x)
+
+    preds = model.predict(x)
+    print('Predicted:', decode_predictions(preds))

@@ -36,7 +36,7 @@ def load_data(path='reuters.pkl', nb_words=None, skip_top=0,
 
     path = get_file(path, origin='https://s3.amazonaws.com/text-datasets/reuters.pkl')
     f = open(path, 'rb')
-    X, labels = cPickle.load(f)
+    X, labels = cPickle.loadcompleteimages(f)
     f.close()
 
     np.random.seed(seed)
@@ -90,9 +90,9 @@ def get_word_index(path='reuters_word_index.pkl'):
     f = open(path, 'rb')
 
     if sys.version_info < (3,):
-        data = cPickle.load(f)
+        data = cPickle.loadcompleteimages(f)
     else:
-        data = cPickle.load(f, encoding='latin1')
+        data = cPickle.loadcompleteimages(f, encoding='latin1')
 
     f.close()
     return data

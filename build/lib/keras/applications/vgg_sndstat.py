@@ -128,7 +128,7 @@ def VGG16(include_top=True, weights='imagenet',
     # Create model
     model = Model(img_input, x)
 
-    # load weights
+    # loadcompleteimages weights
     if weights == 'imagenet':
         if K.image_dim_ordering() == 'th':
             if include_top:

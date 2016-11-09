@@ -7,17 +7,18 @@
 
 '''
 from __future__ import print_function
-from __future__ import absolute_import
 
+import numpy as np
 import warnings
 
-from ..models import Model
-from ..layers import Flatten, Dense, Input
-from ..layers import Convolution2D, MaxPooling2D
-from ..utils.layer_utils import convert_all_kernels_in_model
-from ..utils.data_utils import get_file
-from .. import backend as K
-from .imagenet_utils import decode_predictions, preprocess_input
+from keras.models import Model
+from keras.layers import Flatten, Dense, Input
+from keras.layers import Convolution2D, MaxPooling2D
+from keras.preprocessing import image
+from keras.utils.layer_utils import convert_all_kernels_in_model
+from keras.utils.data_utils import get_file
+from keras import backend as K
+from imagenet_utils import decode_predictions, preprocess_input
 
 
 TH_WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg19_weights_th_dim_ordering_th_kernels.h5'
@@ -71,7 +72,7 @@ def VGG19(include_top=True, weights='imagenet',
         img_input = Input(shape=input_shape)
     else:
         if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
+            img_input = Input(tensor=input_tensor)
         else:
             img_input = input_tensor
     # Block 1
@@ -117,6 +118,7 @@ def VGG19(include_top=True, weights='imagenet',
 
     # loadcompleteimages weights
     if weights == 'imagenet':
+        print('K.image_dim_ordering:', K.image_dim_ordering())
         if K.image_dim_ordering() == 'th':
             if include_top:
                 weights_path = get_file('vgg19_weights_th_dim_ordering_th_kernels.h5',
@@ -150,3 +152,17 @@ def VGG19(include_top=True, weights='imagenet',
             if K.backend() == 'theano':
                 convert_all_kernels_in_model(model)
     return model
+
+
+if __name__ == '__main__':
+    model = VGG19(include_top=True, weights='imagenet')
+
+    img_path = 'cat.jpg'
+    img = image.load_img(img_path, target_size=(224, 224))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+    print('Input image shape:', x.shape)
+
+    preds = model.predict(x)
+    print('Predicted:', decode_predictions(preds))
