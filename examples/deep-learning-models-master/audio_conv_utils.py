@@ -1,5 +1,5 @@
 import numpy as np
-from .. import backend as K
+from keras import backend as K
 
 
 TAGS = ['rock', 'pop', 'alternative', 'indie', 'electronic',

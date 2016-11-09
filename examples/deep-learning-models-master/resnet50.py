@@ -8,19 +8,20 @@
 Adapted from code contributed by BigMoyan.
 '''
 from __future__ import print_function
-from __future__ import absolute_import
 
+import numpy as np
 import warnings
 
-from ..layers import merge, Input
-from ..layers import Dense, Activation, Flatten
-from ..layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
-from ..layers import BatchNormalization
-from ..models import Model
-from .. import backend as K
-from ..utils.layer_utils import convert_all_kernels_in_model
-from ..utils.data_utils import get_file
-from .imagenet_utils import decode_predictions, preprocess_input
+from keras.layers import merge, Input
+from keras.layers import Dense, Activation, Flatten
+from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
+from keras.layers import BatchNormalization
+from keras.models import Model
+from keras.preprocessing import image
+import keras.backend as K
+from keras.utils.layer_utils import convert_all_kernels_in_model
+from keras.utils.data_utils import get_file
+from imagenet_utils import decode_predictions, preprocess_input
 
 
 TH_WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_th_dim_ordering_th_kernels.h5'
@@ -152,7 +153,7 @@ def ResNet50(include_top=True, weights='imagenet',
         img_input = Input(shape=input_shape)
     else:
         if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
+            img_input = Input(tensor=input_tensor)
         else:
             img_input = input_tensor
     if K.image_dim_ordering() == 'tf':
@@ -196,6 +197,7 @@ def ResNet50(include_top=True, weights='imagenet',
 
     # loadcompleteimages weights
     if weights == 'imagenet':
+        print('K.image_dim_ordering:', K.image_dim_ordering())
         if K.image_dim_ordering() == 'th':
             if include_top:
                 weights_path = get_file('resnet50_weights_th_dim_ordering_th_kernels.h5',
@@ -233,3 +235,17 @@ def ResNet50(include_top=True, weights='imagenet',
             if K.backend() == 'theano':
                 convert_all_kernels_in_model(model)
     return model
+
+
+if __name__ == '__main__':
+    model = ResNet50(include_top=True, weights='imagenet')
+
+    img_path = 'elephant.jpg'
+    img = image.load_img(img_path, target_size=(224, 224))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+    print('Input image shape:', x.shape)
+
+    preds = model.predict(x)
+    print('Predicted:', decode_predictions(preds))

@@ -224,7 +224,7 @@ def load():
 
 
 def test_minc_original_alexnet_reduced():
-    print("load reduced model from raw image data")
+    print("loadcompleteimages reduced model from raw image data")
     loader = Minc2500()
 
     (tr_x, tr_y), (va_x, va_y), (te_x, te_y) = loader.loadwithsplit()
@@ -250,10 +250,10 @@ def test_minc_original_alexnet_reduced():
 
 def test_minc_original_alexnet_generator():
     print("loading model from generator ")
-    # tr, va, te = load()
+    # tr, va, te = loadcompleteimages()
     loader = Minc2500()
 
-    tr_iterator = loader.generator(file='test1.txt')
+    tr_iterator = loader.generator(input_file='test1.txt')
     x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
     model = Model(input=img_input,
                   output=[x])

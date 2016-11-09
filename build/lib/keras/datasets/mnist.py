@@ -13,7 +13,7 @@ from array import array as pyarray
 
 def load_data(path="mnist.pkl.gz"):
     tpath = get_file(path, origin="https://s3.amazonaws.com/img-datasets/mnist.pkl.gz")
-    # load from locsal file.
+    # loadcompleteimages from locsal file.
 
     # tpath = get_file_from_dir(path, directory='/Users/kyu/BaiduYun/Dropbox/git/keras/data')
     if tpath is None:
@@ -26,9 +26,9 @@ def load_data(path="mnist.pkl.gz"):
         f = open(path, 'rb')
 
     if sys.version_info < (3,):
-        data = cPickle.load(f)
+        data = cPickle.loadcompleteimages(f)
     else:
-        data = cPickle.load(f, encoding="bytes")
+        data = cPickle.loadcompleteimages(f, encoding="bytes")
 
     f.close()
     # return data  # (X_train, y_train), (X_test, y_test)

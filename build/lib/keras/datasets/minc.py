@@ -90,6 +90,13 @@ class MincLoader(object):
         raise NotImplementedError
 
     def loadfromfile(self, filename='minc-2500.plk.gz'):
+        """
+        Support loading from files directly.
+        Proved to be same speed, but large overhead.
+        Switch to load generator.
+        :param filename:
+        :return:
+        """
         path = os.path.join(self.abs_dirpath, filename)
         if os.path.exists(path):
             if path.endswith(".gz"):
@@ -106,7 +113,7 @@ class MincLoader(object):
                 # return data
                 #####
 
-                # load into HDF5Matrix
+                # loadcompleteimages into HDF5Matrix
                 tdata = []
                 for ind, name in enumerate(self.hd5f_label):
                     print("normalized version")
@@ -121,7 +128,7 @@ class MincLoader(object):
                 data = cPickle.load(f)
             else:
                 raise NotImplementedError
-                # data = cPickle.load(f, encoding="bytes")
+                # data = cPickle.loadcompleteimages(f, encoding="bytes")
 
             f.close()
             return data # (data
@@ -165,7 +172,7 @@ class Minc2500(MincLoader):
     Part 1
     Logic:
         give dir-path
-        load the categorty.txt first, translated as LookUpTable (index them)
+        loadcompleteimages the categorty.txt first, translated as LookUpTable (index them)
 
 
     MINC patch information: http://opensurfaces.cs.cornell.edu/static/minc/minc.tar.gz
@@ -195,27 +202,41 @@ class Minc2500(MincLoader):
         super(Minc2500, self).__init__(dirpath='minc-2500', category='categories.txt',
                                        label_dir='labels', image_dir='images')
 
-    def load(self, names=None, overwrite=True, split=True, index=1):
-        if names is None:
-            names = self.categories.keys()
+    # def loadcompleteimages(self, names=None, overwrite=True, split=True, index=1):
+    #     if names is None:
+    #         names = self.categories.keys()
+    #
+    #     if split:
+    #         return self.loadwithsplit(names, index)
+    #
+    #     if overwrite:
+    #         self.label = []
+    #         self.image = []
+    #     for name in names:
+    #         # get all list from the folder
+    #         name_dir = os.path.join(self.image_dir, name)
+    #         list = os.listdir(name_dir)
+    #         for file in list:
+    #             index, img = self._load(file)
+    #             self.label.append(index)
+    #             self.image.append(img)
 
-        if split:
-            return self.loadwithsplit(names, index)
-
-        if overwrite:
-            self.label = []
-            self.image = []
-        for name in names:
-            # get all list from the folder
-            name_dir = os.path.join(self.image_dir, name)
-            list = os.listdir(name_dir)
-            for file in list:
-                index, img = self._load(file)
-                self.label.append(index)
-                self.image.append(img)
-
-        # load the category and generate the look up table
-        return np.array(self.label), np.array(self.image)
+    def loadfromtxt(self, fname='train1.txt', shuffle=True):
+        path = os.path.join(self.labels_dir, fname)
+        with(open(path, 'r')) as f:
+            list = [line.rstrip().split('/')[2] for line in f]
+            f.close()
+        # loadcompleteimages the category and generate the look up table
+        label = []
+        img = []
+        if shuffle:
+            from random import shuffle as sh
+            list = sh(list)
+        for file in list:
+            index, img = self._load(file)
+            label.append(index)
+            img.append(img)
+        return np.array(img), np.array(label)
 
     def loadwithsplit(self, names=None, index=1):
         """
@@ -250,12 +271,7 @@ class Minc2500(MincLoader):
         tr_img = []
         te_img = []
         va_img = []
-        # tr_label = np.array()
-        # te_label = np.array()
-        # va_label = np.array()
-        # tr_img = np.array()
-        # te_img = np.array()
-        # va_img = np.array()
+
         print("Load training {}".format(len(tr_list)))
         # for file in tr_list:
         for file in tr_list[:100]:
@@ -274,7 +290,7 @@ class Minc2500(MincLoader):
             index, img = self._load(file)
             te_label.append(index)
             te_img.append(img)
-        print("load finish with {} train, {} valid and {} test".format(len(tr_label),
+        print("loadcompleteimages finish with {} train, {} valid and {} test".format(len(tr_label),
                                                                        len(va_label),
                                                                        len(te_label)))
 
@@ -283,9 +299,35 @@ class Minc2500(MincLoader):
                (np.array(va_img), np.array(va_label)), \
                (np.array(te_img), np.array(te_label))
 
+    def generator(self, input_file='train1.txt', shuffle=True, batch_size=32, gen=None, target_size=(362, 362)):
+        """
+        Generator for large input file.
+        :param input_file:  File contains locations of image to be read
+        :param shuffle:     shuffle the data
+        :param batch_size:
+        :param gen:         ImageGenerator
+        :param target_size: target size
+        :return: DirectoryIterator (for direct input)
+        """
+        if gen is None:
+            gen = ImageDataGenerator(rescale=1. / 255)
+
+        print("generate the image with batch size {} shuffle {}".format(batch_size, shuffle))
+        if input_file is None:
+            iterator = DirectoryIterator(self.image_dir, gen, shuffle=shuffle, target_size=(362, 362),
+                                         batch_size=batch_size, classes=self.categories)
+        else:
+            fpath = os.path.join(self.labels_dir, input_file)
+            iterator = DirectoryIteratorWithFile(self.abs_dirpath, fpath, gen, shuffle=shuffle, target_size=target_size,
+                                                 batch_size=batch_size, classes=self.categories)
+        # batch_x, batch_y = iterator.next()
+        return iterator
+
+    """ Utilities """
     def getimagepath(self, fpath, index=None):
         """
         Get image absolute path.
+
         :param fpath:   cate_index.*
         :param index:
         :return:    absolute path to image
@@ -294,32 +336,11 @@ class Minc2500(MincLoader):
         dir = os.path.join(self.image_dir, cate_name)
         return os.path.join(dir, fpath)
 
-    def generator(self, file='train1.txt', shuffle=True, batch_size=32):
-        gen = ImageDataGenerator(rescale=1./255)
-        print("generate the image with batch size {} shuffle {}".format(batch_size, shuffle))
-        if file is None:
-            iterator = DirectoryIterator(self.image_dir, gen, shuffle=shuffle, target_size=(362,362),
-                                         batch_size=batch_size, classes=self.categories)
-        else:
-            fpath = os.path.join(self.labels_dir, file)
-            iterator = DirectoryIteratorWithFile(self.abs_dirpath, fpath, gen, shuffle=shuffle, target_size=(362,362),
-                                                 batch_size=batch_size, classes=self.categories)
-        # batch_x, batch_y = iterator.next()
-        return iterator
-
     def test_hd5f(self):
         tr = [np.random.rand(1000,3,362,362), np.array(range(10), dtype='byte')]
         va = np.array(range(11, 15), dtype='byte')
         te = np.array(range(16, 20), dtype='byte')
         f = h5py.File(os.path.join(self.abs_dirpath, 'test.hdf5'), "w")
-        # group = f.create_group("minc2500")
-        # train = group.create_group('train')
-        # test = group.create_group('test')
-        # valid = group.create_group('valid')
-        # f.create_dataset('minc', data=np.array((tr, va, te)))
-        # group['train'] = tr
-        # group['test'] = te
-        # group['valid'] = va
 
     def test_hd5f_load(self):
         f = h5py.File(os.path.join(self.abs_dirpath, 'test.hdf5'), "r")
