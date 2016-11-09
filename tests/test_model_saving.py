@@ -161,7 +161,7 @@ def test_loading_weights_by_name():
     model.add(Dense(3, name="morty"))
     model.compile(loss=custom_loss, optimizer=custom_opt(), metrics=['acc'])
 
-    # loadcompleteimages weights from first model
+    # loads weights from first model
     model.load_weights(fname, by_name=True)
     os.remove(fname)
 
@@ -212,7 +212,7 @@ def test_loading_weights_by_name_2():
     model = Model(input=[data], output=[morty])
     model.compile(loss=custom_loss, optimizer=custom_opt(), metrics=['acc'])
 
-    # loadcompleteimages weights from first model
+    # loads weights from first model
     model.load_weights(fname, by_name=True)
     os.remove(fname)
 

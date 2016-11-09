@@ -115,7 +115,7 @@ def VGG19(include_top=True, weights='imagenet',
     # Create model
     model = Model(img_input, x)
 
-    # loadcompleteimages weights
+    # loads weights
     if weights == 'imagenet':
         if K.image_dim_ordering() == 'th':
             if include_top:
@@ -240,7 +240,7 @@ def VGG19_bottom(include_top=False, weights='imagenet',
         x = Dense(4096, activation='relu', name='fc2')(x)
         x = Dense(1000, activation='softmax', name='predictions')(x)
 
-    # loadcompleteimages weights
+    # loads weights
     if weights == 'imagenet':
         if K.image_dim_ordering() == 'th':
             if include_top:

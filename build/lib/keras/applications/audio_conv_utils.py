@@ -45,7 +45,7 @@ def preprocess_input(audio_path, dim_ordering='default'):
     HOP_LEN = 256
     DURA = 29.12
 
-    src, sr = librosa.loadcompleteimages(audio_path, sr=SR)
+    src, sr = librosa.load(audio_path, sr=SR)
     n_sample = src.shape[0]
     n_sample_wanted = int(DURA * SR)
 

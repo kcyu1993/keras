@@ -7,9 +7,9 @@ from six.moves import cPickle
 def load_batch(fpath, label_key='labels'):
     f = open(fpath, 'rb')
     if sys.version_info < (3,):
-        d = cPickle.loadcompleteimages(f)
+        d = cPickle.load(f)
     else:
-        d = cPickle.loadcompleteimages(f, encoding="bytes")
+        d = cPickle.load(f, encoding="bytes")
         # decode utf8
         for k, v in d.items():
             del(d[k])

@@ -68,7 +68,7 @@ input_shape = (1, 28, 28)  # image shape
 nb_class = 10  # number of class
 
 
-# loadcompleteimages and pre-process data
+# loads and pre-process data
 def preprocess_input(x):
     return x.reshape((-1, ) + input_shape) / 255.
 

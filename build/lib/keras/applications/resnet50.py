@@ -194,7 +194,7 @@ def ResNet50(include_top=True, weights='imagenet',
 
     model = Model(img_input, x)
 
-    # loadcompleteimages weights
+    # loads weights
     if weights == 'imagenet':
         if K.image_dim_ordering() == 'th':
             if include_top:

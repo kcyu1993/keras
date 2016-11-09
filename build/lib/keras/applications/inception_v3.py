@@ -264,7 +264,7 @@ def InceptionV3(include_top=True, weights='imagenet',
     # Create model
     model = Model(img_input, x)
 
-    # loadcompleteimages weights
+    # loads weights
     if weights == 'imagenet':
         if K.image_dim_ordering() == 'th':
             if include_top:

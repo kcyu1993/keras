@@ -12,7 +12,7 @@ save it in a different format, load it in Python 3 and repickle it.
 '''
 
 from __future__ import print_function
-from keras.datasets import cifar10
+from keras.datasets import cifar100
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
@@ -24,7 +24,7 @@ from keras.utils.logger import Logger
 import sys
 
 batch_size = 32
-nb_classes = 10
+nb_classes = 20
 nb_epoch = 100
 data_augmentation = True
 
@@ -38,7 +38,14 @@ SND_PATH = get_absolute_dir_project('model_saved/cifar10_cnn_sndstat.weights')
 LOG_PATH = get_absolute_dir_project('model_saved/log')
 
 # the data, shuffled and split between train and test sets
-(X_train, y_train), (X_test, y_test) = cifar10.load_data()
+# label_mode = 'fine'
+label_mode = 'coarse'
+(X_train, y_train), (X_test, y_test) = cifar100.load_data(label_mode=label_mode)
+if label_mode is 'fine':
+    nb_classes = 100
+elif label_mode is 'coarse':
+    nb_classes = 20
+
 print('X_train shape:', X_train.shape)
 print(X_train.shape[0], 'train samples')
 print(X_test.shape[0], 'test samples')
