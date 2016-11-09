@@ -41,7 +41,7 @@ def load_data(path='imdb_full.pkl', nb_words=None, skip_top=0,
     else:
         f = open(path, 'rb')
 
-    (x_train, labels_train), (x_test, labels_test) = cPickle.loadcompleteimages(f)
+    (x_train, labels_train), (x_test, labels_test) = cPickle.load(f)
     f.close()
 
     np.random.seed(seed)
@@ -108,9 +108,9 @@ def get_word_index(path='imdb_word_index.pkl'):
     f = open(path, 'rb')
 
     if sys.version_info < (3,):
-        data = cPickle.loadcompleteimages(f)
+        data = cPickle.load(f)
     else:
-        data = cPickle.loadcompleteimages(f, encoding='latin1')
+        data = cPickle.load(f, encoding='latin1')
 
     f.close()
     return data

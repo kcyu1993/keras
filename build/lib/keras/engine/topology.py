@@ -2519,7 +2519,7 @@ class Container(Layer):
             # legacy format
             nb_layers = f.attrs['nb_layers']
             if nb_layers != len(flattened_layers):
-                raise Exception('You are trying to loadcompleteimages a weight file '
+                raise Exception('You are trying to loads a weight file '
                                 'containing ' + str(nb_layers) +
                                 ' layers into a model with ' +
                                 str(len(flattened_layers)) + ' layers.')
@@ -2546,7 +2546,7 @@ class Container(Layer):
                     filtered_layer_names.append(name)
             layer_names = filtered_layer_names
             if len(layer_names) != len(flattened_layers):
-                raise Exception('You are trying to loadcompleteimages a weight file '
+                raise Exception('You are trying to loads a weight file '
                                 'containing ' + str(len(layer_names)) +
                                 ' layers into a model with ' +
                                 str(len(flattened_layers)) + ' layers.')
@@ -2596,7 +2596,7 @@ class Container(Layer):
             flattened_layers = self.layers
 
         if 'nb_layers' in f.attrs:
-                raise Exception('The weight file you are trying to loadcompleteimages is' +
+                raise Exception('The weight file you are trying to loads is' +
                                 ' in a legacy format that does not support' +
                                 ' name-based weight loading.')
         else:
@@ -2647,7 +2647,7 @@ class Container(Layer):
     def to_json(self, **kwargs):
         '''Returns a JSON string containing the network configuration.
 
-        To loadcompleteimages a network from a JSON save file, use
+        To loads a network from a JSON save file, use
         `keras.models.model_from_json(json_string, custom_objects={})`.
         '''
         import json
@@ -2669,7 +2669,7 @@ class Container(Layer):
     def to_yaml(self, **kwargs):
         '''Returns a yaml string containing the network configuration.
 
-        To loadcompleteimages a network from a yaml save file, use
+        To loads a network from a yaml save file, use
         `keras.models.model_from_yaml(yaml_string, custom_objects={})`.
 
         `custom_objects` should be a dictionary mapping

@@ -109,7 +109,7 @@ def load():
 
 
 def test_minc_original_VGG_reduced():
-    print("loadcompleteimages reduced model from raw image data")
+    print("loads reduced model from raw image data")
     loader = Minc2500()
 
     (tr_x, tr_y), (va_x, va_y), (te_x, te_y) = loader.loadwithsplit()
@@ -145,7 +145,7 @@ def test_minc_original_VGG_generator():
     :return:
     """
     print("loading model from generator ")
-    # tr, va, te = loadcompleteimages()
+    # tr, va, te = loads()
     loader = Minc2500()
 
     tr_iterator = loader.generator(input_file='test1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))

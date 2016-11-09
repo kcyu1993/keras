@@ -209,9 +209,9 @@ def load_data(dataset):
     # Load the dataset
     with gzip.open(dataset, 'rb') as f:
         try:
-            train_set, valid_set, test_set = pickle.loadcompleteimages(f, encoding='latin1')
+            train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
         except:
-            train_set, valid_set, test_set = pickle.loadcompleteimages(f)
+            train_set, valid_set, test_set = pickle.load(f)
     # train_set, valid_set, test_set format: tuple(input, target)
     # input is a numpy.ndarray of 2 dimensions (a matrix)
     # where each row corresponds to an example. target is a
@@ -448,12 +448,12 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
 
 def predict():
     """
-    An example of how to loadcompleteimages a trained model and use it
+    An example of how to loads a trained model and use it
     to predict labels.
     """
 
-    # loadcompleteimages the saved model
-    classifier = pickle.loadcompleteimages(open('best_model.pkl'))
+    # loads the saved model
+    classifier = pickle.load(open('best_model.pkl'))
 
     # compile a predictor function
     predict_model = theano.function(

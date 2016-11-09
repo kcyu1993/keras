@@ -21,7 +21,7 @@ nb_classes = 10
 # input image dimensions
 img_rows, img_cols = 28, 28
 
-# loadcompleteimages training data and do basic data normalization
+# loads training data and do basic data normalization
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
 X_test = X_test.reshape(X_test.shape[0], 1, img_rows, img_cols)
