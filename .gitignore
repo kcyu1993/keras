@@ -20,8 +20,8 @@ Keras.egg-info
 # Dropbox attributes
 .dropbox.attr
 # new image models
-/examples/ImageModels-master/docs/
-/examples/ImageModels-master/Model/
+/examples/ImageModels/docs/
+/examples/ImageModels/Model/
 /model_saved/log/
 /data/t10k-labels-idx1-ubyte
 /data/mnist.pkl.gz
