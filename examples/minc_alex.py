@@ -5,6 +5,8 @@
 
         Replicated from the Caffe Zoo Model Version.
 
+
+
     Paper:
 
          ImageNet classification with deep convolutional neural networks by Krizhevsky et al. in NIPS 2012
@@ -28,8 +30,14 @@ from keras.models import Model, Sequential
 from keras import regularizers
 # from keras.utils.visualize_util import plot
 from keras.utils.np_utils import to_categorical
+from keras.utils.model_utils import *
 from keras.layers.custom_layers import LRN2D
 from keras.datasets.minc import Minc2500
+
+
+# Load the model
+from keras.applications.alexnet import alexnet_top
+
 # global constants
 NB_CLASS = 23         # number of classes
 LEARNING_RATE = 0.01
@@ -47,7 +55,7 @@ LRN2D_norm = True       # whether to use batch normalization
 DIM_ORDERING = 'th'
 
 ### FOR model 1
-
+INPUT_SHAPE=(3,227,227)
 
 
 def conv2D_lrn2d(x, nb_filter, nb_row, nb_col,
@@ -153,36 +161,19 @@ def create_model_alex():
     #
     return x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING
 
-# def minc_model1():
-#     model = Sequential()
-#     model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
-#                             border_mode='valid',
-#                             input_shape=input_shape,
-#                             activation='relu'))
-#     model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
-#                             activation='relu'))
-#     model.add(MaxPooling2D(pool_size=pool_size))
-#     model.add(Dropout(0.25))
-#
-#     # Start of secondary layer
-#     model.add(Flatten())
-#
-#     model.add(Dense(nb_classes))
-#     # model.add(Activation('relu'))
-#     model.add(Activation('softmax'))
-#
-#     opt = optimizers.rmsprop()
-#
-#     model.compile(loss='categorical_crossentropy',
-#                   optimizer=opt,
-#                   metrics=['accuracy'])
-#     return model
 
 def create_alex_snd():
-    x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_model_alex()
+    x = alexnet_top(get_model_dir(), input_shape=INPUT_SHAPE)
     x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
     x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
-    return x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING
+    return x, INPUT_SHAPE
+
+def create_alex_original2():
+    x = alexnet_top(get_model_dir(), input_shape=INPUT_SHAPE)
+    x = Flatten()(x)
+    x = Dense(output_dim=NB_CLASS,
+              activation='softmax')(x)
+    return x, INPUT_SHAPE
 
 def create_alex_original():
     x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_model_alex()
@@ -196,15 +187,15 @@ def create_alex_original():
 def check_print(name='second'):
     # Create the Model
     if name is 'second':
-        x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_snd()
+        x, img_input = create_alex_snd()
     elif name is 'original':
-        x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
+        x, img_input = create_alex_original2()
 
     # Create a Keras Model - Functional API
     model = Model(input=img_input,
                   output=[x])
     model.summary()
-
+    # model.load_weights(os.path.join( , by_name=True))
     # Save a PNG of the Model Build
     # plot(model, to_file='./Model/AlexNet_{}.png'.format(name))
 
@@ -249,12 +240,24 @@ def test_minc_original_alexnet_reduced():
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
 
 def test_minc_original_alexnet_generator():
+    """
+    This is testing case for minc dataset on original Alexnet as entry-point
+        Experiment result:
+            Not converging from random-initialization
+            Extremely slow(or I dont know what is the relatively good speed)
+            Batch size 128, training time is around 8s
+
+
+    :return:
+    """
     print("loading model from generator ")
     # tr, va, te = loadcompleteimages()
     loader = Minc2500()
 
-    tr_iterator = loader.generator(input_file='test1.txt')
-    x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
+    tr_iterator = loader.generator(input_file='test1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
+    # x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
+    x, img_input = create_alex_original2()
+    img_input = Input(shape=INPUT_SHAPE)
     model = Model(input=img_input,
                   output=[x])
     model.summary()
@@ -262,7 +265,10 @@ def test_minc_original_alexnet_generator():
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit_generator(tr_iterator, samples_per_epoch=40000, nb_epoch=NB_EPOCH, nb_worker=4)
+    # Load the weights
+    model.load_weights(convnet_alexnet(), by_name=True)
+
+    model.fit_generator(tr_iterator, samples_per_epoch=128*100, nb_epoch=NB_EPOCH, nb_worker=4)
 
     # score = model.evaluate(te[0], te[1], verbose=0)
     # print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
