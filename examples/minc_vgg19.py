@@ -57,12 +57,12 @@ DIM_ORDERING = 'th'
 INPUT_SHAPE=(3, 224, 224)
 
 
-
 def create_VGG_snd():
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
     x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
     x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
     return x, weight_path, img_input
+
 
 def create_VGG_original2():
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
@@ -133,7 +133,9 @@ def test_minc_original_VGG_reduced():
     score = model.evaluate(te_x, te_Y, verbose=0)
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
 
-def test_minc_original_VGG_generator():
+
+
+def test_minc_VGG_snd_generator():
     """
     This is testing case for minc dataset on original Alexnet as entry-point
         Experiment result:
@@ -150,7 +152,7 @@ def test_minc_original_VGG_generator():
 
     tr_iterator = loader.generator(input_file='test1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
     # x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
-    x, weight_path, img_input = create_VGG_original2()
+    x, weight_path, img_input = create_VGG_snd()
     model = Model(input=img_input,
                   output=[x])
     model.summary()
@@ -165,6 +167,47 @@ def test_minc_original_VGG_generator():
 
     # score = model.evaluate(te[0], te[1], verbose=0)
     # print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
+
+
+def test_minc_original_VGG_generator():
+    """
+    This is testing case for minc dataset on original Alexnet as entry-point
+        Experiment result:
+            Not converging from random-initialization
+            Extremely slow(or I dont know what is the relatively good speed)
+            Batch size 128, training time is around 8s
+
+
+    :return:
+    """
+    print("loading model from generator ")
+    # tr, va, te = loads()
+    loader = Minc2500()
+
+    tr_iterator = loader.generator(input_file='train1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
+    te_iterator = loader.generator(input_file='test1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
+
+    tr_sample = tr_iterator.nb_sample
+    te_sample = te_iterator.nb_sample
+
+    # x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
+    x, weight_path, img_input = create_VGG_original2()
+    model = Model(input=img_input,
+                  output=[x])
+    model.summary()
+    model.compile(optimizer='rmsprop',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    # Load the weights
+    model.load_weights(weight_path, by_name=True)
+
+    model.fit_generator(tr_iterator, samples_per_epoch=128*100, nb_epoch=NB_EPOCH, nb_worker=4,
+                        validation_data=te_iterator, nb_val_samples=te_sample)
+
+    # score = model.evaluate(te[0], te[1], verbose=0)
+    # print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))z
+
 
 
 # def test_train_generator():

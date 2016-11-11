@@ -21,7 +21,9 @@ from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
+from keras.applications.resnet50 import ResNet50CIFAR
 import sys
+
 
 batch_size = 32
 nb_classes = 10
@@ -113,7 +115,20 @@ def model_snd():
                   metrics=['accuracy'])
     return model
 
-def fit(model):
+
+def resnet50_original():
+    # img_input = Input(shape=(img_channels, img_rows, img_cols))
+    # model = ResNet50(True, weights='imagenet')
+    model = ResNet50CIFAR(nb_class=nb_classes)
+    # let's train the model using SGD + momentum (how original).
+    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=sgd,
+                  metrics=['accuracy'])
+    return model
+
+
+def fit(model, verbose=1):
     if not data_augmentation:
         print('Not using data augmentation.')
         model.fit(X_train, Y_train,
@@ -145,6 +160,7 @@ def fit(model):
                                          batch_size=batch_size),
                             samples_per_epoch=X_train.shape[0],
                             nb_epoch=nb_epoch,
+                            verbose=verbose,
                             validation_data=(X_test, Y_test))
         return model
 
@@ -156,6 +172,7 @@ def test_original():
     score = model.evaluate(X_test, Y_test, verbose=0)
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
 
+
 def test_snd_layer(load=False, save=True):
     model = model_snd()
     if load:
@@ -166,6 +183,17 @@ def test_snd_layer(load=False, save=True):
     if save:    model.save_weights(SND_PATH)
     score = model.evaluate(X_test, Y_test, verbose=0)
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
+
+
+
+def test_resnet50_original(verbose=1):
+    model = resnet50_original()
+    model.summary()
+    model = fit(model, verbose=verbose)
+    # model.save_weights(BASELINE_PATH)
+    score = model.evaluate(X_test, Y_test, verbose=0)
+    print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
+
 
 def test_merge_model():
     raise NotImplementedError
@@ -188,11 +216,20 @@ def test_routine2():
     sys.stdout = Logger(LOG_PATH + '/cifar_routine2.log')
     test_snd_layer(load=False)
 
+
 def test_routine3():
     sys.stdout = Logger(LOG_PATH + '/cifar_routine3.log')
     test_snd_layer(load=True, save=False)
 
+
+def test_routine4():
+    # sys.stdout = Logger(LOG_PATH + '/cifar_routine4.log')
+    test_resnet50_original(2)
+
 if __name__ == '__main__':
+
+
     # test_routine1()
     # print('test')
-    test_routine1()
+    # test_routine1()
+    test_routine4()

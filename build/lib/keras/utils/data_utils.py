@@ -160,6 +160,6 @@ def get_absolute_dir_project(filepath):
     path = os.path.join(get_project_dir(), filepath)
     dir = os.path.dirname(path)
     if not os.path.exists(dir):
+        # os.mkdir(dir)
         return None
-    else:
-        return path
+    return path
