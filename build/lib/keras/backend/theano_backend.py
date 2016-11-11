@@ -957,6 +957,10 @@ def relu(x, alpha=0., max_value=None):
     return x
 
 
+def prelu(x, alpha=0.25):
+    return relu(x, alpha)
+
+
 def softmax(x):
     return T.nnet.softmax(x)
 

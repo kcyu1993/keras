@@ -32,10 +32,11 @@ import numpy as np
 np.random.seed(1337)  # for reproducibility
 
 from keras.datasets import mnist
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.models import Sequential, Model
+from keras.layers import Dense, Dropout, Activation, Flatten, Input, merge
 from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import SecondaryStatistic, WeightedProbability
+from keras.layers import SecondaryStatistic, WeightedProbability, O2Transform
+from keras.layers import PReLU
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras import backend as K
@@ -107,6 +108,50 @@ Y_train = np_utils.to_categorical(y_train, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
 print("Load in total {} train sample and {} test sample".format(len(X_train), len(X_test)))
 
+
+def mnist_fitnet_v1():
+    """
+    Implement the fit model has 205K param
+    Without any Maxout design in this version
+    Just follows the general architecture
+
+    :return: model sequential
+    """
+    model = Sequential()
+    model.add(Convolution2D(16, 3, 3, border_mode='valid', input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(16, 3, 3, border_mode='valid'))
+    model.add(Activation('relu'))
+    # model.add(Convolution2D(16, 3, 3, border_mode='valid'))
+    # model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(4,4), strides=(2,2)))
+    # model.add(Dropout(0.25))
+    model.add(Convolution2D(16, 3, 3, border_mode='valid'))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(16, 3, 3, border_mode='valid'))
+    model.add(Activation('relu'))
+    # model.add(Convolution2D(32, 3, 3, border_mode='valid'))
+    # model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(4, 4), strides=(2, 2)))
+
+    model.add(Convolution2D(12, 3, 3, border_mode='valid'))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(12, 3, 3, border_mode='valid'))
+    model.add(Activation('relu'))
+    # model.add(Convolution2D(64, 3, 3, border_mode='valid'))
+    # model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+
+    # model.add(Dense(500))
+    model.add(Dense(10, activation='softmax'))
+    opt = optimizers.rmsprop()
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=opt,
+                  metrics=['accuracy'])
+    return model
+
+
 def mnist_model1():
     model = Sequential()
     model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
@@ -156,31 +201,25 @@ def model_without_dense():
     model.add(MaxPooling2D(pool_size=pool_size))
     model.add(Dropout(0.25))
 
-    # Start of secondary layer
-    # print('Adding secondary statistic layer ')
     model.add(SecondaryStatistic(activation='linear'))
     model.add(WeightedProbability(10, activation='linear', init='normal'))
-    # model.add(Flatten())
-
-    # model.add(Dense(128))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('relu'))
     model.add(Activation('softmax'))
-
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('softmax'))
-    #
-    # model.add(Flatten())
-    # Define the optimizers:
-    # opt = optimizers.sgd(lr=0.01)
     opt = optimizers.rmsprop()
 
     model.compile(loss='categorical_crossentropy',
                   optimizer=opt,
                   metrics=['accuracy'])
     return model
+
+
+def model_with_merge():
+    """
+    Build a model concat both O1 and O2 information
+    :return: compiled model
+    """
+    img_input = Input(shape=input_shape)
+
+
 
 def test_more_parameters():
     print("Model 1 ")
@@ -199,8 +238,11 @@ def model_parametrized():
 
     # Start of secondary layer
     # print('Adding secondary statistic layer ')
-    model.add(SecondaryStatistic(activation='linear', parametrized=True, output_dim=10, init='normal'))
-    model.add(WeightedProbability(10, activation='linear', init='normal'))
+    model.add(SecondaryStatistic(activation='linear', parametrized=False, output_dim=10, init='normal'))
+    model.add(O2Transform(activation='linear', output_dim=100))
+    model.add(Activation('relu'))
+    # model.add(PReLU(weights=[0.25]))
+    model.add(WeightedProbability(10, activation='relu', init='normal'))
     # model.add(Flatten())
 
     # model.add(Dense(128))
@@ -302,6 +344,6 @@ if __name__ == '__main__':
     # test_loader()
     # evaluate_model()
 
-    # mnist_baseline_comparison()
-    print("test parametrized layer false")
-    test_para()
+    mnist_baseline_comparison()
+    # print("test parametrized layer false")
+    # test_para()

@@ -202,7 +202,7 @@ def test_minc_original_VGG_generator():
     # Load the weights
     model.load_weights(weight_path, by_name=True)
 
-    model.fit_generator(tr_iterator, samples_per_epoch=128*100, nb_epoch=NB_EPOCH, nb_worker=4,
+    model.fit_generator(tr_iterator, samples_per_epoch=128, nb_epoch=5, nb_worker=4,
                         validation_data=te_iterator, nb_val_samples=te_sample)
 
     # score = model.evaluate(te[0], te[1], verbose=0)

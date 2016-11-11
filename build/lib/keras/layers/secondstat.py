@@ -8,7 +8,6 @@ from keras import activations
 
 from theano import tensor as T
 from theano import scan
-import numpy as np
 
 
 class SecondaryStatistic(Layer):
@@ -122,9 +121,9 @@ class SecondaryStatistic(Layer):
         # Compute the covariance matrix Y, by sum( <x_ij - x, x_ij.T - x.T> )
         # cov_mat, updates = scan(fn=lambda tx:  self.calculate_covariance(tx),
         cov_mat, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(self.calculate_covariance(tx), self.W)),
-                                   outputs_info=None,
-                                   sequences=[x],
-                                   non_sequences=None)
+                                outputs_info=None,
+                                sequences=[x],
+                                non_sequences=None)
         # print(components.type)
         # print(components.eval().shape)
         # print(components.eval())
@@ -166,3 +165,96 @@ class SecondaryStatistic(Layer):
         # return tx_normal
         tx_cov = K.dot(tx_normal.T, tx_normal) / (self.cols * self.rows - 1)
         return tx_cov
+
+
+class O2Transform(Layer):
+    ''' This layer shall stack one trainable weights out of previous input layer.
+
+
+        # Input shape
+            3D tensor with
+            (samples, input_dim, input_dim)
+            Note the input dim must align, i.e, must be a square matrix.
+
+        # Output shape
+            3D tensor with
+                (samples, out_dim, out_dim)
+            This is just the 2D covariance matrix for all samples feed in.
+
+        # Arguments
+            out_dim         weight matrix, if none, make it align with nb filters
+            weights         initial weights.
+            W_regularizer   regularize the weight if possible in future
+            init:           initialization of function.
+            activation      test activation later (could apply some non-linear activation here
+        '''
+
+    def __init__(self, output_dim=None,
+                 init='glorot_uniform', activation='relu', weights=None,
+                 W_regularizer=None, dim_ordering='default', **kwargs):
+        # TODO Finish this
+        self.out_dim = output_dim
+
+        # input parameter preset
+        self.nb_samples = 0
+
+        self.activition = activations.get(activation)
+
+        self.init = initializations.get(init, dim_ordering=dim_ordering)
+        self.initial_weights = weights
+        self.W_regularizer = regularizers.get(W_regularizer)
+        self.dim_ordering = 'th'
+
+        self.input_spec = [InputSpec(ndim=3)]
+        # Set out_dim accordingly.
+
+        super(O2Transform, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        """
+        Build the model based on input shape
+        Should not set the weight vector here.
+        :param input_shape: (nb-sample, input_dim, input_dim)
+        :return:
+        """
+        assert len(input_shape) == 3
+        assert input_shape[1] == input_shape[2]
+
+        if self.dim_ordering == 'th':
+            # Create the weight vector
+            self.W_shape = (input_shape[1], self.out_dim)
+            if self.initial_weights is not None:
+                self.set_weights(self.initial_weights)
+                del self.initial_weights
+            else:
+                self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
+            self.trainable_weights = [self.W]
+        else:
+            raise Exception('Invalid dim_ordering: ' + self.dim_ordering
+                            + ' tensorflow not supported')
+
+        self.built = True
+
+    def get_output_shape_for(self, input_shape):
+        assert len(input_shape) == 3
+        assert input_shape[1] == input_shape[2]
+        return input_shape[0], self.out_dim, self.out_dim
+
+    def call(self, x, mask=None):
+        result, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(tx, self.W)),
+                                outputs_info=None,
+                                sequences=[x],
+                                non_sequences=None)
+
+        com = K.dot(self.W.T, K.dot(x, self.W))
+        # print("O2Transform shape" + com.eval().shape)
+        return result
+
+    def get_config(self):
+        config = {'init': self.init.__name__,
+                  'activation': self.activation.__name__,
+                  'dim_ordering': self.dim_ordering,
+                  'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
+                  }
+        base_config = super(O2Transform, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
