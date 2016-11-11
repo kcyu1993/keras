@@ -163,3 +163,8 @@ def get_absolute_dir_project(filepath):
         # os.mkdir(dir)
         return None
     return path
+
+
+def get_weight_path(filename):
+    path = get_absolute_dir_project('model_saved')
+    return os.path.join(path, filename)
