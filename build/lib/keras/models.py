@@ -608,6 +608,7 @@ class Sequential(Model):
         if kwargs:
             raise Exception('Received unknown keyword arguments: ' +
                             str(kwargs))
+
         return self.model.fit(x, y,
                               batch_size=batch_size,
                               nb_epoch=nb_epoch,
