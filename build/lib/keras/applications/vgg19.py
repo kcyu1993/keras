@@ -151,8 +151,9 @@ def VGG19(include_top=True, weights='imagenet',
                 convert_all_kernels_in_model(model)
     return model
 
+
 def VGG19_bottom(include_top=False, weights='imagenet',
-          input_tensor=None):
+          input_tensor=None, output_dim=1000):
     '''Instantiate the VGG19 architecture,
     optionally loading weights pre-trained
     on ImageNet. Note that when using TensorFlow,
@@ -238,7 +239,10 @@ def VGG19_bottom(include_top=False, weights='imagenet',
         x = Flatten(name='flatten')(x)
         x = Dense(4096, activation='relu', name='fc1')(x)
         x = Dense(4096, activation='relu', name='fc2')(x)
-        x = Dense(1000, activation='softmax', name='predictions')(x)
+        if output_dim != 1000:
+            x = Dense(output_dim, activation='softmax', name='predictions_1')(x)
+        else:
+            x = Dense(1000, activation='softmax', name='predictions')(x)
 
     # loads weights
     if weights == 'imagenet':

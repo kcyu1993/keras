@@ -23,6 +23,7 @@ from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
 from keras.utils.logger import Logger
 from keras.applications.resnet50 import ResNet50CIFAR
 import sys
+import os
 
 
 batch_size = 32
@@ -58,7 +59,7 @@ X_test /= 255
 input_shape = X_train.shape[1:]
 
 
-def cifar_fitnet_v1():
+def cifar_fitnet_v1(second=False, parametric=True):
     """
     Implement the fit model has 205K param
     Without any Maxout design in this version
@@ -91,9 +92,19 @@ def cifar_fitnet_v1():
     model.add(Convolution2D(64, 3, 3, border_mode='same'))
     model.add(Activation('relu'))
     # model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Flatten())
-    model.add(Dense(500))
-    model.add(Dense(10, activation='softmax'))
+
+    if not second:
+        model.add(Flatten())
+        model.add(Dense(500))
+        model.add(Dense(nb_classes, activation='softmax'))
+        model.name = model.name + "_original"
+    else:
+        model.add(SecondaryStatistic(name='second_layer'))
+        if parametric:
+            model.add(O2Transform(output_dim=100, name='O2transform'))
+        model.add(WeightedProbability(output_dim=nb_classes))
+        model.add(Activation('softmax'))
+        model.name = model.name + "_second"
 
     opt = rmsprop()
 
@@ -238,9 +249,11 @@ def test_snd_layer(load=False, save=True, parametric=True):
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
 
 
-def test_fitnet_layer(load=False, save=True, parametric=True, verbose=1):
-    model = cifar_fitnet_v1()
-    weight_path = get_weight_path(model.name + ".weights")
+def test_fitnet_layer(load=False, save=True, second=False, parametric=True, verbose=1):
+    model = cifar_fitnet_v1(second=second, parametric=parametric)
+    weight_path = get_weight_path(model.name + ".weights", dir='dataset')
+    if not os.path.exists(weight_path):
+        load=False
     model.summary()
     if load:
         model.load_weights(weight_path, by_name=False)
@@ -294,11 +307,12 @@ def test_routine4():
 
 def test_routine5():
     # sys.stdout = Logger(LOG_PATH + '/cifar_routine4.log')
-    test_fitnet_layer(load=True, verbose=1)
+    # test_fitnet_layer(load=True, verbose=1)
+    test_fitnet_layer(second=True, load=True, verbose=2)
 
 if __name__ == '__main__':
 
-    nb_epoch = 5
+    nb_epoch = 200
     # test_routine1()
     # print('test')
     # test_routine1()
