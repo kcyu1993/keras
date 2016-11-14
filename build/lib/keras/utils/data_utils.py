@@ -165,6 +165,13 @@ def get_absolute_dir_project(filepath):
     return path
 
 
-def get_weight_path(filename):
-    path = get_absolute_dir_project('model_saved')
-    return os.path.join(path, filename)
+def get_weight_path(filename, dir='project'):
+    if dir is 'project':
+        path = get_absolute_dir_project('model_saved')
+        return os.path.join(path, filename)
+    elif dir is 'dataset':
+        dir_base = os.path.expanduser(os.path.join('~', '.keras'))
+        dir = os.path.join(dir_base, 'models')
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+        return os.path.join(dir, filename)

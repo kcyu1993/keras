@@ -23,20 +23,26 @@
 
 """
 
-from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, SecondaryStatistic, WeightedProbability
-from keras.layers import Flatten, Dense, Dropout
+from keras.layers import SecondaryStatistic, WeightedProbability
+from keras.layers import Flatten, Dense, Dropout, O2Transform
 from keras.layers import Input
 from keras.models import Model, Sequential
 from keras import regularizers
 # from keras.utils.visualize_util import plot
 from keras.utils.np_utils import to_categorical
 from keras.utils.model_utils import *
+from keras.utils.data_utils import get_weight_path, get_absolute_dir_project
+from keras.utils.logger import Logger
 from keras.datasets.minc import Minc2500
 
 
 # Load the model
 from keras.applications.vgg19 import VGG19, VGG19_bottom
+from keras.applications.resnet50 import ResNet50MINC
 
+import sys
+
+LOG_PATH = get_absolute_dir_project('model_saved/log')
 # global constants
 NB_CLASS = 23         # number of classes
 LEARNING_RATE = 0.01
@@ -47,7 +53,7 @@ BETA = 0.75
 GAMMA = 0.1
 DROPOUT = 0.5
 WEIGHT_DECAY = 0.0005
-NB_EPOCH = 50
+NB_EPOCH = 20
 LRN2D_norm = True       # whether to use batch normalization
 # Theano - 'th' (channels, width, height)
 # Tensorflow - 'tf' (width, height, channels)
@@ -56,6 +62,20 @@ DIM_ORDERING = 'th'
 ### FOR model 1
 INPUT_SHAPE=(3, 224, 224)
 
+
+def create_ResNet50(second=False, parametric=True):
+    if not second:
+        model = ResNet50MINC(weights='imagenet', nb_class=NB_CLASS)
+        model.name = 'ResNet50_original'
+    else:
+        x, weight_path, img_input = ResNet50MINC(include_top=False, nb_class=NB_CLASS, weights='imagenet')
+        x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
+        if parametric:
+            x = O2Transform(output_dim=100, activation='relu')(x)
+        x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
+        model = Model(input=img_input,
+                      output=[x])
+    return model
 
 def create_VGG_snd():
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
@@ -66,9 +86,10 @@ def create_VGG_snd():
 
 def create_VGG_original2():
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
-    x = Flatten()(x)
-    x = Dense(output_dim=NB_CLASS,
-              activation='softmax')(x)
+    x = Flatten(name='flatten')(x)
+    x = Dense(4096, activation='relu', name='fc1')(x)
+    x = Dense(4096, activation='relu', name='fc2')(x)
+    x = Dense(NB_CLASS, activation='softmax', name='predictions')(x)
     return x, weight_path, img_input
 
 
@@ -134,8 +155,7 @@ def test_minc_original_VGG_reduced():
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
 
 
-
-def test_minc_VGG_snd_generator():
+def test_minc_original_VGG_generator(load=False, save=True, verbose=1):
     """
     This is testing case for minc dataset on original Alexnet as entry-point
         Experiment result:
@@ -146,30 +166,43 @@ def test_minc_VGG_snd_generator():
 
     :return:
     """
-    print("loading model from generator ")
-    # tr, va, te = loads()
-    loader = Minc2500()
 
-    tr_iterator = loader.generator(input_file='test1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
-    # x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
-    x, weight_path, img_input = create_VGG_snd()
+    x, weight_path, img_input = VGG19_bottom(include_top=True, weights='imagenet', output_dim=NB_CLASS)
     model = Model(input=img_input,
                   output=[x])
-    model.summary()
-    model.compile(optimizer='rmsprop',
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
 
-    # Load the weights
-    model.load_weights(weight_path, by_name=True)
+    if load:
+        weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
 
-    model.fit_generator(tr_iterator, samples_per_epoch=128*100, nb_epoch=NB_EPOCH, nb_worker=4)
-
-    # score = model.evaluate(te[0], te[1], verbose=0)
-    # print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
+    test_minc_VGG_generator(model, weight_path, load=load, save=save, verbose=verbose)
 
 
-def test_minc_original_VGG_generator():
+def test_minc_snd_VGG_generator(load=False, save=True, verbose=1):
+    x, weight_path, img_input = VGG19_bottom(weights='imagenet', output_dim=NB_CLASS)
+    # After max pooling here
+    x = SecondaryStatistic()(x)
+    x = O2Transform(output_dim=1000)(x)
+    x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')
+
+    model = Model(input=img_input,
+                  output=[x])
+
+    if load:
+        weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
+
+    test_minc_VGG_generator(model, weight_path, load=load, save=save, verbose=verbose)
+
+
+def test_minc_ResNet50_generator(load=False, save=True, verbose=1):
+    model = create_ResNet50()
+    if load:
+        weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
+    else:
+        weight_path = None
+    test_minc_VGG_generator(model, weight_path, load=load, save=save, verbose=verbose)
+
+
+def test_minc_VGG_generator(model, weight_path=None, load=False, save=True, verbose=1):
     """
     This is testing case for minc dataset on original Alexnet as entry-point
         Experiment result:
@@ -184,33 +217,52 @@ def test_minc_original_VGG_generator():
     # tr, va, te = loads()
     loader = Minc2500()
 
-    tr_iterator = loader.generator(input_file='train1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
+    tr_iterator = loader.generator(input_file='train1.txt', batch_size=16, target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
     te_iterator = loader.generator(input_file='test1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
 
     tr_sample = tr_iterator.nb_sample
     te_sample = te_iterator.nb_sample
 
-    # x, img_input, CONCAT_AXIS, INP_SHAPE, DIM_ORDERING = create_alex_original()
-    x, weight_path, img_input = create_VGG_original2()
-    model = Model(input=img_input,
-                  output=[x])
+    if load:
+        weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
+    if weight_path is not None:
+        model.load_weights(weight_path, by_name=True)
+
     model.summary()
     model.compile(optimizer='rmsprop',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    # Load the weights
-    model.load_weights(weight_path, by_name=True)
+    model.fit_generator(tr_iterator, samples_per_epoch=128*200, nb_epoch=NB_EPOCH, nb_worker=4,
+                        validation_data=te_iterator, nb_val_samples=te_sample,
+                        verbose=verbose)
 
-    model.fit_generator(tr_iterator, samples_per_epoch=128, nb_epoch=5, nb_worker=4,
-                        validation_data=te_iterator, nb_val_samples=te_sample)
+    print("save the model")
+    if save:
+        weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
+        model.save_weights(weight_path)
+
 
     # score = model.evaluate(te[0], te[1], verbose=0)
-    # print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))z
+    # print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
+
+
+def test_routine1():
+    print("test routine 1")
+    sys.stdout = Logger(LOG_PATH + '/minc_resnet50_original1.log')
+    # test_fitnet_layer(load=True, verbose=1)
+    test_minc_ResNet50_generator(load=False, verbose=1)
+
+if __name__ == '__main__':
+    # test_minc_original_VGG_generator()
+    test_routine1()
+    # test_minc_original_alexnet_reduced()
+    # test_VGG()
+    # check_print('original')
+    # check_print('second')
 
 
 
-# def test_train_generator():
 def test_VGG():
     # model = VGG19(weights='imagenet')
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
@@ -229,10 +281,3 @@ def test_VGG():
     model.load_weights(weight_path, by_name=True)
     print('Model Compiled')
 
-
-if __name__ == '__main__':
-    test_minc_original_VGG_generator()
-    # test_minc_original_alexnet_reduced()
-    # test_VGG()
-    # check_print('original')
-    # check_print('second')
