@@ -175,3 +175,17 @@ def get_weight_path(filename, dir='project'):
         if not os.path.exists(dir):
             os.mkdir(dir)
         return os.path.join(dir, filename)
+
+
+def get_plot_path(filename, dir='project'):
+    if dir is 'project':
+        path = get_absolute_dir_project('model_saved/plots')
+        if not os.path.exists(path):
+            os.mkdir(path)
+        return os.path.join(path, filename)
+    elif dir is 'dataset':
+        dir_base = os.path.expanduser(os.path.join('~', '.keras'))
+        dir = os.path.join(dir_base, 'plots')
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+        return os.path.join(dir, filename)
