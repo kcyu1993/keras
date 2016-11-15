@@ -9,7 +9,7 @@ from PIL import Image
 import os.path
 from os import listdir
 import h5py
-from keras.preprocessing.image import DirectoryIteratorWithFile, DirectoryIterator, ImageDataGenerator
+from keras.preprocessing.image import *
 
 
 class MincLoader(object):
@@ -359,15 +359,20 @@ class MincOriginal(MincLoader):
         Author: Kaicheng Yu     2016-11-7
     Function:
         Load the raw image from minc dataset
-        Create the corresponding PATCH for each image, with fix size (360, 360)
+        Create the corresponding PATCH for each image, to fix size as 360,360
             By bounding box centered at click, size is 23% lower dimension of the image
-            Upscaling / Downscaling to 360,360
-        Once determined, further save as pickle file
-
+            Upscaling / Downscaling to 224, 224
+        Should not saved as another external data base, but by runtime generation
+        Further,
+        augment the image according to paper description
+            1.
     Data structure as output:
-        data = (nbsample, 3, 360, 360)
+        data = (nbsample, 3, 224, 224)
         label = (nbsample, )
         (train_data, train_label) , ... for valid, test.
+
+    Data structure for output should be specified for different model.
+    Default 224,224
 
     Structure:
     */minc/
@@ -391,22 +396,58 @@ class MincOriginal(MincLoader):
         train.txt           A 4-tuple list of (label, photo id, x, y). Point locations are normalized to be in the range [0, 1].
         validate.txt        same
         test.txt            same
-
-
     """
 
     def __init__(self):
-        raise NotImplementedError
+        self.hd5f_label = ['tr_img', 'tr_lab', 'va_img', 'va_lab', 'te_img', 'te_lab']
+        super(MincOriginal, self).__init__(dirpath='minc', category='categories.txt',
+                                           label_dir='', image_dir='photo_orig')
 
-    def _load(self, fpath, x, y):
-        """
-        Load single image from given path.
-        :param fpath: full path.
-        :return:      class label, image 3D array
-        """
-        dir, filename = os.path.split(fpath)
-        index,_ = self.decode(filename)
-        fpath = self.getimagepath(fpath)
-        img = MincLoader.load_image(fpath)
+    def generator(self, input_file='train.txt', shuffle=True, batch_size=32,
+                  gen=None, target_size=(256, 256), save_dir=None):
 
-        return index, img
+        if gen is None:
+            gen = ImageDataGenerator(
+                rescale=1. / 255,
+                channelwise_std_normalization=True
+            )
+        input_file = os.path.join(self.abs_dirpath, input_file)
+        iterator = MincOriginalIterator(self.abs_dirpath, gen, self.categories,
+                                        txtfile=input_file, img_folder=self.image_dir,
+                                        target_size=target_size, color_mode='rgb',
+                                        batch_size=batch_size, shuffle=shuffle,
+                                        save_to_dir=save_dir)
+        return iterator
+
+
+
+    def loadfromtxt(self, fname='train.txt', shuffle=True):
+        path = os.path.join(self.labels_dir, fname)
+        # label, photo_id, x, y
+        with(open(path, 'r')) as f:
+            file_list = [line.rstrip().split(',') for line in f]
+            f.close()
+        # load the category and generate the look up table
+        label = []
+        img = []
+        if shuffle:
+            from random import shuffle as sh
+            file_list = sh(file_list)
+        for file in file_list:
+            index, img = self._load(file)
+            label.append(index)
+            img.append(img)
+        return np.array(img), np.array(label)
+
+
+        # def _load(self, fpath):
+        #     """
+        #     Load single image from given path.
+        #     :param fpath: full path.
+        #     :return:      class label, image 3D array
+        #     """
+        #     dir, filename = os.path.split(fpath)
+        #     index,_ = self.decode(filename)
+        #     fpath = self.getimagepath(fpath)
+        #     img = MincLoader.load_image(fpath)
+        #     return index, img
