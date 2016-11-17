@@ -13,6 +13,7 @@ save it in a different format, load it in Python 3 and repickle it.
 
 from __future__ import print_function
 from keras.datasets import cifar10
+from keras.engine import Model
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
@@ -105,7 +106,7 @@ def cifar_fitnet_v1(second=False, parametric=True):
         model.add(SecondaryStatistic(name='second_layer'))
         if parametric:
             model.add(O2Transform(output_dim=100, name='O2transform_1'))
-            model.add(O2Transform(output_dim=10, name='O2transform_2'))
+            model.add(O2Transform(output_dim=50, name='O2transform_2'))
         model.add(WeightedProbability(output_dim=nb_classes))
         model.add(Activation('softmax'))
         model.name = model.name + "_second"
@@ -196,6 +197,20 @@ def resnet50_original():
     return model
 
 
+def resnet50_snd(parametric=False):
+    x, img_input = ResNet50CIFAR(False, nb_class=nb_classes)
+    x = SecondaryStatistic(parametrized=False)(x)
+    if parametric:
+        x = O2Transform(output_dim=100, activation='relu')(x)
+        x = O2Transform(output_dim=10, activation='relu')(x)
+    x = WeightedProbability(output_dim=nb_classes, activation='softmax')(x)
+    model = Model(img_input, x, name='ResNet50CIFAR_snd')
+    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=sgd,
+                  metrics=['accuracy'])
+    return model
+
 def test_original(load=False, save=True, verbose=1):
     model = model_original()
     fit_model(model, load=load, save=save, verbose=verbose)
@@ -211,25 +226,14 @@ def test_fitnet_layer(load=False, save=True, second=False, parametric=True, verb
     fit_model(model, load=load, save=save, verbose=verbose)
 
 
-# def test_fitnet_layer2(load=False, save=True, second=False, parametric=True, verbose=1):
-#     model = cifar_fitnet_v1(second=second, parametric=parametric)
-#     weight_path = get_weight_path(model.name + ".weights", dir='dataset')
-#     if not os.path.exists(weight_path):
-#         load=False
-#     model.summary()
-#     if load:
-#         model.load_weights(weight_path, by_name=False)
-#     # else:
-#     model = fit(model, verbose)
-#     if save:    model.save_weights(weight_path)
-#     score = model.evaluate(X_test, Y_test, verbose=0)
-#     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
-
-
 def test_resnet50_original(verbose=1):
     model = resnet50_original()
     fit_model(model, verbose=verbose)
 
+
+def test_resnet_snd(parametric=True, verbose=1):
+    model = resnet50_snd(parametric)
+    fit_model(model, load=True, save=True, verbose=verbose)
 
 def test_merge_model():
     raise NotImplementedError
@@ -238,7 +242,7 @@ def test_merge_model():
 def fit_model(model, load=False, save=True, verbose=1):
     engine = ExampleEngine([X_train, Y_train], model, [X_test, Y_test],
                            load_weight=load, save_weight=save,
-                           batch_size=batch_size, nb_epoch=nb_epoch, title='snd', verbose=verbose)
+                           batch_size=batch_size, nb_epoch=nb_epoch, title='cifar10', verbose=verbose)
     model.summary()
     engine.fit(batch_size=batch_size, nb_epoch=nb_epoch, augmentation=data_augmentation)
     score = engine.model.evaluate(X_test, Y_test, verbose=0)
@@ -278,12 +282,14 @@ def test_routine4():
 def test_routine5():
     # sys.stdout = Logger(LOG_PATH + '/cifar_routine4.log')
     # test_fitnet_layer(load=True, verbose=1)
-    test_fitnet_layer(second=True, load=True, verbose=2)
+    test_fitnet_layer(second=True, load=False, verbose=2)
 
 if __name__ == '__main__':
 
-    nb_epoch = 5
+    nb_epoch = 50
     # test_routine1()
     # print('test')
     # test_routine1()
     test_routine5()
+    # test_resnet50_original(2)
+    # test_resnet_snd(True, verbose=1)

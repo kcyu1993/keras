@@ -253,9 +253,9 @@ def test_minc_original_loader():
 
 
 if __name__ == '__main__':
-    test_minc_original_loader()
+    # test_minc_original_loader()
     # test_minc_original_VGG_generator()
-    # test_routine1()
+    test_routine1()
     # test_routine2()
     # test_minc_original_alexnet_reduced()
     # test_VGG()

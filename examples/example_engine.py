@@ -54,7 +54,7 @@ class ExampleEngine(object):
         if isinstance(data, (list,tuple)):
             assert len(data) == 2
             self.train = data
-        elif isinstance(data, [ImageDataGenerator, DirectoryIterator]):
+        elif isinstance(data, (ImageDataGenerator, DirectoryIterator)):
             self.train = data
             self.mode = 1
 
@@ -192,7 +192,7 @@ class ExampleEngine(object):
         else:
             raise RuntimeError("plot only support metric as loss, acc")
         x_factor = range(len(train))
-        filename = "{}-{}_{}.log".format(self.title, self.model.name, self.mode)
+        filename = "{}-{}_{}.png".format(self.title, self.model.name, self.mode)
         from keras.utils.visualize_util import plot_train_test
         plot_train_test(train, valid, x_factor=x_factor, show=show,
                         xlabel='epoch', ylabel=metric,
