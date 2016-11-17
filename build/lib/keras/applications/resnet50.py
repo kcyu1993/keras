@@ -444,7 +444,7 @@ def ResNet50MINC(include_top=True, weights='imagenet',
     return model
 
 
-def ResNet50CIFAR(include_top=True, input_tensor=None, nb_class=1000):
+def ResNet50CIFAR(include_top=True, second=False, input_tensor=None, nb_class=1000):
     '''Instantiate the ResNet50 architecture,
     optionally loading weights pre-trained
     on ImageNet. Note that when using TensorFlow,
@@ -516,11 +516,15 @@ def ResNet50CIFAR(include_top=True, input_tensor=None, nb_class=1000):
     x = identity_block_original(x, 3, [64, 64], stage=4, block='d')
     x = identity_block_original(x, 3, [64, 64], stage=4, block='e')
 
-    x = AveragePooling2D((3, 3), name='avg_pool')(x)
+    if second:
+        x = AveragePooling2D((3, 3), name='avg_pool')(x)
+
+
 
     if include_top:
+        x = AveragePooling2D((3, 3), name='avg_pool')(x)
         x = Flatten()(x)
-        x = Dense(nb_class, activation='softmax', name='fc1000')(x)
+        x = Dense(nb_class, activation='softmax', name='fc')(x)
     else:
         return x, img_input
 

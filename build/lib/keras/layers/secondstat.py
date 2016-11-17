@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+from theano import scalar
+from theano.tensor import elemwise
+
 from keras.engine import Layer, InputSpec
 from keras import initializations, regularizers
 from keras import backend as K
@@ -38,7 +41,6 @@ class SecondaryStatistic(Layer):
     def __init__(self, output_dim=None, parametrized=False,
                  init='glorot_uniform', activation='linear', weights=None,
                  W_regularizer=None, dim_ordering='default', **kwargs):
-        # TODO Finish this
         self.out_dim = output_dim
         self.parametrized = parametrized
 
@@ -120,16 +122,16 @@ class SecondaryStatistic(Layer):
         # type (theano.config.floatX, matrix)
         # Compute the covariance matrix Y, by sum( <x_ij - x, x_ij.T - x.T> )
         # cov_mat, updates = scan(fn=lambda tx:  self.calculate_covariance(tx),
-        cov_mat, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(self.calculate_covariance(tx), self.W)),
-                                outputs_info=None,
-                                sequences=[x],
-                                non_sequences=None)
+        # cov_mat, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(self.calculate_covariance(tx), self.W)),
+        #                         outputs_info=None,
+        #                         sequences=[x],
+        #                         non_sequences=None)
         # print(components.type)
         # print(components.eval().shape)
         # print(components.eval())
 
         # Times the weight vector
-
+        cov_mat = self.calculate_pre_cov(x)
         # result = K.dot(K.eye(self.out_dim), K.dot(cov_mat, K.eye(self.out_dim)))
         # return the (samples, cov-mat) as 3D tensor.
         return cov_mat
@@ -149,6 +151,26 @@ class SecondaryStatistic(Layer):
                          (self.cols * self.rows,
                           self.nb_filter))
 
+    def reshape_tensor3d(self, x):
+        # Given a 4D tensor, reshape to 3D
+        return K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
+
+    def calculate_pre_cov(self, x):
+        """
+        4D tensor to 3D (N, nb_filter, col* row)
+        :param x:
+        :return:
+        """
+        xf = self.reshape_tensor3d(x)
+        xf_mean = K.mean(xf, axis=2, keepdims=2)
+        xf_normal = xf - xf_mean
+        tx = K.sum(elemwise.Elemwise(scalar_op=scalar.mul)(
+            xf_normal.dimshuffle([0, 'x', 1, 2]),
+            xf_normal.dimshuffle([0, 1, 'x', 2])
+        ), axis=3)
+        cov = tx / (self.rows * self.cols - 1)
+        return cov
+
     def calculate_covariance(self, x):
         """
         Input shall be 3D tensor (nb_filter,ncol,nrow)
@@ -165,6 +187,7 @@ class SecondaryStatistic(Layer):
         # return tx_normal
         tx_cov = K.dot(tx_normal.T, tx_normal) / (self.cols * self.rows - 1)
         return tx_cov
+
 
 
 class O2Transform(Layer):
@@ -241,14 +264,14 @@ class O2Transform(Layer):
         return input_shape[0], self.out_dim, self.out_dim
 
     def call(self, x, mask=None):
-        result, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(tx, self.W)),
-                                outputs_info=None,
-                                sequences=[x],
-                                non_sequences=None)
-
-        com = K.dot(self.W.T, K.dot(x, self.W))
+        # result, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(tx, self.W)),
+        #                         outputs_info=None,
+        #                         sequences=[x],
+        #                         non_sequences=None)
+        #
+        com = K.dot(T.transpose(K.dot(x, self.W),[0,2,1]), self.W)
         # print("O2Transform shape" + com.eval().shape)
-        return result
+        return com
 
     def get_config(self):
         config = {'init': self.init.__name__,
