@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import logging
 import tarfile
 import os
 import sys
@@ -52,7 +53,7 @@ def get_file(fname, origin, untar=False,
     if not os.access(datadir_base, os.W_OK):
         datadir_base = os.path.join('/tmp', '.keras')
     datadir = os.path.join(datadir_base, cache_subdir)
-    print(datadir_base)
+    logging.debug(datadir_base)
     if not os.path.exists(datadir):
         os.makedirs(datadir)
 

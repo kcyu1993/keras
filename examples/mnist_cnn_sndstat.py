@@ -2,6 +2,7 @@
 
 Gets to 99.25% test accuracy after 12 epochs
 (there is still a lot of margin for parameter tuning).
+11 seconds per epoch on a Titan Z GPU with CuDNN and CnMeM snd v2
 16 seconds per epoch on a GRID K520 GPU.
 19 seconds per epoch on a Titan Z GPU with CuDNN and CnMeM
 39 seconds per epoch on a Titan Z GPU
@@ -26,6 +27,9 @@ Trying the new experiments:
 '''
 
 from __future__ import print_function
+
+import logging
+
 import numpy as np
 
 from example_engine import ExampleEngine
@@ -238,10 +242,11 @@ def test_history():
                            load_weight=False, save_weight=True, save_log=False,
                            save_per_epoch=True,
                            title='mnist_test', nb_epoch=10)
-    hist = engine.fit(batch_size=128, nb_epoch=10, verbose=2)
-    # filename = engine.save_history(hist)
-    # hist2 = engine.load_history(filename)
-    # engine.plot_result()
+    hist = engine.fit(batch_size=128, nb_epoch=2, verbose=2)
+    filename = engine.save_history(hist)
+    hist2 = engine.load_history(filename)
+    engine.plot_result(linestyle='-.', metric='acc', show=True)
+    engine.plot_result(linestyle='-', metric='loss', show=True)
     return
 
 def main_loop():
@@ -325,5 +330,5 @@ if __name__ == '__main__':
     # mnist_baseline_comparison()
     # print("test parametrized layer false")
     # test_para()
-
+    logging.basicConfig(level=logging.DEBUG)
     test_history()

@@ -13,6 +13,8 @@ Supply with
 """
 from __future__ import absolute_import
 
+import logging
+
 from keras.callbacks import History, ModelCheckpoint, CSVLogger, LearningRateScheduler
 from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
 from keras.utils.io_utils import cpickle_load, cpickle_save
@@ -22,11 +24,14 @@ from keras.preprocessing.image import ImageDataGenerator, DirectoryIterator
 import os
 import sys
 
+
 def getlogfiledir():
     return get_absolute_dir_project('model_saved/log')
 
+
 def gethistoryfiledir():
     return get_absolute_dir_project('model_saved/history')
+
 
 class ExampleEngine(object):
     """
@@ -105,7 +110,7 @@ class ExampleEngine(object):
         self.weight_path = get_weight_path(
             "{}-{}_{}.weights".format(self.title, model.name, self.mode),
             'dataset')
-        print("weights path {}".format(self.weight_path))
+        logging.debug("weights path {}".format(self.weight_path))
         self.save_weight = save_weight
         self.load_weight = load_weight
         self.save_per_epoch = save_per_epoch
@@ -114,7 +119,7 @@ class ExampleEngine(object):
             self.load_weight = False
         self.cbks = []
         if self.save_weight and self.save_per_epoch:
-            self.cbks.append(ModelCheckpoint(self.weight_path, verbose=1))
+            self.cbks.append(ModelCheckpoint(self.weight_path + ".tmp", verbose=1))
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=False):
         self.batch_size = batch_size
@@ -132,9 +137,12 @@ class ExampleEngine(object):
         except (KeyboardInterrupt, SystemExit):
             print("System catch do some thing (like save the model)")
             if self.save_weight:
-
-                self.model.save_weights(self.weight_path + ".tmp")
+                self.model.save_weights(self.weight_path + ".tmp", overwrite=True)
+            raise
         self.history = history
+        if self.save_weight and self.save_per_epoch:
+            # Potentially remove the tmp file.
+            os.remove(self.weight_path + '.tmp')
         return history
 
     def fit_generator(self):
@@ -200,16 +208,18 @@ class ExampleEngine(object):
                 self.model.save_weights(self.weight_path)
         return hist
 
-    def plot_result(self, metric='acc', show=False):
+    def plot_result(self, metric='acc', linestyle='-', show=False, dictionary=None):
         if self.history is None:
             return
-        history = self.history
+        history = self.history.history
+        if dictionary is not None:
+            history = dictionary
         if metric is 'acc':
-            train = history.history['acc']
-            valid = history.history['val_acc']
+            train = history['acc']
+            valid = history['val_acc']
         elif metric is 'loss':
-            train = history.history['loss']
-            valid = history.history['val_loss']
+            train = history['loss']
+            valid = history['val_loss']
         else:
             raise RuntimeError("plot only support metric as loss, acc")
         x_factor = range(len(train))
@@ -217,6 +227,7 @@ class ExampleEngine(object):
         from keras.utils.visualize_util import plot_train_test
         plot_train_test(train, valid, x_factor=x_factor, show=show,
                         xlabel='epoch', ylabel=metric,
+                        linestyle=linestyle,
                         filename=filename, plot_type=0)
 
     def save_history(self, history):
@@ -228,15 +239,17 @@ class ExampleEngine(object):
         dir = gethistoryfiledir()
         if not os.path.exists(dir):
             os.mkdir(dir)
-        cpickle_save(data=history, output_file=filename)
+        filename = os.path.join(dir, filename)
+        filename = cpickle_save(data=history.history, output_file=filename)
         return filename
 
     def load_history(self, filename):
+        logging.debug("load history from {}".format(filename))
         hist = cpickle_load(filename)
-        if isinstance(hist, History):
+        if isinstance(hist, dict):
             return hist
         else:
-            raise ValueError("Should read a history term")
+            raise ValueError("Should read a dict term")
 
 
 

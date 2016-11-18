@@ -8,7 +8,8 @@ except ImportError:
 
 def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
                     names=('train', 'test'), xlabel='', ylabel='', filename='',
-                    color=('b', 'r'), plot_type=0):
+                    color=('b', 'r'), linestyle='-',
+                    plot_type=0):
     """
     train_errors, test_errors and lambas should be list (of the same size) the respective train error and test error for a given lambda,
     * lambda[0] = 1
@@ -20,11 +21,11 @@ def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
     """
 
     if plot_type == 0:
-        plt.plot(x_factor, train_errors, color=color[0], label=names[0], line='-')
-        plt.plot(x_factor, test_errors, color=color[1], label=names[1], line='-.')
+        plt.plot(x_factor, train_errors, color=color[0], label=names[0], linestyle=linestyle)
+        plt.plot(x_factor, test_errors, color=color[1], label=names[1], linestyle=linestyle)
     elif plot_type == 1:
-        plt.semilogx(x_factor, train_errors, color='b', marker='*', label=names[0])
-        plt.semilogx(x_factor, test_errors, color='r', marker='*', label=names[1])
+        plt.semilogx(x_factor, train_errors, color='b', marker='*', linestyle=linestyle, label=names[0])
+        plt.semilogx(x_factor, test_errors, color='r', marker='*', linestyle=linestyle, label=names[1])
     else:
         raise RuntimeError("Unidentified plot type, must be either smooth or scatter")
 

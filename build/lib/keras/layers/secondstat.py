@@ -10,7 +10,7 @@ from keras import backend as K
 from keras import activations
 
 from theano import tensor as T
-from theano import scan
+import logging
 
 
 class SecondaryStatistic(Layer):
@@ -50,7 +50,7 @@ class SecondaryStatistic(Layer):
         self.rows = 0
         self.nb_samples = 0
 
-        self.activition = activations.get(activation)
+        self.activation = activations.get(activation)
 
         self.init = initializations.get(init, dim_ordering=dim_ordering)
         self.initial_weights = weights
@@ -112,29 +112,9 @@ class SecondaryStatistic(Layer):
     def call(self, x, mask=None):
         if not self.built:
             raise Exception("Secondary stat layer not built")
-        print('Secondary_stat parameter', type(x))  # Confirm the type of x is indeed tensor4D
-
-        # TODO Compute the mean vector
-        # Pesudo data creation
-        # x = np.random.rand(*shape)
-
-        # Step 1: reshape the 3D array into 2D array
-
-        # type (theano.config.floatX, matrix)
-        # Compute the covariance matrix Y, by sum( <x_ij - x, x_ij.T - x.T> )
-        # cov_mat, updates = scan(fn=lambda tx:  self.calculate_covariance(tx),
-        # cov_mat, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(self.calculate_covariance(tx), self.W)),
-        #                         outputs_info=None,
-        #                         sequences=[x],
-        #                         non_sequences=None)
-        # print(components.type)
-        # print(components.eval().shape)
-        # print(components.eval())
-
-        # Times the weight vector
+        logging.debug('Secondary_stat parameter', type(x))  # Confirm the type of x is indeed tensor4D
         cov_mat = self.calculate_pre_cov(x)
-        # result = K.dot(K.eye(self.out_dim), K.dot(cov_mat, K.eye(self.out_dim)))
-        # return the (samples, cov-mat) as 3D tensor.
+
         return cov_mat
 
     def get_config(self):
@@ -222,7 +202,7 @@ class O2Transform(Layer):
         # input parameter preset
         self.nb_samples = 0
 
-        self.activition = activations.get(activation)
+        self.activation = activations.get(activation)
 
         self.init = initializations.get(init, dim_ordering=dim_ordering)
         self.initial_weights = weights
