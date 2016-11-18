@@ -28,6 +28,7 @@ Trying the new experiments:
 from __future__ import print_function
 import numpy as np
 
+from example_engine import ExampleEngine
 
 np.random.seed(1337)  # for reproducibility
 
@@ -122,27 +123,21 @@ def mnist_fitnet_v1():
     model.add(Activation('relu'))
     model.add(Convolution2D(16, 3, 3, border_mode='valid'))
     model.add(Activation('relu'))
-    # model.add(Convolution2D(16, 3, 3, border_mode='valid'))
-    # model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(4,4), strides=(2,2)))
     # model.add(Dropout(0.25))
     model.add(Convolution2D(16, 3, 3, border_mode='valid'))
     model.add(Activation('relu'))
     model.add(Convolution2D(16, 3, 3, border_mode='valid'))
     model.add(Activation('relu'))
-    # model.add(Convolution2D(32, 3, 3, border_mode='valid'))
-    # model.add(Activation('relu'))
+
     model.add(MaxPooling2D(pool_size=(4, 4), strides=(2, 2)))
 
     model.add(Convolution2D(12, 3, 3, border_mode='valid'))
     model.add(Activation('relu'))
     model.add(Convolution2D(12, 3, 3, border_mode='valid'))
     model.add(Activation('relu'))
-    # model.add(Convolution2D(64, 3, 3, border_mode='valid'))
-    # model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
 
-    # model.add(Dense(500))
     model.add(Dense(10, activation='softmax'))
     opt = optimizers.rmsprop()
 
@@ -165,24 +160,10 @@ def mnist_model1():
 
     # Start of secondary layer
     # print('Adding secondary statistic layer ')
-    # model.add(SecondaryStatistic(activation='linear'))
-    # model.add(WeightedProbability(10, activation='linear', init='normal'))
     model.add(Flatten())
-    # model.add(Dense(128))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
+
     model.add(Dense(nb_classes))
-    # model.add(Activation('relu'))
     model.add(Activation('softmax'))
-
-
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('softmax'))
-    #
-    # model.add(Flatten())
-
-    # Define the optimizers:
-    # opt = optimizers.sgd(lr=0.01)
     opt = optimizers.rmsprop()
 
     model.compile(loss='categorical_crossentropy',
@@ -220,11 +201,6 @@ def model_with_merge():
     img_input = Input(shape=input_shape)
 
 
-
-def test_more_parameters():
-    print("Model 1 ")
-
-
 def model_parametrized():
     model = Sequential()
     model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
@@ -241,23 +217,9 @@ def model_parametrized():
     model.add(SecondaryStatistic(activation='linear', parametrized=False, output_dim=10, init='normal'))
     model.add(O2Transform(activation='linear', output_dim=100))
     model.add(Activation('relu'))
-    # model.add(PReLU(weights=[0.25]))
     model.add(WeightedProbability(10, activation='relu', init='normal'))
-    # model.add(Flatten())
-
-    # model.add(Dense(128))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('relu'))
     model.add(Activation('softmax'))
 
-    # model.add(Dense(nb_classes))
-    # model.add(Activation('softmax'))
-    #
-    # model.add(Flatten())
-    # Define the optimizers:
-    # opt = optimizers.sgd(lr=0.01)
     opt = optimizers.rmsprop()
 
     model.compile(loss='categorical_crossentropy',
@@ -265,6 +227,22 @@ def model_parametrized():
                   metrics=['accuracy'])
     return model
 
+
+def test_more_parameters():
+    print("Model 1 ")
+
+
+def test_history():
+    model = model_parametrized()
+    engine = ExampleEngine((X_train, Y_train), model, validation=(X_test, Y_test),
+                           load_weight=False, save_weight=True, save_log=False,
+                           save_per_epoch=True,
+                           title='mnist_test', nb_epoch=10)
+    hist = engine.fit(batch_size=128, nb_epoch=10, verbose=2)
+    # filename = engine.save_history(hist)
+    # hist2 = engine.load_history(filename)
+    # engine.plot_result()
+    return
 
 def main_loop():
     print("fitting the whole model ")
@@ -344,6 +322,8 @@ if __name__ == '__main__':
     # test_loader()
     # evaluate_model()
 
-    mnist_baseline_comparison()
+    # mnist_baseline_comparison()
     # print("test parametrized layer false")
     # test_para()
+
+    test_history()

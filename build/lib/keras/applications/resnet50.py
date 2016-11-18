@@ -286,7 +286,7 @@ def ResNet50(include_top=True, weights='imagenet',
                                         TH_WEIGHTS_PATH_NO_TOP,
                                         cache_subdir='models',
                                         md5_hash='f64f049c92468c9affcd44b0976cdafe')
-            model.load_weights(weights_path)
+            model.load_weights(weights_path, by_name=True)
             if K.backend() == 'tensorflow':
                 warnings.warn('You are using the TensorFlow backend, yet you '
                               'are using the Theano '
@@ -308,7 +308,7 @@ def ResNet50(include_top=True, weights='imagenet',
                                         TF_WEIGHTS_PATH_NO_TOP,
                                         cache_subdir='models',
                                         md5_hash='a268eb855778b3df3c7506639542a6af')
-            model.load_weights(weights_path)
+            model.load_weights(weights_path, by_name=True)
             if K.backend() == 'theano':
                 convert_all_kernels_in_model(model)
     return model
@@ -344,18 +344,13 @@ def ResNet50MINC(include_top=True, weights='imagenet',
                          '`None` (random initialization) or `imagenet` '
                          '(pre-training on ImageNet).')
     # Determine proper input shape
-    if K.image_dim_ordering() == 'th':
-        if include_top:
-            input_shape = (3, 224, 224)
-        else:
-            input_shape = (3, None, None)
-    else:
-        if include_top:
-            input_shape = (224, 224, 3)
-        else:
-            input_shape = (None, None, 3)
+
+    input_shape = (3, 224, 224)
 
     img_input = Input(shape=input_shape)
+    if not K.is_keras_tensor(img_input):
+        img_input = Input(tensor=img_input, shape=input_shape)
+
 
     if K.image_dim_ordering() == 'tf':
         bn_axis = 3
@@ -471,15 +466,7 @@ def ResNet50CIFAR(include_top=True, second=False, input_tensor=None, nb_class=10
 
     # Determine proper input shape
     if K.image_dim_ordering() == 'th':
-        if include_top:
-            input_shape = (3, 32, 32)
-        else:
-            input_shape = (3, None, None)
-    else:
-        if include_top:
-            input_shape = (32, 32, 3)
-        else:
-            input_shape = (None, None, 3)
+        input_shape = (3, 224, 224)
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
@@ -488,6 +475,7 @@ def ResNet50CIFAR(include_top=True, second=False, input_tensor=None, nb_class=10
             img_input = Input(tensor=input_tensor, shape=input_shape)
         else:
             img_input = input_tensor
+
     if K.image_dim_ordering() == 'tf':
         bn_axis = 3
     else:

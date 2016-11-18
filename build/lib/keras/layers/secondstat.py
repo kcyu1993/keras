@@ -78,7 +78,7 @@ class SecondaryStatistic(Layer):
             self.nb_filter = input_shape[1]
             self.rows = input_shape[2]
             self.cols = input_shape[3]
-
+            # print("Second layer build: input shape is {}".format(input_shape))
             # Set out_dim accordingly.
             if self.parametrized:
                 if self.out_dim is None:
@@ -110,7 +110,8 @@ class SecondaryStatistic(Layer):
         return (input_shape[0], self.out_dim, self.out_dim)
 
     def call(self, x, mask=None):
-
+        if not self.built:
+            raise Exception("Secondary stat layer not built")
         print('Secondary_stat parameter', type(x))  # Confirm the type of x is indeed tensor4D
 
         # TODO Compute the mean vector

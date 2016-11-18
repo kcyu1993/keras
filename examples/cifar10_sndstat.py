@@ -14,13 +14,12 @@ save it in a different format, load it in Python 3 and repickle it.
 from __future__ import print_function
 from keras.datasets import cifar10
 from keras.engine import Model
-from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
 from keras.layers import Convolution2D, MaxPooling2D, O2Transform
 from keras.optimizers import SGD, rmsprop
 from keras.utils import np_utils
-from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
+from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
 from keras.applications.resnet50 import ResNet50CIFAR
 
@@ -32,7 +31,7 @@ from example_engine import ExampleEngine
 
 batch_size = 32
 nb_classes = 10
-nb_epoch = 100
+nb_epoch = 10
 data_augmentation = True
 
 # input image dimensions
@@ -117,8 +116,6 @@ def cifar_fitnet_v1(second=False, parametric=True):
                   optimizer=opt,
                   metrics=['accuracy'])
     return model
-
-
 
 
 def model_original():
@@ -211,6 +208,7 @@ def resnet50_snd(parametric=False):
                   metrics=['accuracy'])
     return model
 
+
 def test_original(load=False, save=True, verbose=1):
     model = model_original()
     fit_model(model, load=load, save=save, verbose=verbose)
@@ -235,6 +233,7 @@ def test_resnet_snd(parametric=True, verbose=1):
     model = resnet50_snd(parametric)
     fit_model(model, load=True, save=True, verbose=verbose)
 
+
 def test_merge_model():
     raise NotImplementedError
 
@@ -246,8 +245,8 @@ def fit_model(model, load=False, save=True, verbose=1):
     model.summary()
     engine.fit(batch_size=batch_size, nb_epoch=nb_epoch, augmentation=data_augmentation)
     score = engine.model.evaluate(X_test, Y_test, verbose=0)
-    # engine.plot_result('loss')
-    # engine.plot_result('acc')
+    engine.plot_result('loss')
+    engine.plot_result('acc')
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
 
 
@@ -286,7 +285,7 @@ def test_routine5():
 
 if __name__ == '__main__':
 
-    nb_epoch = 50
+    nb_epoch = 10
     # test_routine1()
     # print('test')
     # test_routine1()
