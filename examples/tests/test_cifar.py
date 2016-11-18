@@ -11,16 +11,16 @@ nb_class = 10
 input_shape = (3, 32, 32)
 
 
-# @keras_test
-# def test_ResCovNetCIFAR_nonparam():
-#     model = ResCovNet50CIFAR([], nb_class=10, mode=0)
-#     image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
-#     model = ResCovNet50CIFAR([], nb_class=10, mode=1)
-#     image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
-#     model = ResCovNet50CIFAR([], nb_class=10, mode=2)
-#     image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
-#     model = ResCovNet50CIFAR([], nb_class=10, mode=3)
-#     image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
+@keras_test
+def test_ResCovNetCIFAR_nonparam():
+    model = ResCovNet50CIFAR([], nb_class=10, mode=0)
+    image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
+    model = ResCovNet50CIFAR([], nb_class=10, mode=1)
+    image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
+    model = ResCovNet50CIFAR([], nb_class=10, mode=2)
+    image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
+    model = ResCovNet50CIFAR([], nb_class=10, mode=3)
+    image_classification(model, nb_class=10, input_shape=input_shape, fit=False)
 
 
 @keras_test

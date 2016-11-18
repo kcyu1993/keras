@@ -673,6 +673,12 @@ def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
         A Keras model instance.
     '''
 
+    basename = 'ResCov_CIFAR'
+    if parametrics is not []:
+        basename += '_para-'
+        for para in parametrics:
+            basename += str(para) + '_'
+
     # Determine proper input shape
     if K.image_dim_ordering() == 'th':
         input_shape = (3, 32, 32)
@@ -743,5 +749,5 @@ def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
     else:
         raise ValueError("Mode not supported {}".format(mode))
 
-    model = Model(img_input, x)
+    model = Model(img_input, x, name=basename + "mode_" + str(mode))
     return model

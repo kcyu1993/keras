@@ -63,7 +63,24 @@ class ExampleEngine(object):
                  batch_size=128, nb_epoch=100,
                  verbose=2, logfile=None, save_log=True,
                  title='default'):
+        """
 
+        Parameters
+        ----------
+        data    (X, Y) or Generator
+        model   Keras.Model
+        validation  same as data
+        test        same as data
+        load_weight True to support loading weights
+        save_weight True to support saving weights
+        save_per_epoch  True to save the weight after each epochs
+        batch_size      # Should not be called.
+        nb_epoch        # should not be called
+        verbose         verbose same as keras, 0 quiet, 1 detail, 2 brief
+        logfile         LogFile location
+        save_log        True to save log
+        title           Title of all saving files.
+        """
         self.model = model
         self.title = title
         self.mode = 0 # 0 for fit ndarray, 1 for fit generator
@@ -97,7 +114,7 @@ class ExampleEngine(object):
         self.logfile = logfile
         self.log_flag = save_log
 
-        if logfile is not None:
+        if logfile is None:
             self.logfile = os.path.join(getlogfiledir(), "{}-{}_{}.log".format(
                 self.title, model.name, self.mode))
         else:
@@ -230,22 +247,31 @@ class ExampleEngine(object):
         x_factor = range(len(train))
         filename = "{}-{}_{}.png".format(self.title, self.model.name, self.mode)
         from keras.utils.visualize_util import plot_train_test
-        plot_train_test(train, valid, x_factor=x_factor, show=show,
-                        xlabel='epoch', ylabel=metric,
-                        linestyle=linestyle,
-                        filename=filename, plot_type=0)
+        from _tkinter import TclError
+        try:
+            plot_train_test(train, valid, x_factor=x_factor, show=show,
+                            xlabel='epoch', ylabel=metric,
+                            linestyle=linestyle,
+                            filename=filename, plot_type=0)
+        except TclError:
+            print("Catch the Tcl Error, save the history accordingly")
+            self.save_history(history)
+            return
 
     def save_history(self, history):
+        from keras.callbacks import History
+        if isinstance(history, History):
+            history = history.history
         import numpy as np
         filename = "{}-{}_{}.history".format(self.title, self.model.name, np.random.randint(1e4))
         if history is None:
             return
-        print("compress with gz")
+        logging.debug("compress with gz")
         dir = gethistoryfiledir()
         if not os.path.exists(dir):
             os.mkdir(dir)
         filename = os.path.join(dir, filename)
-        filename = cpickle_save(data=history.history, output_file=filename)
+        filename = cpickle_save(data=history, output_file=filename)
         return filename
 
     def load_history(self, filename):
