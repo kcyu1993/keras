@@ -12,6 +12,9 @@ save it in a different format, load it in Python 3 and repickle it.
 '''
 
 from __future__ import print_function
+
+import logging
+
 from keras.datasets import cifar10
 from keras.engine import Model
 from keras.models import Sequential
@@ -212,8 +215,9 @@ def run_resnet_snd(parametric=True, verbose=1):
 
 
 def run_resnet_merge(parametrics=[], verbose=1):
-    model = ResCovNet50CIFAR(parametrics=parametrics, nb_class=nb_classes)
-    fit_model(model, load=True, save=True, verbose=verbose)
+    for mode in range(3):
+        model = ResCovNet50CIFAR(parametrics=parametrics, nb_class=nb_classes, mode=mode)
+        fit_model(model, load=True, save=True, verbose=verbose)
 
 
 def fit_model(model, load=False, save=True, verbose=1):
@@ -224,6 +228,7 @@ def fit_model(model, load=False, save=True, verbose=1):
     engine = ExampleEngine([X_train, Y_train], model, [X_test, Y_test],
                            load_weight=load, save_weight=save,
                            batch_size=batch_size, nb_epoch=nb_epoch, title='cifar10', verbose=verbose)
+
     model.summary()
     engine.fit(batch_size=batch_size, nb_epoch=nb_epoch, augmentation=data_augmentation)
     score = engine.model.evaluate(X_test, Y_test, verbose=0)
@@ -266,7 +271,13 @@ def run_routine5():
     run_fitnet_layer(second=True, load=False, verbose=2)
 
 def run_routine6():
-    run_resnet_merge([],1)
+    logging.info("Run holistic test for merged model")
+    print("Run holistic test for merged model")
+    run_resnet_merge([],2)
+    run_resnet_merge([50],2)
+    run_resnet_merge([100],2)
+    run_resnet_merge([100, 50],2)
+
 
 if __name__ == '__main__':
 
