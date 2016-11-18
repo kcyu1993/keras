@@ -20,8 +20,8 @@ def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
     """
 
     if plot_type == 0:
-        plt.plot(x_factor, train_errors, color=color[0], label=names[0])
-        plt.plot(x_factor, test_errors, color=color[1], label=names[1])
+        plt.plot(x_factor, train_errors, color=color[0], label=names[0], line='-')
+        plt.plot(x_factor, test_errors, color=color[1], label=names[1], line='-.')
     elif plot_type == 1:
         plt.semilogx(x_factor, train_errors, color='b', marker='*', label=names[0])
         plt.semilogx(x_factor, test_errors, color='r', marker='*', label=names[1])

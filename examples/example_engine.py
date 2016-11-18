@@ -12,7 +12,10 @@ Supply with
 
 """
 from __future__ import absolute_import
+
+from keras.callbacks import History, ModelCheckpoint, CSVLogger, LearningRateScheduler
 from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
+from keras.utils.io_utils import cpickle_load, cpickle_save
 from keras.utils.logger import Logger
 from keras.preprocessing.image import ImageDataGenerator, DirectoryIterator
 
@@ -22,6 +25,8 @@ import sys
 def getlogfiledir():
     return get_absolute_dir_project('model_saved/log')
 
+def gethistoryfiledir():
+    return get_absolute_dir_project('model_saved/history')
 
 class ExampleEngine(object):
     """
@@ -44,6 +49,7 @@ class ExampleEngine(object):
     """
     def __init__(self, data, model, validation=None, test=None,
                  load_weight=True, save_weight=True,
+                 save_per_epoch=False,
                  batch_size=128, nb_epoch=100,
                  verbose=2, logfile=None, save_log=True,
                  title='default'):
@@ -102,20 +108,32 @@ class ExampleEngine(object):
         print("weights path {}".format(self.weight_path))
         self.save_weight = save_weight
         self.load_weight = load_weight
+        self.save_per_epoch = save_per_epoch
         if not os.path.exists(self.weight_path):
+            print("weight not found, create a new one or transfer from current weight")
             self.load_weight = False
+        self.cbks = []
+        if self.save_weight and self.save_per_epoch:
+            self.cbks.append(ModelCheckpoint(self.weight_path, verbose=1))
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=False):
         self.batch_size = batch_size
         self.nb_epoch = nb_epoch
         if self.load_weight:
             self.model.load_weights(self.weight_path, by_name=True)
-        if self.mode == 0:
-            history = self.fit_ndarray(augmentation)
-        elif self.mode == 1:
-            history = self.fit_generator()
-        else:
-            history = None
+        try:
+            # Handle ModelCheckPoint
+            if self.mode == 0:
+                history = self.fit_ndarray(augmentation)
+            elif self.mode == 1:
+                history = self.fit_generator()
+            else:
+                history = None
+        except (KeyboardInterrupt, SystemExit):
+            print("System catch do some thing (like save the model)")
+            if self.save_weight:
+
+                self.model.save_weights(self.weight_path + ".tmp")
         self.history = history
         return history
 
@@ -125,7 +143,8 @@ class ExampleEngine(object):
             self.train, samples_per_epoch=128*200, nb_epoch=self.nb_epoch,
             nb_worker=4,
             validation_data=self.validation, nb_val_samples=self.nb_te_sample,
-            verbose=self.verbose)
+            verbose=self.verbose,
+            callbacks=self.cbks)
         if self.save_weight:
             self.model.save_weights(self.weight_path)
         self.history = history
@@ -147,7 +166,8 @@ class ExampleEngine(object):
                                   batch_size=self.batch_size,
                                   nb_epoch=self.nb_epoch,
                                   validation_data=valid,
-                                  shuffle=True)
+                                  shuffle=True,
+                                  callbacks=self.cbks)
         else:
             print('Using real-time data augmentation.')
             # this will do preprocessing and realtime data augmentation
@@ -173,7 +193,8 @@ class ExampleEngine(object):
                                             samples_per_epoch=X_train.shape[0],
                                             nb_epoch=self.nb_epoch,
                                             verbose=self.verbose,
-                                            validation_data=valid)
+                                            validation_data=valid,
+                                            callbacks=self.cbks)
 
             if self.save_weight:
                 self.model.save_weights(self.weight_path)
@@ -183,7 +204,7 @@ class ExampleEngine(object):
         if self.history is None:
             return
         history = self.history
-        if metric is 'acsc':
+        if metric is 'acc':
             train = history.history['acc']
             valid = history.history['val_acc']
         elif metric is 'loss':
@@ -197,3 +218,25 @@ class ExampleEngine(object):
         plot_train_test(train, valid, x_factor=x_factor, show=show,
                         xlabel='epoch', ylabel=metric,
                         filename=filename, plot_type=0)
+
+    def save_history(self, history):
+        import numpy as np
+        filename = "{}-{}_{}.history".format(self.title, self.model.name, np.random.randint(1e4))
+        if history is None:
+            return
+        print("compress with gz")
+        dir = gethistoryfiledir()
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+        cpickle_save(data=history, output_file=filename)
+        return filename
+
+    def load_history(self, filename):
+        hist = cpickle_load(filename)
+        if isinstance(hist, History):
+            return hist
+        else:
+            raise ValueError("Should read a history term")
+
+
+

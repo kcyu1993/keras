@@ -68,13 +68,13 @@ def create_ResNet50(second=False, parametric=True):
         model = ResNet50MINC(weights='imagenet', nb_class=NB_CLASS)
         model.name = 'ResNet50_original'
     else:
-        x, weight_path, img_input = ResNet50MINC(include_top=False, nb_class=NB_CLASS, weights='imagenet')
-        x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
+        x, img_input, weight_path = ResNet50MINC(include_top=False, nb_class=NB_CLASS, weights='imagenet')
+        x = SecondaryStatistic()(x)
         if parametric:
             x = O2Transform(output_dim=100, activation='relu')(x)
         x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
-        model = Model(input=img_input,
-                      output=[x])
+        model = Model(img_input, x)
+        model.name = 'ResNet_second'
     return model
 
 def create_VGG_snd():
@@ -129,7 +129,7 @@ def load():
     return (tr_x, tr_Y), (va_x, va_Y), (te_x, te_Y)
 
 
-def test_model(model, title="", load_w=True, save_w=True, verbose=2):
+def test_model(model, title="", load_w=True, save_w=True, plot=False, verbose=2):
     print("loading model from generator ")
     # tr, va, te = loads()
     loader = Minc2500()
@@ -143,7 +143,10 @@ def test_model(model, title="", load_w=True, save_w=True, verbose=2):
                   metrics=['accuracy'])
     engine = ExampleEngine(data=tr_iterator, model=model, validation=te_iterator,
                            load_weight=load_w, save_weight=save_w, title=title)
-    history = engine.fit()
+    history = engine.fit(nb_epoch=NB_EPOCH)
+    if plot:
+        engine.plot_result('acc')
+        engine.plot_result('loss')
 
 
 def test_minc_original_VGG_reduced():
@@ -183,55 +186,12 @@ def test_minc_snd_VGG_generator(load=False, save=True, verbose=1):
     test_model(model, title='minc2500-vgg_snd', load_w=load, save_w=save, verbose=verbose)
 
 
-def test_minc_ResNet50_generator(load=False, save=True, verbose=1):
-    model = create_ResNet50()
-    if load:
-        weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
-    else:
-        weight_path = None
-    test_model(model, title='minc2500-res50_snd', load_w=load, save_w=save, verbose=verbose)
-
-
-# def test_minc_VGG_generator(model, weight_path=None, load=False, save=True, verbose=1):
-#     """
-#     This is testing case for minc dataset on original Alexnet as entry-point
-#         Experiment result:
-#             Not converging from random-initialization
-#             Extremely slow(or I dont know what is the relatively good speed)
-#             Batch size 128, training time is around 8s
-#
-#
-#     :return:
-#     """
-#     print("loading model from generator ")
-#     # tr, va, te = loads()
-#     loader = Minc2500()
-#
-#     tr_iterator = loader.generator(input_file='train1.txt', batch_size=16, target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
-#     te_iterator = loader.generator(input_file='test1.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
-#
-#     tr_sample = tr_iterator.nb_sample
-#     te_sample = te_iterator.nb_sample
-#
-#     if load:
-#         weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
-#     if weight_path is not None:
-#         model.load_weights(weight_path, by_name=True)
-#     if verbose == 1:
-#         model.summary()
-#     model.compile(optimizer='rmsprop',
-#                   loss='categorical_crossentropy',
-#                   metrics=['accuracy'])
-#
-#     model.fit_generator(tr_iterator, samples_per_epoch=128*200, nb_epoch=NB_EPOCH, nb_worker=4,
-#                         validation_data=te_iterator, nb_val_samples=te_sample,
-#                         verbose=verbose)
-#
-#     print("save the model")
-#     if save:
-#         weight_path = get_weight_path(model.name + "_minc2500.weights", dir='dataset')
-#         model.save_weights(weight_path)
-
+def test_minc_ResNet50_generator(load=False, save=True,
+                                 second=True, parametric=True,
+                                 verbose=1, plot=False):
+    model = create_ResNet50(second, parametric)
+    test_model(model, title='minc2500', load_w=load, save_w=save,
+               verbose=verbose, plot=plot)
 
 
 def test_routine1():
@@ -240,9 +200,17 @@ def test_routine1():
     # test_fitnet_layer(load=True, verbose=1)
     test_minc_ResNet50_generator(load=True, verbose=2)
 
+
 def test_routine2():
     sys.stdout = Logger(LOG_PATH + '/minc_VGG19_original1.log')
     test_minc_original_VGG_generator(load=False, save=True, verbose=1)
+
+
+def test_routine3(): # ResCov 1
+    print('Non para ResCovNet 50')
+    test_minc_ResNet50_generator(load=True, save=True,
+                                 second=True, parametric=False,
+                                 verbose=2, plot=True)
 
 def test_minc_original_loader():
     save_dir = os.path.join(get_dataset_dir(), 'debug')
@@ -255,7 +223,8 @@ def test_minc_original_loader():
 if __name__ == '__main__':
     # test_minc_original_loader()
     # test_minc_original_VGG_generator()
-    test_routine1()
+    NB_EPOCH = 100
+    test_routine3()
     # test_routine2()
     # test_minc_original_alexnet_reduced()
     # test_VGG()
