@@ -15,7 +15,9 @@ from __future__ import absolute_import
 
 import logging
 
-from keras.callbacks import History, ModelCheckpoint, CSVLogger, LearningRateScheduler
+from keras.callbacks import ModelCheckpoint, \
+    CSVLogger, LearningRateScheduler, \
+    EarlyStopping, ReduceLROnPlateau
 from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
 from keras.utils.io_utils import cpickle_load, cpickle_save
 from keras.utils.logger import Logger
@@ -32,6 +34,8 @@ def getlogfiledir():
 def gethistoryfiledir():
     return get_absolute_dir_project('model_saved/history')
 
+def hist_average(historys):
+    raise NotImplementedError
 
 class ExampleEngine(object):
     """
@@ -49,6 +53,7 @@ class ExampleEngine(object):
             fit function for data array / generator
             evaluate function
             weights path and load/save
+            cross validation for selected parameters
 
 
     """
@@ -250,6 +255,86 @@ class ExampleEngine(object):
             return hist
         else:
             raise ValueError("Should read a dict term")
+
+
+class CVEngine(ExampleEngine):
+    def __init__(self, models, data, validation=None, test=None,
+                 load_weight=True, save_weight=True,
+                 save_per_epoch=False,
+                 verbose=2, logfile=None, save_log=True,
+                 title='cvalid_default'):
+        # super(CVEngine, self).__init__(data, None, validation=validation, test=test,
+        #                                load_weight=load_weight, save_weight=save_weight,
+        #                                save_per_epoch=save_per_epoch, verbose=verbose, logfile=logfile,
+        #                                save_log=save_log, title=title)
+        self.__dict__.update(locals())
+
+        self.mode = 0  # 0 for fit ndarray, 1 for fit generator
+        if isinstance(data, (list, tuple)):
+            assert len(data) == 2
+            self.train = data
+        elif isinstance(data, (ImageDataGenerator, DirectoryIterator)):
+            self.train = data
+            self.mode = 1
+
+        # Load the validation and test data.
+        if self.mode == 0:
+            if validation is not None:
+                assert len(validation) == 2
+            if test is not None:
+                assert len(test) == 2
+
+        if self.mode == 1:
+            if validation is not None:
+                assert isinstance(validation, (DirectoryIterator))
+                self.nb_te_sample = validation.nb_sample
+            if test is not None:
+                assert isinstance(test, (ImageDataGenerator, DirectoryIterator))
+
+        # Override part
+        if logfile is not None:
+            self.logfile = os.path.join(getlogfiledir(), "{}-{}_{}.log".format(
+                self.title, 'crossvalid', self.mode))
+        else:
+            self.logfile = os.path.join(getlogfiledir(), "{}-{}_{}_{}.log".format(
+                self.title, "crossvalid", self.mode, logfile))
+
+        # Set the weights
+        self.weight_path = get_weight_path(
+            "{}-{}_{}.cv.weights".format(self.title, "cross_valid", self.mode),
+            'dataset')
+        logging.debug("weights path {}".format(self.weight_path))
+
+        if not os.path.exists(self.weight_path):
+            print("weight not found, create a new one or transfer from current weight")
+            self.load_weight = False
+
+        self.models = models
+        self.model_label = ['com', 'gen']
+
+    def cross_validation(self, models=[], k_fold=1, nb_epoch=50, batch_size=16):
+        """
+
+        Parameters
+        ----------
+        models:  [keras.Model]
+                    if models is [] or None, the cross_validation won't work
+        k_fold:      k_fold validation, default = 1
+        nb_epoch:
+        batch_size:
+
+        Returns
+        -------
+            result: dict    dictionary as format {'model1.name': history}
+        """
+        if models is None or []:
+            models = self.models
+        result = dict()
+        for ind, model in enumerate(models):
+            hist_list = []
+            for k in range(k_fold):
+                raise NotImplementedError
+
 
 
 

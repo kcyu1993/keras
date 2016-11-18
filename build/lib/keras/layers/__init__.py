@@ -11,5 +11,4 @@ from .noise import *
 from .advanced_activations import *
 from .wrappers import *
 from .secondstat import *
-from .prob_output import *
 from .custom_layers import *
