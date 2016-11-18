@@ -151,12 +151,15 @@ def cpickle_save(data, output_file, ftype='gz'):
     :param ftype
     :return:
     """
+
     if ftype is 'gz' or ftype is 'gzip':
         print("compress with gz")
-        f = gzip.open((output_file + "." + ftype), 'wb')
+        output_file = output_file + "." + ftype
+        f = gzip.open(output_file, 'wb')
     elif ftype is '':
-        f = open((output_file + "." + ftype), 'wb')
+        f = open(output_file, 'wb')
     else:
         raise ValueError("Only support type as gz or '' ")
     cPickle.dump(data, f, protocol=cPickle.HIGHEST_PROTOCOL)
     f.close()
+    return output_file
