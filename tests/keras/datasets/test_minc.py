@@ -1,7 +1,10 @@
+import pytest
+
 from keras.datasets.minc import *
 import datetime
 
 
+# Test minc 2500
 def save_data(type='hdf5'):
     loader = Minc2500()
     print("Loading the data")
@@ -56,11 +59,19 @@ def test_hdf5():
     loader.test_hd5f()
     loader.test_hd5f_load()
 
+
+# Test Minc Original
+def test_minc_original_loader():
+    save_dir = os.path.join(get_dataset_dir(), 'debug')
+    if not os.path.exists(save_dir): os.mkdir(save_dir)
+    loader = MincOriginal()
+    gen = loader.generator(save_dir=save_dir)
+    a = gen.next()
+
+
 if __name__ == '__main__':
-    # test_hdf5()
-    save_data('gz')
-    # test_load()
-    # loader2 = Minc2500()
+    # save_data('gz')
+    pytest.main([__file__])
 
 
 

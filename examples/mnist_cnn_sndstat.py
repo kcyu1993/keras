@@ -24,6 +24,9 @@ Issue 2016.10.24
 Trying the new experiments:
     Pre-trained the model, save the point
 
+Issue 2016.11.18
+    Used as testing for ExampleEngine new features.
+
 '''
 
 from __future__ import print_function
@@ -85,8 +88,6 @@ nb_test = len(X_test)
 
 X_train = X_train[:nb_train,]
 y_train = y_train[:nb_train,]
-# X_valid = X_valid[:nb_valid,]
-# y_valid = y_valid[:nb_valid,]
 X_test = X_test[:nb_test,]
 y_test = y_test[:nb_test,]
 
@@ -104,9 +105,6 @@ X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
 X_train /= 255
 X_test /= 255
-# print('X_train shape:', X_train.shape)
-# print(X_train.shape[0], 'train samples')
-# print(X_test.shape[0], 'test samples')
 
 # convert class vectors to binary class matrices
 Y_train = np_utils.to_categorical(y_train, nb_classes)
@@ -245,8 +243,8 @@ def test_history():
     hist = engine.fit(batch_size=128, nb_epoch=2, verbose=2)
     filename = engine.save_history(hist)
     hist2 = engine.load_history(filename)
-    engine.plot_result(linestyle='-.', metric='acc', show=True)
-    engine.plot_result(linestyle='-', metric='loss', show=True)
+    engine.plot_result(linestyle='-.', metric='acc', show=False)
+    engine.plot_result(linestyle='-', metric='loss', show=False)
     return
 
 def main_loop():

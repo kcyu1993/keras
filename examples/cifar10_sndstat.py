@@ -21,8 +21,7 @@ from keras.optimizers import SGD, rmsprop
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
-from keras.applications.resnet50 import ResNet50CIFAR
-
+from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR
 
 import sys
 import os
@@ -110,11 +109,6 @@ def cifar_fitnet_v1(second=False, parametric=True):
         model.add(Activation('softmax'))
         model.name = model.name + "_second"
 
-    opt = rmsprop()
-
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=opt,
-                  metrics=['accuracy'])
     return model
 
 
@@ -143,11 +137,6 @@ def model_original():
     model.add(Dense(nb_classes))
     model.add(Activation('softmax'))
 
-    # let's train the model using SGD + momentum (how original).
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=sgd,
-                  metrics=['accuracy'])
     return model
 
 def model_snd(parametric=True):
@@ -175,10 +164,6 @@ def model_snd(parametric=True):
     model.add(Activation('softmax'))
 
     # let's train the model using SGD + momentum (how original).
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=sgd,
-                  metrics=['accuracy'])
     return model
 
 
@@ -187,10 +172,6 @@ def resnet50_original():
     # model = ResNet50(True, weights='imagenet')
     model = ResNet50CIFAR(nb_class=nb_classes)
     # let's train the model using SGD + momentum (how original).
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=sgd,
-                  metrics=['accuracy'])
     return model
 
 
@@ -202,43 +183,44 @@ def resnet50_snd(parametric=False):
         x = O2Transform(output_dim=10, activation='relu')(x)
     x = WeightedProbability(output_dim=nb_classes, activation='softmax')(x)
     model = Model(img_input, x, name='ResNet50CIFAR_snd')
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=sgd,
-                  metrics=['accuracy'])
     return model
 
 
-def test_original(load=False, save=True, verbose=1):
+def run_original(load=False, save=True, verbose=1):
     model = model_original()
     fit_model(model, load=load, save=save, verbose=verbose)
 
 
-def test_snd_layer(load=False, save=True, parametric=True):
+def run_snd_layer(load=False, save=True, parametric=True):
     model = model_snd(parametric)
     fit_model(model, load=load, save=save)
 
 
-def test_fitnet_layer(load=False, save=True, second=False, parametric=True, verbose=1):
+def run_fitnet_layer(load=False, save=True, second=False, parametric=True, verbose=1):
     model = cifar_fitnet_v1(second=second, parametric=parametric)
     fit_model(model, load=load, save=save, verbose=verbose)
 
 
-def test_resnet50_original(verbose=1):
+def run_resnet50_original(verbose=1):
     model = resnet50_original()
     fit_model(model, verbose=verbose)
 
 
-def test_resnet_snd(parametric=True, verbose=1):
+def run_resnet_snd(parametric=True, verbose=1):
     model = resnet50_snd(parametric)
     fit_model(model, load=True, save=True, verbose=verbose)
 
 
-def test_merge_model():
-    raise NotImplementedError
+def run_resnet_merge(parametrics=[], verbose=1):
+    model = ResCovNet50CIFAR(parametrics=parametrics, nb_class=nb_classes)
+    fit_model(model, load=True, save=True, verbose=verbose)
 
 
 def fit_model(model, load=False, save=True, verbose=1):
+    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=sgd,
+                  metrics=['accuracy'])
     engine = ExampleEngine([X_train, Y_train], model, [X_test, Y_test],
                            load_weight=load, save_weight=save,
                            batch_size=batch_size, nb_epoch=nb_epoch, title='cifar10', verbose=verbose)
@@ -250,45 +232,49 @@ def fit_model(model, load=False, save=True, verbose=1):
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
 
 
-def test_routine1():
+def run_routine1():
     print('Test original')
-    test_original()
+    run_original()
     # print("Test snd model without pre-loading data")
-    # test_snd_layer()
+    # run_snd_layer()
     # print('Test snd model with pre-trained')
-    # test_snd_layer(loads=True)
+    # run_snd_layer(loads=True)
 
-def test_routine2():
+def run_routine2():
     """
     Train model snd_layer without pretraining
     :return:
     """
     print("test snd layer")
     sys.stdout = Logger(LOG_PATH + '/cifar_routine2.log')
-    test_snd_layer(load=False)
+    run_snd_layer(load=False)
 
 
-def test_routine3():
+def run_routine3():
     sys.stdout = Logger(LOG_PATH + '/cifar_routine3.log')
-    test_snd_layer(load=True, save=False)
+    run_snd_layer(load=True, save=False)
 
 
-def test_routine4():
+def run_routine4():
     # sys.stdout = Logger(LOG_PATH + '/cifar_routine4.log')
-    test_resnet50_original(2)
+    run_resnet50_original(2)
 
 
-def test_routine5():
+def run_routine5():
     # sys.stdout = Logger(LOG_PATH + '/cifar_routine4.log')
-    # test_fitnet_layer(load=True, verbose=1)
-    test_fitnet_layer(second=True, load=False, verbose=2)
+    # run_fitnet_layer(load=True, verbose=1)
+    run_fitnet_layer(second=True, load=False, verbose=2)
+
+def run_routine6():
+    run_resnet_merge([],1)
 
 if __name__ == '__main__':
 
-    nb_epoch = 10
-    # test_routine1()
+    nb_epoch = 50
+    # run_routine1()
     # print('test')
-    # test_routine1()
-    test_routine5()
-    # test_resnet50_original(2)
-    # test_resnet_snd(True, verbose=1)
+    # run_routine1()
+    # run_routine5()
+    run_routine6()
+    # run_resnet50_original(2)
+    # run_resnet_snd(True, verbose=1)

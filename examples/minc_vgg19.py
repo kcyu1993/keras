@@ -25,12 +25,9 @@
 
 from keras.layers import SecondaryStatistic, WeightedProbability
 from keras.layers import Flatten, Dense, Dropout, O2Transform
-from keras.layers import Input
 from keras.models import Model, Sequential
-from keras import regularizers
-# from keras.utils.visualize_util import plot
 from keras.utils.np_utils import to_categorical
-from keras.utils.model_utils import *
+
 from keras.utils.data_utils import *
 from keras.utils.logger import Logger
 from keras.datasets.minc import Minc2500, MincOriginal
@@ -81,16 +78,14 @@ def create_VGG_snd():
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
     x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
     x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
-    return x, weight_path, img_input
+    model = Model(img_input, x)
+    return model
 
 
 def create_VGG_original2():
-    x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
-    x = Flatten(name='flatten')(x)
-    x = Dense(4096, activation='relu', name='fc1')(x)
-    x = Dense(4096, activation='relu', name='fc2')(x)
-    x = Dense(NB_CLASS, activation='softmax', name='predictions')(x)
-    return x, weight_path, img_input
+    x, weight_path, img_input = VGG19_bottom(include_top=True, weights='imagenet', output_dim=NB_CLASS)
+    return Model(img_input, x)
+    # return x, weight_path, img_input
 
 
 def create_alex_original():
@@ -212,13 +207,6 @@ def test_routine3(): # ResCov 1
                                  second=True, parametric=False,
                                  verbose=2, plot=True)
 
-def test_minc_original_loader():
-    save_dir = os.path.join(get_dataset_dir(), 'debug')
-    if not os.path.exists(save_dir): os.mkdir(save_dir)
-    loader = MincOriginal()
-    gen = loader.generator(save_dir=save_dir)
-    a = gen.next()
-
 
 if __name__ == '__main__':
     # test_minc_original_loader()
@@ -232,20 +220,4 @@ if __name__ == '__main__':
     # check_print('second')
 
 
-def test_VGG():
-    # model = VGG19(weights='imagenet')
-    x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
-    # Create a Keras Model - Functional API
-    model = Model(input=img_input,
-                  output=[x])
 
-    model.summary()
-    # model.load_weights(os.path.join( , by_name=True))
-    # Save a PNG of the Model Build
-    # plot(model, to_file='./Model/AlexNet_{}.png'.format(name))
-
-    model.compile(optimizer='rmsprop',
-                  loss='categorical_crossentropy')
-    print("loading weights")
-    model.load_weights(weight_path, by_name=True)
-    print('Model Compiled')

@@ -3,6 +3,7 @@ from numpy.testing import assert_allclose
 import inspect
 import functools
 
+from .np_utils import to_categorical
 from ..engine import Model, Input
 from ..models import Sequential, model_from_json
 from .. import backend as K
@@ -119,3 +120,40 @@ def keras_test(func):
             K.clear_session()
         return output
     return wrapper
+
+
+def image_classification(model, input_shape, nb_class=23,
+                         fit=False,
+                         nb_train=500, nb_test=200,
+                         nb_epoch=10, batch_size=16):
+    """
+    Classify random color images into several classes using logistic regression
+    with convolutional hidden layer.
+    Implement the test_image classification via basic version.
+
+    :param model:       Any classification model
+    :param input_shape: Raw image input
+    :param nb_class:    output prediction classes
+    :return:
+    """
+    '''
+    '''
+    np.random.seed(1337)
+    if input_shape is None:
+        input_shape = (16, 16, 3)
+    (X_train, y_train), (X_test, y_test) = get_test_data(nb_train=nb_train,
+                                                         nb_test=nb_test,
+                                                         input_shape=input_shape,
+                                                         classification=True,
+                                                         nb_class=nb_class)
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['accuracy'])
+    if fit:
+        history = model.fit(X_train, y_train, nb_epoch=nb_epoch, batch_size=batch_size,
+                            validation_data=(X_test, y_test),
+                            verbose=0)
+        assert history is not None

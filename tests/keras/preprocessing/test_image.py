@@ -41,6 +41,8 @@ class TestImage:
                 samplewise_center=True,
                 featurewise_std_normalization=True,
                 samplewise_std_normalization=True,
+                channelwise_std_normalization=True,
+                channel_mean=[10,20,30],
                 zca_whitening=True,
                 rotation_range=90.,
                 width_shift_range=0.1,
