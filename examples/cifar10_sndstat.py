@@ -270,6 +270,7 @@ def run_routine5():
     # run_fitnet_layer(load=True, verbose=1)
     run_fitnet_layer(second=True, load=False, verbose=2)
 
+
 def run_routine6():
     logging.info("Run holistic test for merged model")
     print("Run holistic test for merged model")
@@ -281,7 +282,7 @@ def run_routine6():
 
 if __name__ == '__main__':
 
-    nb_epoch = 50
+    nb_epoch = 150
     # run_routine1()
     # print('test')
     # run_routine1()

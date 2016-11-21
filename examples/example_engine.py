@@ -90,6 +90,8 @@ class ExampleEngine(object):
         elif isinstance(data, (ImageDataGenerator, DirectoryIterator)):
             self.train = data
             self.mode = 1
+        else:
+            return
 
         # Load the validation and test data.
         if self.mode == 0:
@@ -284,18 +286,20 @@ class ExampleEngine(object):
 
 
 class CVEngine(ExampleEngine):
+
     def __init__(self, models, data, validation=None, test=None,
                  load_weight=True, save_weight=True,
                  save_per_epoch=False,
                  verbose=2, logfile=None, save_log=True,
                  title='cvalid_default'):
-        # super(CVEngine, self).__init__(data, None, validation=validation, test=test,
-        #                                load_weight=load_weight, save_weight=save_weight,
-        #                                save_per_epoch=save_per_epoch, verbose=verbose, logfile=logfile,
-        #                                save_log=save_log, title=title)
+        super(CVEngine, self).__init__(data, None, validation=validation, test=test,
+                                       load_weight=load_weight, save_weight=save_weight,
+                                       save_per_epoch=save_per_epoch, verbose=verbose, logfile=logfile,
+                                       save_log=save_log, title=title)
+        # Override the parameters
         self.__dict__.update(locals())
 
-        self.mode = 0  # 0 for fit ndarray, 1 for fit generator
+        self.mode = 0  # 0 for fit nd-array, 1 for fit generator
         if isinstance(data, (list, tuple)):
             assert len(data) == 2
             self.train = data
