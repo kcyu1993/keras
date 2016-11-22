@@ -115,7 +115,7 @@ class ExampleEngine(object):
         self.verbose = verbose
         self.logfile = logfile
         self.log_flag = save_log
-
+        self.default_stdout = sys.stdout
         if logfile is None:
             self.logfile = os.path.join(getlogfiledir(), "{}-{}_{}.log".format(
                 self.title, model.name, self.mode))
@@ -124,7 +124,7 @@ class ExampleEngine(object):
                 self.title, model.name, self.mode, logfile))
 
         if self.log_flag:
-            sys.stdout = Logger(self.logfile)
+            self.stdout = Logger(self.logfile)
             self.verbose = 2
 
         self.nb_epoch = nb_epoch
@@ -167,6 +167,8 @@ class ExampleEngine(object):
         if self.save_weight and self.save_per_epoch:
             # Potentially remove the tmp file.
             os.remove(self.weight_path + '.tmp')
+        if self.log_flag:
+            sys.stdout.close()
         return history
 
     def fit_generator(self):

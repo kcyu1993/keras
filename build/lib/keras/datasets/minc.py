@@ -62,7 +62,6 @@ class MincLoader(object):
             data = data.transpose([2,0,1])
         elif len(data.shape) == 2:
             data = np.ones((3, data.shape[0], data.shape[1])) * data
-
         return data
 
     def loadcategory(self, file=None):
@@ -199,8 +198,8 @@ class Minc2500(MincLoader):
                  label_dir='labels', image_dir='images'):
         self.data_index = dataset
         self.hd5f_label = ['tr_img', 'tr_lab', 'va_img', 'va_lab', 'te_img', 'te_lab']
-        super(Minc2500, self).__init__(dirpath='minc-2500', category='categories.txt',
-                                       label_dir='labels', image_dir='images')
+        super(Minc2500, self).__init__(dirpath=dirpath, category=category,
+                                       label_dir=label_dir, image_dir=image_dir)
 
     # def loadcompleteimages(self, names=None, overwrite=True, split=True, index=1):
     #     if names is None:
@@ -336,6 +335,7 @@ class Minc2500(MincLoader):
         dir = os.path.join(self.image_dir, cate_name)
         return os.path.join(dir, fpath)
 
+    # Tester function
     def test_hd5f(self):
         tr = [np.random.rand(1000,3,362,362), np.array(range(10), dtype='byte')]
         va = np.array(range(11, 15), dtype='byte')

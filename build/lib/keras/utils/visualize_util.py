@@ -1,9 +1,68 @@
 import os
 from .data_utils import get_plot_path
 try:
+    import matplotlib
+    matplotlib.use('Agg')
     from matplotlib import pyplot as plt
 except ImportError:
     raise RuntimeError("Cannot import matplotlib")
+
+
+def plot_multiple_loss_acc(tr_loss, te_loss, tr_acc, te_acc, epochs=None, show=False,
+                           names=('train', 'test'), xlabel='epoch', ylabel=('loss', 'mis-class'),
+                           linestyle=('.', '-'), color=('#eeefff', '#000fff'),
+                           filename='default.png'):
+    assert len(tr_loss) == len(te_loss)
+    assert len(tr_acc) == len(te_acc)
+
+    fig, ax1 = plt.subplots()
+    # Plot the loss accordingly
+    ax1.plot(epochs, tr_loss, color=color[0], label=names[0], linestyle=linestyle[0])
+    ax1.plot(epochs, te_loss, color=color[0], label=names[1], linestyle=linestyle[1])
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel=ylabel[0])
+
+    ax2 = ax1.twinx()
+    ax2.plot(epochs, tr_acc, color=color[1], label=names[0], linestyle=linestyle[0])
+    ax2.plot(epochs, te_acc, color=color[1], label=names[1], linestyle=linestyle[1])
+    ax2.set_ylabel(ylabel=ylabel[1])
+
+    leg2 = ax2.legend(loc=1, shadow=True)
+    leg2.draw_frame(False)
+    leg1 = ax1.legend(loc=1, shadow=True)
+    leg1.draw_frame(False)
+
+    plt.title(filename)
+
+    if show:
+        plt.show()
+    plt_path = get_plot_path("train_test " + filename)
+    plt.savefig(plt_path)
+    plt.close()
+    return plt_path
+
+
+def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=None, show=False,
+                             xlabel='', ylabel='', filename='',
+                             color=('b', 'g', 'c', 'm', 'y', 'b'), linestyle=('dotted', '-')):
+    assert len(train_errors) == len(test_errors) == len(modelnames)
+
+    for i in range(len(train_errors)):
+        plt.plot(x_factor, train_errors[i], color=color[i], label=modelnames[i], linestyle=linestyle[0])
+        plt.plot(x_factor, test_errors[i], color=color[i], linestyle=linestyle[1])
+
+    leg = plt.legend(loc=1, shadow=True)
+    leg.draw_frame(False)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(filename)
+
+    if show:
+        plt.show()
+    plt_path = get_plot_path("train_test " + filename)
+    plt.savefig(plt_path)
+    plt.close()
+    return plt_path
 
 
 def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
@@ -37,7 +96,11 @@ def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
 
     if show:
         plt.show()
-    plt.savefig(get_plot_path("train_test " + filename))
+    plt_path = get_plot_path("train_test " + filename)
+    plt.savefig(plt_path)
+    plt.close()
+    return plt_path
+
 
 def model_to_dot(model, show_shapes=False, show_layer_names=True):
     try:
