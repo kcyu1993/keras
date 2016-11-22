@@ -152,6 +152,7 @@ def image_classification(model, input_shape, nb_class=23,
     model.compile(loss='categorical_crossentropy',
                   optimizer='rmsprop',
                   metrics=['accuracy'])
+    model.summary()
     if fit:
         history = model.fit(X_train, y_train, nb_epoch=nb_epoch, batch_size=batch_size,
                             validation_data=(X_test, y_test),

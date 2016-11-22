@@ -214,8 +214,8 @@ def run_resnet_snd(parametric=True, verbose=1):
     fit_model(model, load=True, save=True, verbose=verbose)
 
 
-def run_resnet_merge(parametrics=[], verbose=1):
-    for mode in range(3):
+def run_resnet_merge(parametrics=[], verbose=1, start=0, stop=3):
+    for mode in range(start, stop):
         model = ResCovNet50CIFAR(parametrics=parametrics, nb_class=nb_classes, mode=mode)
         fit_model(model, load=True, save=True, verbose=verbose)
 
@@ -225,16 +225,21 @@ def fit_model(model, load=False, save=True, verbose=1):
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
                   metrics=['accuracy'])
+    save_log = True
     engine = ExampleEngine([X_train, Y_train], model, [X_test, Y_test],
-                           load_weight=load, save_weight=save,
+                           load_weight=load, save_weight=save, save_log=save_log,
                            batch_size=batch_size, nb_epoch=nb_epoch, title='cifar10', verbose=verbose)
 
+    if save_log:
+        sys.stdout = engine.stdout
     model.summary()
     engine.fit(batch_size=batch_size, nb_epoch=nb_epoch, augmentation=data_augmentation)
     score = engine.model.evaluate(X_test, Y_test, verbose=0)
     engine.plot_result('loss')
     engine.plot_result('acc')
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
+    if save_log:
+        sys.stdout = engine.stdout.close()
 
 
 def run_routine1():
@@ -280,13 +285,39 @@ def run_routine6():
     run_resnet_merge([100, 50],2)
 
 
-if __name__ == '__main__':
+def run_routine7():
+    logging.info("Run holistic test for complex merged model 2")
+    print("Run holistic test for complex merged model 2")
+    print("mode 5")
+    run_resnet_merge([],2, 5, 6)
+    # run_resnet_merge([50],2, 3, 7)
+    # run_resnet_merge([100],2, 3, 7)
+    # run_resnet_merge([100, 50],2, 3, 7)
 
-    nb_epoch = 150
+
+def plot_results():
+    from example_engine import gethistoryfiledir
+    hist_dir = gethistoryfiledir()
+    folder_name = 'ResCov_CIFAR'
+    hist_dir = os.path.join(hist_dir, folder_name)
+    file_list = os.listdir(hist_dir)
+
+    engine = ExampleEngine()
+
+
+
+
+
+
+if __name__ == '__main__':
+    nb_epoch = 100
     # run_routine1()
     # print('test')
     # run_routine1()
     # run_routine5()
-    run_routine6()
+    # run_routine6()
+    # sys.stdout = logging
+    # run_routine7()
+    plot_results()
     # run_resnet50_original(2)
     # run_resnet_snd(True, verbose=1)
