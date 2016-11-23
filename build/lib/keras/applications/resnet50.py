@@ -185,7 +185,7 @@ def covariance_block_original(input_tensor, nb_class, stage, block, parametric=[
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
     wp_name_base = 'wp' + str(stage) + block + '_branch'
 
-    x = SecondaryStatistic(name = cov_name_base)(input_tensor)
+    x = SecondaryStatistic(name=cov_name_base)(input_tensor)
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
     x = WeightedProbability(nb_class, activation=activation, name=wp_name_base)(x)

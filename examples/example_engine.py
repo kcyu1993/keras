@@ -59,6 +59,7 @@ class ExampleEngine(object):
     """
     def __init__(self, data, model, validation=None, test=None,
                  load_weight=True, save_weight=True,
+                 lr_decay=False,
                  save_per_epoch=False,
                  batch_size=128, nb_epoch=100,
                  verbose=2, logfile=None, save_log=True,
@@ -144,6 +145,11 @@ class ExampleEngine(object):
         self.cbks = []
         if self.save_weight and self.save_per_epoch:
             self.cbks.append(ModelCheckpoint(self.weight_path + ".tmp", verbose=1))
+
+        self.lr_decay = lr_decay
+        if self.lr_decay:
+            self.cbks.append(ReduceLROnPlateau(verbose=1))
+
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=False):
         self.batch_size = batch_size
@@ -278,13 +284,31 @@ class ExampleEngine(object):
         filename = cpickle_save(data=history, output_file=filename)
         return filename
 
-    def load_history(self, filename):
+    @staticmethod
+    def load_history(filename):
         logging.debug("load history from {}".format(filename))
         hist = cpickle_load(filename)
         if isinstance(hist, dict):
             return hist
         else:
             raise ValueError("Should read a dict term")
+
+    @staticmethod
+    def load_history_from_log(filename):
+        logging.debug('Load history from {}'.format(filename))
+        with open(filename, 'r') as f:
+            lines = [line.rstrip() for line in f]
+            hist = dict()
+            hist['loss'] = []
+            hist['val_loss'] = []
+            hist['acc'] = []
+            hist['val_acc'] = []
+            for line in lines:
+                if not line.startswith('Epoch'):
+                    for i, patch in enumerate(line.replace(' ', '').split('-')[1:]):
+                        n, val = patch.split(":")
+                        hist[n].append(float(val))
+        return hist
 
 
 class CVEngine(ExampleEngine):
