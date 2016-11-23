@@ -217,7 +217,7 @@ def run_resnet_snd(parametric=True, verbose=1):
 def run_resnet_merge(parametrics=[], verbose=1, start=0, stop=3):
     for mode in range(start, stop):
         model = ResCovNet50CIFAR(parametrics=parametrics, nb_class=nb_classes, mode=mode)
-        fit_model(model, load=True, save=True, verbose=verbose)
+        fit_model(model, load=False, save=True, verbose=verbose)
 
 
 def fit_model(model, load=False, save=True, verbose=1):
@@ -228,6 +228,7 @@ def fit_model(model, load=False, save=True, verbose=1):
     save_log = True
     engine = ExampleEngine([X_train, Y_train], model, [X_test, Y_test],
                            load_weight=load, save_weight=save, save_log=save_log,
+                           lr_decay=True,
                            batch_size=batch_size, nb_epoch=nb_epoch, title='cifar10', verbose=verbose)
 
     if save_log:
@@ -288,11 +289,11 @@ def run_routine6():
 def run_routine7():
     logging.info("Run holistic test for complex merged model 2")
     print("Run holistic test for complex merged model 2")
-    print("mode 5")
+    print("mode 5 for non para reset")
     run_resnet_merge([],2, 5, 6)
-    # run_resnet_merge([50],2, 3, 7)
-    # run_resnet_merge([100],2, 3, 7)
-    # run_resnet_merge([100, 50],2, 3, 7)
+    # run_resnet_merge([50],2, 5, 6)
+    # run_resnet_merge([100],2, 5, 6)
+    # run_resnet_merge([100, 50],2, 5, 6)
 
 
 def plot_results():
@@ -300,11 +301,63 @@ def plot_results():
     hist_dir = gethistoryfiledir()
     folder_name = 'ResCov_CIFAR'
     hist_dir = os.path.join(hist_dir, folder_name)
-    file_list = os.listdir(hist_dir)
+    file_list = []
+    model_list = []
 
-    engine = ExampleEngine()
+    for filename in os.listdir(hist_dir):
+        if filename.endswith('.gz'):
+            file_list.append(filename)
+            # later = str.join(filename.split('-')[1:])
+            # model_name = str.join(later.split('_')[:-1])
+            # ind1 = filename.find('-')
+            # ind2 = filename.find('_', -filename.split('_')[-1].__len__(), -1)
+            model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1]
+            model_list.append(model_name)
 
+    # For each plot: decode into title-model-hash.history
+    from keras.utils.visualize_util import plot_multiple_train_test, plot_multiple_loss_acc
+    list_tr_mis = []
+    list_te_mis = []
+    list_tr_loss = []
+    list_te_loss = []
+    for ind, name in enumerate(model_list):
+        hist_dict = ExampleEngine.load_history(os.path.join(hist_dir,file_list[ind]))
+        # print(hist_dict)
+        tr_mis = [1.0 - acc for acc in hist_dict['acc']]
+        te_mis = [1.0 - acc for acc in hist_dict['val_acc']]
+        tr_loss = hist_dict['loss']
+        te_loss = hist_dict['val_loss']
+        list_tr_loss.append(tr_loss)
+        list_te_loss.append(te_loss)
+        list_tr_mis.append(tr_mis)
+        list_te_mis.append(te_mis)
+        # plot_multiple_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
+        #                        tr_mis, te_mis,
+        #                        filename=name+'.png'
+        #                        )
+    log_history = ['cifar10-ResCov_CIFAR_para-mode_5_0000.log',
+                   'cifar10-resnet50-baseline.log']
+    log_model = ['ResCov_CIFAR_para-mode_5',
+                 'resnet50-baseline']
+    for log_file in log_history:
+        hist_dict = ExampleEngine.load_history_from_log(
+            os.path.join(hist_dir, log_file))
+        tr_mis = [1.0 - acc for acc in hist_dict['acc']]
+        te_mis = [1.0 - acc for acc in hist_dict['val_acc']]
+        tr_loss = hist_dict['loss']
+        te_loss = hist_dict['val_loss']
 
+        list_tr_loss.append(tr_loss)
+        list_te_loss.append(te_loss)
+        list_tr_mis.append(tr_mis)
+        list_te_mis.append(te_mis)
+
+    model_list += log_model
+    sig_id = (len(list_tr_mis) - 2, len(list_tr_mis) - 1)
+    plot_multiple_train_test(list_tr_mis, list_te_mis, model_list,
+                             xlabel='epoch', ylabel='mis-classification',
+                             filename='models-cifar10-ResCov',
+                             significant=sig_id, sig_color=('r','k'))
 
 
 
@@ -317,7 +370,7 @@ if __name__ == '__main__':
     # run_routine5()
     # run_routine6()
     # sys.stdout = logging
-    # run_routine7()
-    plot_results()
+    run_routine7()
+    # plot_results()
     # run_resnet50_original(2)
     # run_resnet_snd(True, verbose=1)
