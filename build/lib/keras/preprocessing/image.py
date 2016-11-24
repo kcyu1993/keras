@@ -416,8 +416,6 @@ class ImageDataGenerator(object):
             if np.random.random() < 0.5:
                 x = flip_axis(x, img_row_index)
 
-
-
         # TODO:
         # channel-wise normalization
         # barrel/fisheye

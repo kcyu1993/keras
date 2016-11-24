@@ -59,7 +59,7 @@ class ExampleEngine(object):
     """
     def __init__(self, data, model, validation=None, test=None,
                  load_weight=True, save_weight=True,
-                 lr_decay=False,
+                 lr_decay=False, early_stop=False,
                  save_per_epoch=False,
                  batch_size=128, nb_epoch=100,
                  verbose=2, logfile=None, save_log=True,
@@ -148,8 +148,10 @@ class ExampleEngine(object):
 
         self.lr_decay = lr_decay
         if self.lr_decay:
-            self.cbks.append(ReduceLROnPlateau(verbose=1))
-
+            self.cbks.append(ReduceLROnPlateau(min_lr=0.0001, verbose=1))
+        self.early_stop = early_stop
+        if self.early_stop:
+            self.cbks.append(EarlyStopping(patience=20, verbose=1))
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=False):
         self.batch_size = batch_size
@@ -263,6 +265,7 @@ class ExampleEngine(object):
                             xlabel='epoch', ylabel=metric,
                             linestyle=linestyle,
                             filename=filename, plot_type=0)
+            self.save_history(history)
         except TclError:
             print("Catch the Tcl Error, save the history accordingly")
             self.save_history(history)
