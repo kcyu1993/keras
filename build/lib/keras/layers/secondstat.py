@@ -67,7 +67,6 @@ class SecondaryStatistic(Layer):
         :param input_shape:
         :return:
         """
-        # TODO Weight is not supported at this moment, just write them as exp
         # print('secondary_stat: input shape lenth', len(input_shape))
 
         if self.dim_ordering == 'th':
@@ -106,8 +105,7 @@ class SecondaryStatistic(Layer):
         self.built = True
 
     def get_output_shape_for(self, input_shape):
-        # TODO Check the validity.
-        return (input_shape[0], self.out_dim, self.out_dim)
+        return input_shape[0], self.out_dim, self.out_dim
 
     def call(self, x, mask=None):
         if not self.built:
@@ -195,7 +193,6 @@ class O2Transform(Layer):
     def __init__(self, output_dim=None,
                  init='glorot_uniform', activation='relu', weights=None,
                  W_regularizer=None, dim_ordering='default', **kwargs):
-        # TODO Finish this
         self.out_dim = output_dim
 
         # input parameter preset

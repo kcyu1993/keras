@@ -726,37 +726,37 @@ def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
 
     x = AveragePooling2D((3, 3), name='avg_pool')(x)
 
-    cov_input = block2_x
+    cov_input = block3_x
     if mode == 0:
         cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
         x = Flatten()(x)
-        x = merge([x, cov_branch], mode='concat')
+        x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 1:
         cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
-        x = merge([x, cov_branch], mode='concat')
+        x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 2:
         cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
-        x = merge([x, cov_branch], mode='sum')
+        x = merge([x, cov_branch], mode='sum', name='sum')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 3:
         cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
         cov_branch = Activation('softmax')(cov_branch)
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc')(x)
-        x = merge([x, cov_branch], mode='sum')
+        x = merge([x, cov_branch], mode='sum', name='sum')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 4:
         cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
         cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
         cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
-        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat')
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 5:
         cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
@@ -764,7 +764,7 @@ def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
         cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
-        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat')
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 6:
         cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
@@ -772,8 +772,8 @@ def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
         cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
-        cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='sum')
-        x = merge([x, cov_branch], mode='concat')
+        cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='sum', name='sum')
+        x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     else:
         raise ValueError("Mode not supported {}".format(mode))

@@ -16,6 +16,7 @@ from __future__ import print_function
 import logging
 
 from keras.datasets import cifar10
+from keras.datasets import cifar100
 from keras.engine import Model
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
@@ -46,8 +47,20 @@ SND_PATH = get_absolute_dir_project('model_saved/cifar10_cnn_sndstat.weights')
 SND_PATH = get_absolute_dir_project('model_saved/cifar10_fitnet.weights')
 LOG_PATH = get_absolute_dir_project('model_saved/log')
 
-# the data, shuffled and split between train and test sets
-(X_train, y_train), (X_test, y_test) = cifar10.load_data()
+cifar_10 = True
+if cifar_10:
+    # the data, shuffled and split between train and test sets
+    (X_train, y_train), (X_test, y_test) = cifar10.load_data()
+else:
+    # the data, shuffled and split between train and test sets
+    # label_mode = 'fine'
+    label_mode = 'fine'
+    (X_train, y_train), (X_test, y_test) = cifar100.load_data(label_mode=label_mode)
+    if label_mode is 'fine':
+        nb_classes = 100
+    elif label_mode is 'coarse':
+        nb_classes = 20
+
 print('X_train shape:', X_train.shape)
 print(X_train.shape[0], 'train samples')
 print(X_test.shape[0], 'test samples')
@@ -64,7 +77,7 @@ X_test /= 255
 input_shape = X_train.shape[1:]
 
 
-def cifar_fitnet_v1(second=False, parametric=True):
+def cifar_fitnet_v1(second=False, parametric=[]):
     """
     Implement the fit model has 205K param
     Without any Maxout design in this version
@@ -72,7 +85,10 @@ def cifar_fitnet_v1(second=False, parametric=True):
 
     :return: model sequential
     """
-    model = Sequential(name='fitnet_v1')
+    basename = 'fitnet_v1'
+
+
+    model = Sequential()
     model.add(Convolution2D(16, 3, 3, border_mode='valid', input_shape=input_shape))
     model.add(Activation('relu'))
     model.add(Convolution2D(16, 3, 3, border_mode='same'))
@@ -102,16 +118,20 @@ def cifar_fitnet_v1(second=False, parametric=True):
         model.add(Flatten())
         model.add(Dense(500))
         model.add(Dense(nb_classes, activation='softmax'))
-        model.name = model.name + "_original"
+        basename += "_fc"
     else:
         model.add(SecondaryStatistic(name='second_layer'))
-        if parametric:
-            model.add(O2Transform(output_dim=100, name='O2transform_1'))
-            model.add(O2Transform(output_dim=50, name='O2transform_2'))
+        basename += "_snd"
+        if parametric is not []:
+            basename += '_para-'
+            for para in parametric:
+                basename += str(para) + '_'
+        for ind, para in enumerate(parametric):
+            model.add(O2Transform(output_dim=para, name='O2transform_{}'.format(ind)))
         model.add(WeightedProbability(output_dim=nb_classes))
         model.add(Activation('softmax'))
-        model.name = model.name + "_second"
 
+    model.name = basename
     return model
 
 
@@ -141,6 +161,7 @@ def model_original():
     model.add(Activation('softmax'))
 
     return model
+
 
 def model_snd(parametric=True):
     model = Sequential()
@@ -228,7 +249,7 @@ def fit_model(model, load=False, save=True, verbose=1):
     save_log = True
     engine = ExampleEngine([X_train, Y_train], model, [X_test, Y_test],
                            load_weight=load, save_weight=save, save_log=save_log,
-                           lr_decay=True,
+                           lr_decay=True, early_stop=False,
                            batch_size=batch_size, nb_epoch=nb_epoch, title='cifar10', verbose=verbose)
 
     if save_log:
@@ -289,11 +310,25 @@ def run_routine6():
 def run_routine7():
     logging.info("Run holistic test for complex merged model 2")
     print("Run holistic test for complex merged model 2")
-    print("mode 5 for non para reset")
-    run_resnet_merge([],2, 5, 6)
-    # run_resnet_merge([50],2, 5, 6)
-    # run_resnet_merge([100],2, 5, 6)
-    # run_resnet_merge([100, 50],2, 5, 6)
+    print("mode 5 for para reset")
+    # run_resnet_merge([],2, 5, 6)
+    run_resnet_merge([50],2, 5, 6)
+    run_resnet_merge([100],2, 5, 6)
+    run_resnet_merge([100, 50],2, 5, 6)
+
+
+def run_routine8():
+    """ Fitnet complete trial """
+    paras = [[100,], [50,], [100,50]]
+    print("Run routine 8 2")
+    list_model = []
+    for para in paras:
+        model = cifar_fitnet_v1(True, para)
+        list_model.append(model)
+    list_model.append(cifar_fitnet_v1(False, []))
+    for model in list_model:
+        print('test model {}'.format(model.name))
+        fit_model(model, load=True, save=True, verbose=2)
 
 
 def plot_results():
@@ -360,6 +395,13 @@ def plot_results():
                              significant=sig_id, sig_color=('r','k'))
 
 
+def plot_models():
+    parametrics = [[], [50,], [100,],[100, 50]]
+    from keras.utils.visualize_util import plot, get_plot_path
+    for mode in range(0, 7):
+        for para in parametrics:
+            model = ResCovNet50CIFAR(parametrics=para, nb_class=nb_classes, mode=mode)
+            plot(model, to_file=get_plot_path(model.name + ".png"))
 
 
 if __name__ == '__main__':
@@ -370,7 +412,9 @@ if __name__ == '__main__':
     # run_routine5()
     # run_routine6()
     # sys.stdout = logging
-    run_routine7()
+    # run_routine7()
     # plot_results()
     # run_resnet50_original(2)
     # run_resnet_snd(True, verbose=1)
+    # plot_models()
+    run_routine8()
