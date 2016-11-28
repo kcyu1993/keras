@@ -235,10 +235,10 @@ def test_routine4():
 
 
 if __name__ == '__main__':
-    # test_routine1()
+    # run_routine1()
     # print('test')
-    # test_routine1()
-    # test_routine2()
-    # test_routine3()
+    # run_routine1()
+    # run_routine2()
+    # run_routine3()
     test_routine4()
 

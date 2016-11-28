@@ -17,7 +17,9 @@ import logging
 
 from keras.datasets import cifar10
 from keras.datasets import cifar100
+from keras.engine import Input
 from keras.engine import Model
+from keras.engine import merge
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
 from keras.layers import Convolution2D, MaxPooling2D, O2Transform
@@ -25,7 +27,7 @@ from keras.optimizers import SGD, rmsprop
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
-from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR
+from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_original
 
 import sys
 import os
@@ -130,6 +132,119 @@ def cifar_fitnet_v1(second=False, parametric=[]):
             model.add(O2Transform(output_dim=para, name='O2transform_{}'.format(ind)))
         model.add(WeightedProbability(output_dim=nb_classes))
         model.add(Activation('softmax'))
+
+    model.name = basename
+    return model
+
+
+def cifar_fitnet_v2(parametrics=[], mode=0):
+    """
+        Implement the fit model has 205K param
+        Without any Maxout design in this version
+        Just follows the general architecture
+
+        :return: model sequential
+        """
+    nb_class = nb_classes
+    basename = 'fitnet_v2'
+    if parametrics is not []:
+        basename += '_para-'
+        for para in parametrics:
+            basename += str(para) + '_'
+
+    input_tensor = Input(input_shape)
+    x = Convolution2D(16, 3, 3, border_mode='same')(input_tensor)
+    x = Activation('relu')(x)
+    x = Convolution2D(16, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = Convolution2D(16, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D()(x)
+    x = Dropout(0.25)(x)
+    block1_x = x
+
+    x = Convolution2D(32, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = Convolution2D(32, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = Convolution2D(32, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D()(x)
+    x = Dropout(0.25)(x)
+
+    block2_x = x
+    x = Convolution2D(48, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = Convolution2D(48, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = Convolution2D(64, 3, 3, border_mode='same')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D()(x)
+    x = Dropout(0.25)(x)
+    # model.add(MaxPooling2D(pool_size=(2, 2)))
+
+    block3_x = x
+
+    cov_input = block3_x
+    if mode == 0: # Original Network
+        x = Flatten()(x)
+        x = Dense(500)(x)
+        x = Dense(nb_classes)(x)
+        x = Activation('softmax')(x)
+    elif mode == 1: # Original Cov_Net
+        x = covariance_block_original(x, nb_class, stage=4, block='a', parametric=parametrics)
+        x = Activation('softmax')(x)
+
+    elif mode == 2: # Concat balanced
+        cov_branch = covariance_block_original(cov_input, nb_class, stage=4, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+
+    elif mode == 3: # Concat two softmax
+        cov_branch = covariance_block_original(cov_input, nb_class, stage=4, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
+        cov_branch = Activation('softmax')(cov_branch)
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+
+    elif mode == 4: # Concat multiple branches (balanced)
+        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class)(x)
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+
+    elif mode == 5: # Concat multiple 'softmax' final layers
+        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a',
+                                                parametric=parametrics, activation='softmax')
+        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b',
+                                                parametric=parametrics, activation='softmax')
+        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c',
+                                                parametric=parametrics, activation='softmax')
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+
+    elif mode == 6: # Average multiple softmax
+        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    else:
+        raise ValueError("Mode not supported {}".format(mode))
+
+    model = Model(input_tensor, x)
+
 
     model.name = basename
     return model
@@ -240,6 +355,11 @@ def run_resnet_merge(parametrics=[], verbose=1, start=0, stop=3):
         model = ResCovNet50CIFAR(parametrics=parametrics, nb_class=nb_classes, mode=mode)
         fit_model(model, load=False, save=True, verbose=verbose)
 
+def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6):
+    for mode in range(start, stop):
+        model = cifar_fitnet_v2(parametrics, mode)
+        fit_model(model, load=False, save=True, verbose=verbose)
+
 
 def fit_model(model, load=False, save=True, verbose=1):
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
@@ -319,8 +439,10 @@ def run_routine7():
 
 def run_routine8():
     """ Fitnet complete trial """
-    paras = [[100,], [50,], [100,50]]
-    print("Run routine 8 2")
+    # paras = [[100,], [50,], [100,50]]
+    # paras = [[50,], [100,50]]
+    paras = [[100,50]]
+    print("Run routine 8 Epoch {} for para {}".format(nb_epoch, paras))
     list_model = []
     for para in paras:
         model = cifar_fitnet_v1(True, para)
@@ -328,84 +450,23 @@ def run_routine8():
     list_model.append(cifar_fitnet_v1(False, []))
     for model in list_model:
         print('test model {}'.format(model.name))
-        fit_model(model, load=True, save=True, verbose=2)
+        fit_model(model, load=False, save=True, verbose=2)
 
 
-def plot_results():
-    from example_engine import gethistoryfiledir
-    hist_dir = gethistoryfiledir()
-    folder_name = 'ResCov_CIFAR'
-    hist_dir = os.path.join(hist_dir, folder_name)
-    file_list = []
-    model_list = []
+def run_routine9():
+    """
+    Fitnet v2 complete test
 
-    for filename in os.listdir(hist_dir):
-        if filename.endswith('.gz'):
-            file_list.append(filename)
-            # later = str.join(filename.split('-')[1:])
-            # model_name = str.join(later.split('_')[:-1])
-            # ind1 = filename.find('-')
-            # ind2 = filename.find('_', -filename.split('_')[-1].__len__(), -1)
-            model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1]
-            model_list.append(model_name)
+    Returns
+    -------
 
-    # For each plot: decode into title-model-hash.history
-    from keras.utils.visualize_util import plot_multiple_train_test, plot_multiple_loss_acc
-    list_tr_mis = []
-    list_te_mis = []
-    list_tr_loss = []
-    list_te_loss = []
-    for ind, name in enumerate(model_list):
-        hist_dict = ExampleEngine.load_history(os.path.join(hist_dir,file_list[ind]))
-        # print(hist_dict)
-        tr_mis = [1.0 - acc for acc in hist_dict['acc']]
-        te_mis = [1.0 - acc for acc in hist_dict['val_acc']]
-        tr_loss = hist_dict['loss']
-        te_loss = hist_dict['val_loss']
-        list_tr_loss.append(tr_loss)
-        list_te_loss.append(te_loss)
-        list_tr_mis.append(tr_mis)
-        list_te_mis.append(te_mis)
-        # plot_multiple_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
-        #                        tr_mis, te_mis,
-        #                        filename=name+'.png'
-        #                        )
-    log_history = ['cifar10-ResCov_CIFAR_para-mode_5_0000.log',
-                   'cifar10-resnet50-baseline.log']
-    log_model = ['ResCov_CIFAR_para-mode_5',
-                 'resnet50-baseline']
-    for log_file in log_history:
-        hist_dict = ExampleEngine.load_history_from_log(
-            os.path.join(hist_dir, log_file))
-        tr_mis = [1.0 - acc for acc in hist_dict['acc']]
-        te_mis = [1.0 - acc for acc in hist_dict['val_acc']]
-        tr_loss = hist_dict['loss']
-        te_loss = hist_dict['val_loss']
-
-        list_tr_loss.append(tr_loss)
-        list_te_loss.append(te_loss)
-        list_tr_mis.append(tr_mis)
-        list_te_mis.append(te_mis)
-
-    model_list += log_model
-    sig_id = (len(list_tr_mis) - 2, len(list_tr_mis) - 1)
-    plot_multiple_train_test(list_tr_mis, list_te_mis, model_list,
-                             xlabel='epoch', ylabel='mis-classification',
-                             filename='models-cifar10-ResCov',
-                             significant=sig_id, sig_color=('r','k'))
-
-
-def plot_models():
-    parametrics = [[], [50,], [100,],[100, 50]]
-    from keras.utils.visualize_util import plot, get_plot_path
-    for mode in range(0, 7):
-        for para in parametrics:
-            model = ResCovNet50CIFAR(parametrics=para, nb_class=nb_classes, mode=mode)
-            plot(model, to_file=get_plot_path(model.name + ".png"))
+    """
+    print("routine 9")
+    run_fitnet_merge([])
 
 
 if __name__ == '__main__':
-    nb_epoch = 100
+    nb_epoch = 400
     # run_routine1()
     # print('test')
     # run_routine1()
@@ -413,8 +474,9 @@ if __name__ == '__main__':
     # run_routine6()
     # sys.stdout = logging
     # run_routine7()
-    # plot_results()
     # run_resnet50_original(2)
     # run_resnet_snd(True, verbose=1)
     # plot_models()
-    run_routine8()
+    # run_routine8()
+    run_routine9()
+    # plot_results()

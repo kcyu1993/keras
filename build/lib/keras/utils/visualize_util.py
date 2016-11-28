@@ -62,11 +62,12 @@ def get_cmap(N):
 
 def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=None, show=False,
                              xlabel='', ylabel='', filename='', linestyle=('dotted', '-'),
-                             significant=None, sig_color=None):
+                             significant=None, sig_color=None,
+                             xlim=[0, 200], ylim=[0.01, 0.5]):
     assert len(train_errors) == len(test_errors) == len(modelnames)
     if x_factor is None:
         x_factor = range(len(train_errors))
-    cmap = get_cmap(len(train_errors))
+    cmap = get_cmap(len(train_errors) + 1)
     if significant is not None:
         assert len(significant) == len(sig_color)
         tr_err = []
@@ -100,8 +101,8 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
             plt.plot(range(len(sig_te[i])), sig_te[i], color=sig_color[i], linestyle=linestyle[1],
                      label=sig_model[i], linewidth=3)
     axes = plt.gca()
-    axes.set_ylim([0.01, 0.5])
-    axes.set_xlim([0, 160])
+    axes.set_ylim(ylim)
+    axes.set_xlim(xlim)
     leg = plt.legend(loc=1, shadow=True)
     leg.draw_frame(False)
     plt.xlabel(xlabel)

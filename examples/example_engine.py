@@ -21,7 +21,7 @@ from keras.callbacks import ModelCheckpoint, \
 from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
 from keras.utils.io_utils import cpickle_load, cpickle_save
 from keras.utils.logger import Logger
-from keras.preprocessing.image import ImageDataGenerator, DirectoryIterator
+from keras.preprocessing.image import ImageDataGenerator, DirectoryIterator, Iterator
 
 import os
 import sys
@@ -36,6 +36,7 @@ def gethistoryfiledir():
 
 def hist_average(historys):
     raise NotImplementedError
+
 
 class ExampleEngine(object):
     """
@@ -88,10 +89,11 @@ class ExampleEngine(object):
         if isinstance(data, (list,tuple)):
             assert len(data) == 2
             self.train = data
-        elif isinstance(data, (ImageDataGenerator, DirectoryIterator)):
+        elif isinstance(data, (ImageDataGenerator, Iterator)):
             self.train = data
             self.mode = 1
         else:
+            raise TypeError('data is not supported {}'.format(data.__class__))
             return
 
         # Load the validation and test data.
@@ -103,10 +105,10 @@ class ExampleEngine(object):
 
         if self.mode == 1:
             if validation is not None:
-                assert isinstance(validation, (DirectoryIterator))
+                assert isinstance(validation, (Iterator,))
                 self.nb_te_sample = validation.nb_sample
             if test is not None:
-                assert isinstance(test, (ImageDataGenerator, DirectoryIterator))
+                assert isinstance(test, (ImageDataGenerator, Iterator))
 
         self.model_label = ['com', 'gen']
 
@@ -157,6 +159,7 @@ class ExampleEngine(object):
         self.batch_size = batch_size
         self.nb_epoch = nb_epoch
         if self.load_weight:
+            print("Load weights from {}".format(self.weight_path))
             self.model.load_weights(self.weight_path, by_name=True)
         try:
             # Handle ModelCheckPoint
@@ -170,6 +173,11 @@ class ExampleEngine(object):
             print("System catch do some thing (like save the model)")
             if self.save_weight:
                 self.model.save_weights(self.weight_path + ".tmp", overwrite=True)
+                try:
+                    history = self.model.history
+                    self.save_history(history, tmp=True)
+                except Exception:
+                    raise Exception
             raise
         self.history = history
         if self.save_weight and self.save_per_epoch:
@@ -271,12 +279,14 @@ class ExampleEngine(object):
             self.save_history(history)
             return
 
-    def save_history(self, history):
+    def save_history(self, history, tmp=False):
         from keras.callbacks import History
         if isinstance(history, History):
             history = history.history
         import numpy as np
         filename = "{}-{}_{}.history".format(self.title, self.model.name, np.random.randint(1e4))
+        if tmp:
+            filename = 'tmp_' + filename
         if history is None:
             return
         logging.debug("compress with gz")
