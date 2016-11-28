@@ -9,6 +9,11 @@ import numpy as np
 from examples import minc_vgg19
 from keras.utils.np_utils import to_categorical
 from keras.utils.test_utils import get_test_data, keras_test
+from keras.applications.resnet50 import ResCovNet50MINC
+
+
+nb_class = 23
+input_shape = (3, 224, 224)
 
 
 def image_classification(model, input_shape, nb_class=23, fit=False):
@@ -76,6 +81,16 @@ def test_minc_VGG19_snd():
     print("test VGG19 snd")
     model = minc_vgg19.create_VGG_snd()
     image_classification(model, input_shape=(3,224,224))
+
+
+@keras_test
+def test_minc_resnet_all():
+    paras = [[100, ], [50, ], [100, 50]]
+    for para in paras:
+        for i in range(0,7):
+            model = ResCovNet50MINC(para, nb_class=nb_class, mode=i)
+            image_classification(model, input_shape=input_shape, fit=False)
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

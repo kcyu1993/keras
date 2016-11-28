@@ -475,7 +475,6 @@ def ResNet50MINC(include_top=True, weights='imagenet',
     if not K.is_keras_tensor(img_input):
         img_input = Input(tensor=img_input, shape=input_shape)
 
-
     if K.image_dim_ordering() == 'tf':
         bn_axis = 3
     else:
@@ -560,6 +559,153 @@ def ResNet50MINC(include_top=True, weights='imagenet',
             model.load_weights(weights_path, by_name=True)
             if K.backend() == 'theano':
                 convert_all_kernels_in_model(model)
+    return model
+
+
+def ResCovNet50MINC(parametrics=[], input_tensor=None, nb_class=23, mode=0):
+    '''Instantiate the ResNet50 architecture,
+    optionally loading weights pre-trained
+    on ImageNet. Note that when using TensorFlow,
+    for best performance you should set
+    `image_dim_ordering="tf"` in your Keras config
+    at ~/.keras/keras.json.
+
+    The model and the weights are compatible with both
+    TensorFlow and Theano. The dimension ordering
+    convention used by the model is the one
+    specified in your Keras config file.
+
+    # Arguments
+        include_top: whether to include the 3 fully-connected
+            layers at the top of the network.
+        weights: one of `None` (random initialization)
+            or "imagenet" (pre-training on ImageNet).
+        input_tensor: optional Keras tensor (i.e. xput of `layers.Input()`)
+            to use as image input for the model.
+        mode:   {0,1,2,3 ..}
+             mode 0: concat in the final layer {FC256, WP 10} then FC 10
+             mode 1: concat in the second last {FC10, WP 10} then FC 10
+             mode 2: sum in the second last {relu(FC10) + relu(WP 10)} -> softmax
+             mode 3: sum in the second last {soft(FC10) + soft(WP 10)} -> softmax
+             mode 4 - 6 are Cov of other layers information, from resnet stage 2, 3, 4
+                only differs during last combining phase
+             mode 4:  concat{FC4096, WP1, WP2, WP3} -> softmax
+             mode 5: concat{FC_23, WP1, WP2, WP3}
+             mode 6: concat{FC_23, sum(WP1, WP2, WP3)}
+
+    # Returns
+        A Keras model instance.
+    '''
+
+    basename = 'ResCov_MINC'
+    if parametrics is not []:
+        basename += '_para-'
+        for para in parametrics:
+            basename += str(para) + '_'
+
+    # Determine proper input shape
+    if K.image_dim_ordering() == 'th':
+        input_shape = (3, 224, 224)
+    else:
+        input_shape = (224, 224, 3)
+
+    if input_tensor is None:
+        img_input = Input(shape=input_shape)
+    else:
+        if not K.is_keras_tensor(input_tensor):
+            img_input = Input(tensor=input_tensor, shape=input_shape)
+        else:
+            img_input = input_tensor
+
+    if K.image_dim_ordering() == 'tf':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+
+    x = ZeroPadding2D((3, 3))(img_input)
+    x = Convolution2D(64, 7, 7, subsample=(2, 2), name='conv1')(x)
+    x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D((3, 3), strides=(2, 2))(x)
+
+    x = conv_block(x, 3, [64, 64, 256], stage=2, block='a', strides=(1, 1))
+    x = identity_block(x, 3, [64, 64, 256], stage=2, block='b')
+    x = identity_block(x, 3, [64, 64, 256], stage=2, block='c')
+
+    x = conv_block(x, 3, [128, 128, 512], stage=3, block='a')
+    x = identity_block(x, 3, [128, 128, 512], stage=3, block='b')
+    x = identity_block(x, 3, [128, 128, 512], stage=3, block='c')
+    x = identity_block(x, 3, [128, 128, 512], stage=3, block='d')
+    block1_x = x
+
+    x = conv_block(x, 3, [256, 256, 1024], stage=4, block='a')
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='b')
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='c')
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='d')
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='e')
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='f')
+    block2_x = x
+
+    x = conv_block(x, 3, [512, 512, 2048], stage=5, block='a')
+    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
+    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
+
+    x = AveragePooling2D((7, 7), name='avg_pool')(x)
+    block3_x = x
+
+    cov_input = block3_x
+    if mode == 0:
+        cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 1:
+        cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 2:
+        cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch], mode='sum', name='sum')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 3:
+        cov_branch = covariance_block_original(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        cov_branch = Activation('softmax')(cov_branch)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='softmax', name='fc')(x)
+        x = merge([x, cov_branch], mode='sum', name='sum')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 4:
+        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 5:
+        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 6:
+        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='sum', name='sum')
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    else:
+        raise ValueError("Mode not supported {}".format(mode))
+
+    model = Model(img_input, x, name=basename + "mode_" + str(mode))
     return model
 
 

@@ -35,7 +35,7 @@ from example_engine import ExampleEngine
 
 # Load the model
 from keras.applications.vgg19 import VGG19, VGG19_bottom
-from keras.applications.resnet50 import ResNet50MINC
+from keras.applications.resnet50 import ResNet50MINC, ResCovNet50MINC
 
 import sys
 
@@ -58,6 +58,14 @@ DIM_ORDERING = 'th'
 
 ### FOR model 1
 INPUT_SHAPE=(3, 224, 224)
+
+
+def create_ResCovNet50(para=[], start=0, stop=0, verbose=2):
+    model_list = []
+    for mode in range(start, stop):
+        model = ResCovNet50MINC(parametrics=para, mode=mode)
+        model_list.append(model)
+    return model_list
 
 
 def create_ResNet50(second=False, parametric=True):
@@ -124,7 +132,30 @@ def load():
     return (tr_x, tr_Y), (va_x, va_Y), (te_x, te_Y)
 
 
-def test_model(model, title="", load_w=True, save_w=True, plot=False, verbose=2):
+def run_minc_original_model(model, title='', load_w=True, save_w=True, plot=False, verbose=2):
+    print("loading model from generator ")
+    # tr, va, te = loads()
+    loader = MincOriginal()
+
+    tr_iterator = loader.generator(input_file='train.txt', batch_size=16, target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
+    te_iterator = loader.generator(input_file='test.txt', target_size=(INPUT_SHAPE[1], INPUT_SHAPE[2]))
+
+    # model.summary()
+    model.compile(optimizer='rmsprop',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    print("initialize engine")
+    engine = ExampleEngine(data=tr_iterator, model=model, validation=te_iterator,
+                           load_weight=load_w, save_weight=save_w,
+                           save_per_epoch=True, lr_decay=True,
+                           title=title)
+    history = engine.fit(nb_epoch=NB_EPOCH, batch_size=BATCH_SIZE)
+    if plot:
+        engine.plot_result('acc')
+        engine.plot_result('loss')
+
+
+def run_minc2500_model(model, title="", load_w=True, save_w=True, plot=False, verbose=2):
     print("loading model from generator ")
     # tr, va, te = loads()
     loader = Minc2500()
@@ -144,14 +175,14 @@ def test_model(model, title="", load_w=True, save_w=True, plot=False, verbose=2)
         engine.plot_result('loss')
 
 
-def test_minc_original_VGG_reduced():
+def run_minc_original_VGG_2500():
     x, img_input,  = create_VGG_original2()
     model = Model(input=img_input,
                   output=[x])
-    test_model(model, title='minc_original_vgg', save_w=True, load_w=True)
+    run_minc2500_model(model, title='minc_original_vgg', save_w=True, load_w=True)
 
 
-def test_minc_original_VGG_generator(load=False, save=True, verbose=1):
+def run_minc_original_VGG_generator(load=False, save=True, verbose=1):
     """
     This is testing case for minc dataset on original Alexnet as entry-point
         Experiment result:
@@ -166,58 +197,69 @@ def test_minc_original_VGG_generator(load=False, save=True, verbose=1):
     x, weight_path, img_input = VGG19_bottom(include_top=True, weights='imagenet', output_dim=NB_CLASS)
     model = Model(input=img_input,
                   output=[x])
-    test_model(model, title='original_vgg', load_w=load, save_w=save, verbose=verbose)
+    run_minc2500_model(model, title='original_vgg', load_w=load, save_w=save, verbose=verbose)
 
 
-def test_minc_snd_VGG_generator(load=False, save=True, verbose=1):
+def run_minc_snd_VGG_generator(load=False, save=True, verbose=1):
     x, weight_path, img_input = VGG19_bottom(weights='imagenet', output_dim=NB_CLASS)
     # After max pooling here
     x = SecondaryStatistic()(x)
     x = O2Transform(output_dim=1000)(x)
-    x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')
+    x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
 
     model = Model(input=img_input,
                   output=[x])
-    test_model(model, title='minc2500-vgg_snd', load_w=load, save_w=save, verbose=verbose)
+    run_minc2500_model(model, title='minc2500-vgg_snd', load_w=load, save_w=save, verbose=verbose)
 
 
-def test_minc_ResNet50_generator(load=False, save=True,
-                                 second=True, parametric=True,
-                                 verbose=1, plot=False):
+def run_minc_ResNet50_generator(load=False, save=True,
+                                second=True, parametric=True,
+                                verbose=1, plot=False):
     model = create_ResNet50(second, parametric)
-    test_model(model, title='minc2500', load_w=load, save_w=save,
-               verbose=verbose, plot=plot)
+    run_minc2500_model(model, title='minc2500', load_w=load, save_w=save,
+                       verbose=verbose, plot=plot)
+
+def run_minc_original_rescovnet(load=False, save=True,
+                                verbose=1, plot=False):
+    model_list = create_ResCovNet50(start=0, stop=1)
+    for model in model_list:
+        run_minc_original_model(model, 'MincOriginal', load_w=load, save_w=save)
 
 
-def test_routine1():
+def run_routine1():
     print("test routine 1")
     sys.stdout = Logger(LOG_PATH + '/minc_resnet50_original1.log')
     # test_fitnet_layer(load=True, verbose=1)
-    test_minc_ResNet50_generator(load=True, verbose=2)
+    run_minc_ResNet50_generator(load=True, verbose=2)
 
 
-def test_routine2():
+def run_routine2():
     sys.stdout = Logger(LOG_PATH + '/minc_VGG19_original1.log')
-    test_minc_original_VGG_generator(load=False, save=True, verbose=1)
+    run_minc_original_VGG_generator(load=False, save=True, verbose=1)
 
 
-def test_routine3(): # ResCov 1
+def run_routine3(): # ResCov 1
     print('Non para ResCovNet 50')
-    test_minc_ResNet50_generator(load=True, save=True,
-                                 second=True, parametric=False,
-                                 verbose=2, plot=True)
+    run_minc_ResNet50_generator(load=True, save=True,
+                                second=True, parametric=False,
+                                verbose=2, plot=True)
 
+
+def run_routine4():
+    print("ResCovNet 50 mode 0")
+    run_minc_original_rescovnet(load=True, save=True)
 
 if __name__ == '__main__':
     # test_minc_original_loader()
-    # test_minc_original_VGG_generator()
-    NB_EPOCH = 100
-    test_routine3()
-    # test_routine2()
+    # run_minc_original_VGG_generator()
+    NB_EPOCH = 50
+    # run_routine3()
+    run_routine4()
+    # run_routine2()
     # test_minc_original_alexnet_reduced()
     # test_VGG()
     # check_print('original')
     # check_print('second')
 
 
-
+0
