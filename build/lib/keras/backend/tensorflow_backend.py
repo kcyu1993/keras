@@ -1,34 +1,51 @@
 import tensorflow as tf
+
 from tensorflow.python.training import moving_averages
+from tensorflow.python.ops import tensor_array_ops
+from tensorflow.python.ops import control_flow_ops
 try:
     from tensorflow.python.ops import ctc_ops as ctc
 except ImportError:
     import tensorflow.contrib.ctc as ctc
+
 import numpy as np
 import os
 import copy
 import warnings
-from .common import _FLOATX, _EPSILON, _IMAGE_DIM_ORDERING, reset_uids
+from .common import _FLOATX, _EPSILON, image_dim_ordering, reset_uids
 py_all = all
 
 # INTERNAL UTILS
 
+# This is the default internal TF session used by Keras.
+# It can be set manually via `set_session(sess)`.
 _SESSION = None
-_LEARNING_PHASE = tf.placeholder(dtype='uint8', name='keras_learning_phase')  # 0 = test, 1 = train
+# This dictionary holds a mapping {graph: learning_phase}.
+# A learning phase is a bool tensor used to run Keras models in
+# either train mode (learning_phase == 1) or test mode (learning_phase == 0).
+_GRAPH_LEARNING_PHASES = {}
+# This boolean flag can be set to True to leave variable initialization
+# up to the user.
+# Change its value via `manual_variable_initialization(value)`.
 _MANUAL_VAR_INIT = False
 
 
 def clear_session():
+    '''Destroys the current TF graph and creates a new one.
+    Useful to avoid clutter from old models / layers.
+    '''
     global _SESSION
-    global _LEARNING_PHASE
+    global _GRAPH_LEARNING_PHASES
     tf.reset_default_graph()
     reset_uids()
     _SESSION = None
-    _LEARNING_PHASE = tf.placeholder(dtype='uint8', name='keras_learning_phase')
+    phase = tf.placeholder(dtype='bool', name='keras_learning_phase')
+    _GRAPH_LEARNING_PHASES[tf.get_default_graph()] = phase
 
 
 def manual_variable_initialization(value):
-    '''Whether variables should be initialized
+    '''Returns a boolean:
+    whether variables should be initialized
     as they are instantiated (default), or if
     the user should handle the initialization
     (e.g. via tf.initialize_all_variables()).
@@ -39,46 +56,54 @@ def manual_variable_initialization(value):
 
 def learning_phase():
     '''Returns the learning phase flag.
-
-    The learning phase flag is an integer tensor (0 = test, 1 = train)
+    The learning phase flag is a bool tensor (0 = test, 1 = train)
     to be passed as input to any Keras function
     that uses a different behavior at train time and test time.
     '''
-    return _LEARNING_PHASE
+    graph = tf.get_default_graph()
+    if graph not in _GRAPH_LEARNING_PHASES:
+        phase = tf.placeholder(dtype='bool',
+                               name='keras_learning_phase')
+        _GRAPH_LEARNING_PHASES[graph] = phase
+    return _GRAPH_LEARNING_PHASES[graph]
 
 
 def set_learning_phase(value):
-    global _LEARNING_PHASE
+    '''Sets the learning phase to a fixed value,
+    either 0 or 1 (integers).
+    '''
+    global _GRAPH_LEARNING_PHASES
     if value not in {0, 1}:
         raise ValueError('Expected learning phase to be '
                          '0 or 1.')
-    _LEARNING_PHASE = value
+    _GRAPH_LEARNING_PHASES[tf.get_default_graph()] = value
 
 
 def get_session():
     '''Returns the TF session to be used by the backend.
-
     If a default TensorFlow session is available, we will return it.
-
     Else, we will return the global Keras session.
-
     If no global Keras session exists at this point:
     we will create a new global session.
-
     Note that you can manually set the global session
     via `K.set_session(sess)`.
     '''
     global _SESSION
     if tf.get_default_session() is not None:
-        return tf.get_default_session()
-    if _SESSION is None:
-        if not os.environ.get('OMP_NUM_THREADS'):
-            _SESSION = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-        else:
-            nb_thread = int(os.environ.get('OMP_NUM_THREADS'))
-            _SESSION = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=nb_thread,
-                                                        allow_soft_placement=True))
-    return _SESSION
+        session = tf.get_default_session()
+    else:
+        if _SESSION is None:
+            if not os.environ.get('OMP_NUM_THREADS'):
+                config = tf.ConfigProto(allow_soft_placement=True)
+            else:
+                nb_thread = int(os.environ.get('OMP_NUM_THREADS'))
+                config = tf.ConfigProto(intra_op_parallelism_threads=nb_thread,
+                                        allow_soft_placement=True)
+            _SESSION = tf.Session(config=config)
+        session = _SESSION
+    if not _MANUAL_VAR_INIT:
+        _initialize_variables()
+    return session
 
 
 def set_session(session):
@@ -131,44 +156,45 @@ def to_dense(tensor):
 
 def variable(value, dtype=_FLOATX, name=None):
     '''Instantiates a tensor.
-
     # Arguments
         value: numpy array, initial value of the tensor.
         dtype: tensor type.
         name: optional name string for the tensor.
-
     # Returns
         Tensor variable instance.
     '''
     if hasattr(value, 'tocoo'):
         sparse_coo = value.tocoo()
-        indices = np.concatenate((np.expand_dims(sparse_coo.row, 1), np.expand_dims(sparse_coo.col, 1)), 1)
+        indices = np.concatenate((np.expand_dims(sparse_coo.row, 1),
+                                  np.expand_dims(sparse_coo.col, 1)), 1)
         # SparseTensor doesn't need initialization
-        return tf.SparseTensor(indices=indices, values=value.data, shape=value.shape)
-
-    v = tf.Variable(value, dtype=_convert_string_dtype(dtype), name=name)
-    if _MANUAL_VAR_INIT:
+        v = tf.SparseTensor(indices=indices, values=sparse_coo.data, shape=sparse_coo.shape)
+        v._dims = len(sparse_coo.shape)
         return v
-    if tf.get_default_graph() is get_session().graph:
-        try:
-            get_session().run(v.initializer)
-        except tf.errors.InvalidArgumentError:
-            warnings.warn('Could not automatically initialize variable, '
-                          'make sure you do it manually (e.g. via '
-                          '`tf.initialize_all_variables()`).')
-    else:
-        warnings.warn('The default TensorFlow graph is not the graph '
-                      'associated with the TensorFlow session currently '
-                      'registered with Keras, and as such Keras '
-                      'was not able to automatically initialize a variable. '
-                      'You should consider registering the proper session '
-                      'with Keras via `K.set_session(sess)`.')
+    v = tf.Variable(value, dtype=_convert_string_dtype(dtype), name=name)
     return v
 
 
+def _initialize_variables():
+    if hasattr(tf, 'global_variables'):
+        variables = tf.global_variables()
+    else:
+        variables = tf.all_variables()
+
+    uninitialized_variables = []
+    for v in variables:
+        if not hasattr(v, '_keras_initialized') or not v._keras_initialized:
+            uninitialized_variables.append(v)
+            v._keras_initialized = True
+    if uninitialized_variables:
+        sess = get_session()
+        if hasattr(tf, 'variables_initializer'):
+            sess.run(tf.variables_initializer(uninitialized_variables))
+        else:
+            sess.run(tf.initialize_variables(uninitialized_variables))
+
 def placeholder(shape=None, ndim=None, dtype=_FLOATX, sparse=False, name=None):
     '''Instantiates a placeholder.
-
     # Arguments
         shape: shape of the placeholder
             (integer tuple, may include None entries).
@@ -177,7 +203,6 @@ def placeholder(shape=None, ndim=None, dtype=_FLOATX, sparse=False, name=None):
             If both are specified, `shape` is used.
         dtype: placeholder type.
         name: optional name string for the placeholder.
-
     # Returns
         Placeholder tensor instance.
     '''
@@ -185,8 +210,8 @@ def placeholder(shape=None, ndim=None, dtype=_FLOATX, sparse=False, name=None):
         if ndim:
             shape = tuple([None for _ in range(ndim)])
     if sparse:
-        tf_shape = tf.constant(np.array(list([0 for _ in range(len(shape))]), dtype=np.int64))
-        x = tf.sparse_placeholder(dtype, shape=tf_shape, name=name)
+        x = tf.sparse_placeholder(dtype, name=name)
+        x._dims = len(shape)
     else:
         x = tf.placeholder(dtype, shape=shape, name=name)
     x._keras_shape = shape
@@ -213,7 +238,7 @@ def ndim(x):
     '''Returns the number of axes in a tensor, as an integer.
     '''
     if is_sparse(x):
-        return int(x.shape.get_shape()[0])
+        return x._dims
 
     dims = x.get_shape()._dims
     if dims is not None:
@@ -239,7 +264,8 @@ def zeros(shape, dtype=_FLOATX, name=None):
     '''
     shape = tuple(map(int, shape))
     tf_dtype = _convert_string_dtype(dtype)
-    return variable(tf.constant_initializer(0., dtype=tf_dtype)(shape), dtype, name)
+    return variable(tf.constant_initializer(0., dtype=tf_dtype)(shape),
+                    dtype, name)
 
 
 def ones(shape, dtype=_FLOATX, name=None):
@@ -247,7 +273,8 @@ def ones(shape, dtype=_FLOATX, name=None):
     '''
     shape = tuple(map(int, shape))
     tf_dtype = _convert_string_dtype(dtype)
-    return variable(tf.constant_initializer(1., dtype=tf_dtype)(shape), dtype, name)
+    return variable(tf.constant_initializer(1., dtype=tf_dtype)(shape),
+                    dtype, name)
 
 
 def eye(size, dtype=_FLOATX, name=None):
@@ -352,27 +379,22 @@ def dot(x, y):
 
 def batch_dot(x, y, axes=None):
     '''Batchwise dot product.
-
     batch_dot results in a tensor with less dimensions than the input.
     If the number of dimensions is reduced to 1, we use `expand_dims` to
     make sure that ndim is at least 2.
-
     # Arguments
         x, y: tensors with ndim >= 2
         axes: list (or single) int with target dimensions
-
     # Returns
         A tensor with shape equal to the concatenation of x's shape
         (less the dimension that was summed over) and y's shape
         (less the batch dimension and the dimension that was summed over).
         If the final rank is 1, we reshape it to (batch_size, 1).
-
     # Examples
         Assume x = [[1, 2], [3, 4]]   and y = [[5, 6], [7, 8]]
         batch_dot(x, y, axes=1) = [[17, 53]] which is the main diagonal
         of x.dot(y.T), although we never have to calculate the off-diagonal
         elements.
-
         Shape inference:
         Let x's shape be (100, 20) and y's shape be (100, 30, 20).
         If dot_axes is (1, 2), to find the output shape of resultant tensor,
@@ -385,7 +407,6 @@ def batch_dot(x, y, axes=None):
         y.shape[1] : 30 : append to output shape
         y.shape[2] : 20 : do not append to output shape,
             dimension 2 of y has been summed over. (dot_axes[1] = 2)
-
         output_shape = (100, 30)
     '''
     if type(axes) == int:
@@ -411,11 +432,9 @@ def transpose(x):
 def gather(reference, indices):
     '''Retrieves the vectors of indices `indices`
     in the 2D tensor `reference`.
-
     # Arguments
         reference: a 2D tensor.
         indices: an int tensor of indices.
-
     # Returns
         A 3D tensor of same type as `reference`.
     '''
@@ -495,7 +514,6 @@ def mean(x, axis=None, keepdims=False):
 
 def any(x, axis=None, keepdims=False):
     '''Bitwise reduction (logical OR).
-
     Returns an uint8 tensor (0s and 1s).
     '''
     axis = _normalize_axis(axis, ndim(x))
@@ -506,7 +524,6 @@ def any(x, axis=None, keepdims=False):
 
 def all(x, axis=None, keepdims=False):
     '''Bitwise reduction (logical AND).
-
     Returns an uint8 tensor
     '''
     axis = _normalize_axis(axis, ndim(x))
@@ -692,7 +709,6 @@ def normalize_batch_in_training(x, gamma, beta,
 
 def batch_normalization(x, mean, var, beta, gamma, epsilon=0.0001):
     '''Apply batch normalization on x given mean, var, beta and gamma:
-
     output = (x - mean) / (sqrt(var) + epsilon) * gamma + beta
     '''
     return tf.nn.batch_normalization(x, mean, var, beta, gamma, epsilon)
@@ -724,7 +740,6 @@ def reshape(x, shape):
 
 def permute_dimensions(x, pattern):
     '''Permutes axes in a tensor.
-
     # Arguments
         pattern: should be a tuple of
             dimension indices, e.g. (0, 2, 1).
@@ -746,14 +761,16 @@ def resize_images(X, height_factor, width_factor, dim_ordering):
         X = permute_dimensions(X, [0, 2, 3, 1])
         X = tf.image.resize_nearest_neighbor(X, new_shape)
         X = permute_dimensions(X, [0, 3, 1, 2])
-        X.set_shape((None, None, original_shape[2] * height_factor, original_shape[3] * width_factor))
+        X.set_shape((None, None, original_shape[2] * height_factor if original_shape[2] is not None else None,
+                    original_shape[3] * width_factor if original_shape[3] is not None else None))
         return X
     elif dim_ordering == 'tf':
         original_shape = int_shape(X)
         new_shape = tf.shape(X)[1:3]
         new_shape *= tf.constant(np.array([height_factor, width_factor]).astype('int32'))
         X = tf.image.resize_nearest_neighbor(X, new_shape)
-        X.set_shape((None, original_shape[1] * height_factor, original_shape[2] * width_factor, None))
+        X.set_shape((None, original_shape[1] * height_factor if original_shape[1] is not None else None,
+                    original_shape[2] * width_factor if original_shape[2] is not None else None, None))
         return X
     else:
         raise Exception('Invalid dim_ordering: ' + dim_ordering)
@@ -782,7 +799,6 @@ def resize_volumes(X, depth_factor, height_factor, width_factor, dim_ordering):
 
 def repeat_elements(x, rep, axis):
     '''Repeats the elements of a tensor along an axis, like np.repeat
-
     If x has shape (s1, s2, s3) and axis=1, the output
     will have shape (s1, s2 * rep, s3)
     '''
@@ -796,7 +812,6 @@ def repeat_elements(x, rep, axis):
 
 def repeat(x, n):
     '''Repeats a 2D tensor:
-
     if x has shape (samples, dim) and n=2,
     the output will have shape (samples, 2, dim)
     '''
@@ -844,10 +859,23 @@ def temporal_padding(x, padding=1):
     return tf.pad(x, pattern)
 
 
-def spatial_2d_padding(x, padding=(1, 1), dim_ordering=_IMAGE_DIM_ORDERING):
+def asymmetric_temporal_padding(x, left_pad=1, right_pad=1):
+    '''Pad the middle dimension of a 3D tensor
+    with "left_pad" zeros left and "right_pad" right.
+    '''
+    pattern = [[0, 0], [left_pad, right_pad], [0, 0]]
+    return tf.pad(x, pattern)
+
+
+def spatial_2d_padding(x, padding=(1, 1), dim_ordering='default'):
     '''Pads the 2nd and 3rd dimensions of a 4D tensor
     with "padding[0]" and "padding[1]" (resp.) zeros left and right.
     '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
+    if dim_ordering not in {'th', 'tf'}:
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
+
     if dim_ordering == 'th':
         pattern = [[0, 0], [0, 0],
                    [padding[0], padding[0]], [padding[1], padding[1]]]
@@ -858,13 +886,42 @@ def spatial_2d_padding(x, padding=(1, 1), dim_ordering=_IMAGE_DIM_ORDERING):
     return tf.pad(x, pattern)
 
 
-def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering=_IMAGE_DIM_ORDERING):
+def asymmetric_spatial_2d_padding(x, top_pad=1, bottom_pad=1,
+                                  left_pad=1, right_pad=1,
+                                  dim_ordering='default'):
+    '''Pad the rows and columns of a 4D tensor
+    with "top_pad", "bottom_pad", "left_pad", "right_pad" (resp.) zeros
+    rows on top, bottom; cols on left, right.
+    '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
+    if dim_ordering not in {'th', 'tf'}:
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
+
+    if dim_ordering == 'th':
+        pattern = [[0, 0],
+                   [0, 0],
+                   [top_pad, bottom_pad],
+                   [left_pad, right_pad]]
+    else:
+        pattern = [[0, 0],
+                   [top_pad, bottom_pad],
+                   [left_pad, right_pad],
+                   [0, 0]]
+    return tf.pad(x, pattern)
+
+
+def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering='default'):
     '''Pads 5D tensor with zeros for the depth, height, width dimension with
     "padding[0]", "padding[1]" and "padding[2]" (resp.) zeros left and right
-
     For 'tf' dim_ordering, the 2nd, 3rd and 4th dimension will be padded.
     For 'th' dim_ordering, the 3rd, 4th and 5th dimension will be padded.
     '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
+    if dim_ordering not in {'th', 'tf'}:
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
+
     if dim_ordering == 'th':
         pattern = [
             [0, 0],
@@ -944,7 +1001,6 @@ def set_value(x, value):
 
 def batch_set_value(tuples):
     '''Sets the values of many tensor variables at once.
-
     # Arguments
         tuples: a list of tuples `(tensor, value)`.
             `value` should be a Numpy array.
@@ -1006,8 +1062,9 @@ class Function(object):
         for tensor, value in zip(self.inputs, inputs):
             if is_sparse(tensor):
                 sparse_coo = value.tocoo()
-                indices = np.concatenate((np.expand_dims(sparse_coo.row, 1), np.expand_dims(sparse_coo.col, 1)), 1)
-                value = (indices, value.data, value.shape)
+                indices = np.concatenate((np.expand_dims(sparse_coo.row, 1),
+                                          np.expand_dims(sparse_coo.col, 1)), 1)
+                value = (indices, sparse_coo.data, sparse_coo.shape)
             feed_dict[tensor] = value
         session = get_session()
         updated = session.run(self.outputs + [self.updates_op], feed_dict=feed_dict)
@@ -1016,7 +1073,6 @@ class Function(object):
 
 def function(inputs, outputs, updates=[], **kwargs):
     '''Instantiates a Keras function.
-
     # Arguments
         inputs: list of placeholder/variable tensors.
         outputs: list of output tensors.
@@ -1024,8 +1080,8 @@ def function(inputs, outputs, updates=[], **kwargs):
     '''
     if len(kwargs) > 0:
         msg = [
-            "Expected no kwargs, you passed %s" % len(kwargs),
-            "kwargs passed to function are ignored with Tensorflow backend"
+            'Expected no kwargs, you passed %s' % len(kwargs),
+            'kwargs passed to function are ignored with Tensorflow backend'
         ]
         warnings.warn('\n'.join(msg))
     return Function(inputs, outputs, updates=updates)
@@ -1051,7 +1107,6 @@ def rnn(step_function, inputs, initial_states,
         go_backwards=False, mask=None, constants=None,
         unroll=False, input_length=None):
     '''Iterates over the time dimension of a tensor.
-
     # Arguments
         inputs: tensor of temporal data of shape (samples, time, ...)
             (at least 3D).
@@ -1078,10 +1133,8 @@ def rnn(step_function, inputs, initial_states,
             can use this boolean flag to unroll the RNN.
         input_length: not relevant in the TensorFlow implementation.
             Must be specified if using unrolling with Theano.
-
     # Returns
         A tuple (last_output, outputs, new_states).
-
         last_output: the latest output of the rnn, of shape (samples, ...)
         outputs: tensor with shape (samples, time, ...) where each
             entry outputs[s, t] is the output of the step function
@@ -1093,6 +1146,13 @@ def rnn(step_function, inputs, initial_states,
     assert ndim >= 3, 'Input should be at least 3D.'
     axes = [1, 0] + list(range(2, ndim))
     inputs = tf.transpose(inputs, (axes))
+
+    if mask is not None:
+        if mask.dtype != tf.bool:
+            mask = tf.cast(mask, tf.bool)
+        if len(mask.get_shape()) == ndim - 1:
+            mask = expand_dims(mask)
+        mask = tf.transpose(mask, axes)
 
     if constants is None:
         constants = []
@@ -1110,13 +1170,7 @@ def rnn(step_function, inputs, initial_states,
             input_list.reverse()
 
         if mask is not None:
-            # Transpose not supported by bool tensor types, hence round-trip to uint8.
-            mask = tf.cast(mask, tf.uint8)
-            if len(mask.get_shape()) == ndim - 1:
-                mask = expand_dims(mask)
-            mask = tf.cast(tf.transpose(mask, axes), tf.bool)
             mask_list = tf.unpack(mask)
-
             if go_backwards:
                 mask_list.reverse()
 
@@ -1160,26 +1214,25 @@ def rnn(step_function, inputs, initial_states,
             outputs = tf.pack(successive_outputs)
 
     else:
-        from tensorflow.python.ops.rnn import _dynamic_rnn_loop
-
         if go_backwards:
             inputs = tf.reverse(inputs, [True] + [False] * (ndim - 1))
 
-        states = initial_states
-        nb_states = len(states)
-        if nb_states == 0:
-            # use dummy state, otherwise _dynamic_rnn_loop breaks
-            state = inputs[:, 0, :]
-            state_size = state.get_shape()[-1]
-        else:
-            state_size = int(states[0].get_shape()[-1])
-            if nb_states == 1:
-                state = states[0]
-            else:
-                state = tf.concat(1, states)
+        states = tuple(initial_states)
+
+        time_steps = tf.shape(inputs)[0]
+        output_ta = tensor_array_ops.TensorArray(
+            dtype=inputs.dtype,
+            size=time_steps,
+            tensor_array_name='output_ta')
+        input_ta = tensor_array_ops.TensorArray(
+            dtype=inputs.dtype,
+            size=time_steps,
+            tensor_array_name='input_ta')
+        input_ta = input_ta.unpack(inputs)
+        time = tf.constant(0, dtype='int32', name='time')
 
         if mask is not None:
-            if len(initial_states) == 0:
+            if len(states) == 0:
                 raise ValueError('No initial states provided! '
                                  'When using masking in an RNN, you should '
                                  'provide initial states '
@@ -1189,104 +1242,81 @@ def rnn(step_function, inputs, initial_states,
             if go_backwards:
                 mask = tf.reverse(mask, [True] + [False] * (ndim - 2))
 
-            # Transpose not supported by bool tensor types, hence round-trip to uint8.
-            mask = tf.cast(mask, tf.uint8)
-            if len(mask.get_shape()) == ndim - 1:
-                mask = expand_dims(mask)
-            mask = tf.transpose(mask, axes)
-            inputs = tf.concat(2, [tf.cast(mask, inputs.dtype), inputs])
+            mask_ta = tensor_array_ops.TensorArray(
+                dtype=tf.bool,
+                size=time_steps,
+                tensor_array_name='mask_ta')
+            mask_ta = mask_ta.unpack(mask)
 
-            def _step(input, state):
-                if nb_states > 1:
-                    states = []
-                    for i in range(nb_states):
-                        states.append(state[:, i * state_size: (i + 1) * state_size])
-                else:
-                    states = [state]
-                mask_t = tf.cast(input[:, 0], tf.bool)
-                input = input[:, 1:]
-                output, new_states = step_function(input, states + constants)
-
-                output = tf.select(mask_t, output, states[0])
-                new_states = [tf.select(mask_t, new_states[i], states[i]) for i in range(len(states))]
-
-                if len(new_states) == 1:
-                    new_state = new_states[0]
-                else:
-                    new_state = tf.concat(1, new_states)
-
-                return output, new_state
+            def _step(time, output_ta_t, *states):
+                current_input = input_ta.read(time)
+                mask_t = mask_ta.read(time)
+                output, new_states = step_function(current_input,
+                                                   tuple(states) +
+                                                   tuple(constants))
+                for state, new_state in zip(states, new_states):
+                    new_state.set_shape(state.get_shape())
+                tiled_mask_t = tf.tile(mask_t, tf.pack([1, tf.shape(output)[1]]))
+                output = tf.select(tiled_mask_t, output, states[0])
+                new_states = [tf.select(tiled_mask_t, new_states[i], states[i]) for i in range(len(states))]
+                output_ta_t = output_ta_t.write(time, output)
+                return (time + 1, output_ta_t) + tuple(new_states)
         else:
-            def _step(input, state):
-                if nb_states > 1:
-                    states = []
-                    for i in range(nb_states):
-                        states.append(state[:, i * state_size: (i + 1) * state_size])
-                elif nb_states == 1:
-                    states = [state]
-                else:
-                    states = []
-                output, new_states = step_function(input, states + constants)
+            def _step(time, output_ta_t, *states):
+                current_input = input_ta.read(time)
+                output, new_states = step_function(current_input,
+                                                   tuple(states) +
+                                                   tuple(constants))
+                for state, new_state in zip(states, new_states):
+                    new_state.set_shape(state.get_shape())
+                output_ta_t = output_ta_t.write(time, output)
+                return (time + 1, output_ta_t) + tuple(new_states)
 
-                if len(new_states) > 1:
-                    new_state = tf.concat(1, new_states)
-                elif len(new_states) == 1:
-                    new_state = new_states[0]
-                else:
-                    # return dummy state, otherwise _dynamic_rnn_loop breaks
-                    new_state = output
-                return output, new_state
-
-        _step.state_size = state_size * nb_states
-        # recover output size by calling _step on the first input
-        slice_begin = tf.pack([0] * ndim)
-        slice_size = tf.pack([1] + [-1] * (ndim - 1))
-        first_input = tf.slice(inputs, slice_begin, slice_size)
-        first_input = tf.squeeze(first_input, [0])
-        _step.output_size = int(_step(first_input, state)[0].get_shape()[-1])
-
-        (outputs, final_state) = _dynamic_rnn_loop(
-            _step,
-            inputs,
-            state,
+        final_outputs = control_flow_ops.while_loop(
+            cond=lambda time, *_: time < time_steps,
+            body=_step,
+            loop_vars=(time, output_ta) + states,
             parallel_iterations=32,
-            swap_memory=True,
-            sequence_length=None)
+            swap_memory=True)
+        last_time = final_outputs[0]
+        output_ta = final_outputs[1]
+        new_states = final_outputs[2:]
 
-        if nb_states > 1:
-            new_states = []
-            for i in range(nb_states):
-                new_states.append(final_state[:, i * state_size: (i + 1) * state_size])
-        elif nb_states == 1:
-            new_states = [final_state]
-        else:
-            new_states = []
-
-        # all this circus is to recover the last vector in the sequence.
-        slice_begin = tf.pack([tf.shape(outputs)[0] - 1] + [0] * (ndim - 1))
-        slice_size = tf.pack([1] + [-1] * (ndim - 1))
-        last_output = tf.slice(outputs, slice_begin, slice_size)
-        last_output = tf.squeeze(last_output, [0])
+        outputs = output_ta.pack()
+        last_output = output_ta.read(last_time - 1)
 
     axes = [1, 0] + list(range(2, len(outputs.get_shape())))
     outputs = tf.transpose(outputs, axes)
     return last_output, outputs, new_states
 
 
+def _cond(condition, then_lambda, else_lambda):
+    '''Backwards compatible interface to tf.cond prior to public introduction.
+    '''
+    try:
+        cond_fn = tf.cond
+    except AttributeError:
+        from tensorflow.python.ops import control_flow_ops
+        cond_fn = control_flow_ops.cond
+    return cond_fn(condition, then_lambda, else_lambda)
+
+
 def switch(condition, then_expression, else_expression):
-    '''Switches between two operations depending on a scalar value (int or bool).
+    '''Switches between two operations
+    depending on a scalar value (int or bool).
     Note that both `then_expression` and `else_expression`
     should be symbolic tensors of the *same shape*.
-
     # Arguments
         condition: scalar tensor.
         then_expression: TensorFlow operation.
         else_expression: TensorFlow operation.
     '''
     x_shape = copy.copy(then_expression.get_shape())
-    x = tf.python.control_flow_ops.cond(tf.cast(condition, 'bool'),
-                                        lambda: then_expression,
-                                        lambda: else_expression)
+    if condition.dtype != tf.bool:
+        condition = tf.cast(condition, 'bool')
+    x = _cond(condition,
+              lambda: then_expression,
+              lambda: else_expression)
     x.set_shape(x_shape)
     return x
 
@@ -1295,17 +1325,13 @@ def in_train_phase(x, alt):
     '''Selects `x` in train phase, and `alt` otherwise.
     Note that `alt` should have the *same shape* as `x`.
     '''
-    if _LEARNING_PHASE is 1:
+    if learning_phase() is 1:
         return x
-    elif _LEARNING_PHASE is 0:
+    elif learning_phase() is 0:
         return alt
-    # else: assume learning phase is a placeholder.
-    x_shape = copy.copy(x.get_shape())
-    x = tf.python.control_flow_ops.cond(tf.cast(_LEARNING_PHASE, 'bool'),
-                                        lambda: x,
-                                        lambda: alt)
+    # else: assume learning phase is a placeholder tensor.
+    x = switch(learning_phase(), x, alt)
     x._uses_learning_phase = True
-    x.set_shape(x_shape)
     return x
 
 
@@ -1313,16 +1339,13 @@ def in_test_phase(x, alt):
     '''Selects `x` in test phase, and `alt` otherwise.
     Note that `alt` should have the *same shape* as `x`.
     '''
-    if _LEARNING_PHASE is 1:
+    if learning_phase() is 1:
         return alt
-    elif _LEARNING_PHASE is 0:
+    elif learning_phase() is 0:
         return x
-    x_shape = copy.copy(x.get_shape())
-    x = tf.python.control_flow_ops.cond(tf.cast(_LEARNING_PHASE, 'bool'),
-                                        lambda: alt,
-                                        lambda: x)
+    # else: assume learning phase is a placeholder tensor.
+    x = switch(learning_phase(), alt, x)
     x._uses_learning_phase = True
-    x.set_shape(x_shape)
     return x
 
 
@@ -1330,7 +1353,6 @@ def in_test_phase(x, alt):
 
 def relu(x, alpha=0., max_value=None):
     '''Rectified linear unit
-
     # Arguments
         alpha: slope of negative section.
         max_value: saturation threshold.
@@ -1349,17 +1371,16 @@ def relu(x, alpha=0., max_value=None):
 
 
 def elu(x, alpha=1.):
-    """ Exponential linear unit
-
+    '''Exponential linear unit.
     # Arguments
         x: Tensor to compute the activation function for.
         alpha: scalar
-    """
+    '''
     res = tf.nn.elu(x)
     if alpha == 1:
         return res
     else:
-        return tf.select(x > 0, res, alpha*res)
+        return tf.select(x > 0, res, alpha * res)
 
 
 def softmax(x):
@@ -1375,6 +1396,8 @@ def softplus(x):
 
 
 def softsign(x):
+    '''Softsign of a tensor.
+    '''
     return tf.nn.softsign(x)
 
 
@@ -1460,7 +1483,6 @@ def tanh(x):
 def dropout(x, level, noise_shape=None, seed=None):
     '''Sets entries in `x` to zero at random,
     while scaling the entire tensor.
-
     # Arguments
         x: tensor
         level: fraction of the entries in the tensor
@@ -1483,6 +1505,19 @@ def l2_normalize(x, axis):
     if axis < 0:
         axis = axis % len(x.get_shape())
     return tf.nn.l2_normalize(x, dim=axis)
+
+
+def in_top_k(predictions, targets, k):
+    '''Returns whether the `targets` are in the top `k` `predictions`
+    # Arguments
+        predictions: A tensor of shape batch_size x classess and type float32.
+        targets: A tensor of shape batch_size and type int32 or int64.
+        k: An int, number of top elements to consider.
+    # Returns
+        A tensor of shape batch_size and type bool. output_i is True if
+        targets_i is within top-k values of predictions_i
+    '''
+    return tf.nn.in_top_k(predictions, targets, k)
 
 
 # CONVOLUTIONS
@@ -1569,11 +1604,30 @@ def _postprocess_conv3d_output(x, dim_ordering):
     return x
 
 
+def conv1d(x, kernel, stride=1, border_mode='valid',
+           image_shape=None, filter_shape=None):
+    '''1D convolution.
+    # Arguments
+        kernel: kernel tensor.
+        strides: stride integer.
+        border_mode: string, "same" or "valid".
+    '''
+    # pre-process dtype
+    if _FLOATX == 'float64':
+        x = tf.cast(x, 'float32')
+        kernel = tf.cast(kernel, 'float32')
+    padding = _preprocess_border_mode(border_mode)
+    x = tf.nn.conv1d(x, kernel, stride, padding=padding)
+    # post-process dtype
+    if _FLOATX == 'float64':
+        x = tf.cast(x, 'float64')
+    return x
+
+
 def conv2d(x, kernel, strides=(1, 1), border_mode='valid',
-           dim_ordering=_IMAGE_DIM_ORDERING,
+           dim_ordering='default',
            image_shape=None, filter_shape=None, filter_dilation=(1, 1)):
     '''2D convolution.
-
     # Arguments
         kernel: kernel tensor.
         strides: strides tuple.
@@ -1582,8 +1636,10 @@ def conv2d(x, kernel, strides=(1, 1), border_mode='valid',
             Whether to use Theano or TensorFlow dimension ordering
             for inputs/kernels/ouputs.
     '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
     if dim_ordering not in {'th', 'tf'}:
-        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
 
     x = _preprocess_conv2d_input(x, dim_ordering)
     kernel = _preprocess_conv2d_kernel(kernel, dim_ordering)
@@ -1600,10 +1656,9 @@ def conv2d(x, kernel, strides=(1, 1), border_mode='valid',
 
 def deconv2d(x, kernel, output_shape, strides=(1, 1),
              border_mode='valid',
-             dim_ordering=_IMAGE_DIM_ORDERING,
+             dim_ordering='default',
              image_shape=None, filter_shape=None):
     '''2D deconvolution (i.e. transposed convolution).
-
     # Arguments
         x: input tensor.
         kernel: kernel tensor.
@@ -1614,8 +1669,10 @@ def deconv2d(x, kernel, output_shape, strides=(1, 1),
             Whether to use Theano or TensorFlow dimension ordering
             for inputs/kernels/ouputs.
     '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
     if dim_ordering not in {'th', 'tf'}:
-        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
 
     x = _preprocess_conv2d_input(x, dim_ordering)
     output_shape = _preprocess_deconv_output_shape(output_shape, dim_ordering)
@@ -1631,10 +1688,12 @@ def deconv2d(x, kernel, output_shape, strides=(1, 1),
 
 def atrous_conv2d(x, kernel, rate=1,
                   border_mode='valid',
-                  dim_ordering=_IMAGE_DIM_ORDERING,
+                  dim_ordering='default',
                   image_shape=None, filter_shape=None):
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
     if dim_ordering not in {'th', 'tf'}:
-        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
     if rate == 1:
         return conv2d(x, kernel, strides=(1, 1), border_mode=border_mode,
                       dim_ordering=dim_ordering)
@@ -1648,9 +1707,11 @@ def atrous_conv2d(x, kernel, rate=1,
 
 
 def separable_conv2d(x, depthwise_kernel, pointwise_kernel, strides=(1, 1),
-                     border_mode='valid', dim_ordering=_IMAGE_DIM_ORDERING):
+                     border_mode='valid', dim_ordering='default'):
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
     if dim_ordering not in {'th', 'tf'}:
-        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
 
     x = _preprocess_conv2d_input(x, dim_ordering)
     depthwise_kernel = _preprocess_conv2d_kernel(depthwise_kernel,
@@ -1666,10 +1727,9 @@ def separable_conv2d(x, depthwise_kernel, pointwise_kernel, strides=(1, 1),
 
 
 def conv3d(x, kernel, strides=(1, 1, 1),
-           border_mode='valid', dim_ordering=_IMAGE_DIM_ORDERING,
+           border_mode='valid', dim_ordering='default',
            volume_shape=None, filter_shape=None):
     '''3D convolution.
-
     # Arguments
         kernel: kernel tensor.
         strides: strides tuple.
@@ -1678,8 +1738,10 @@ def conv3d(x, kernel, strides=(1, 1, 1),
             Whether to use Theano or TensorFlow dimension ordering
             for inputs/kernels/ouputs.
     '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
     if dim_ordering not in {'th', 'tf'}:
-        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
 
     x = _preprocess_conv3d_input(x, dim_ordering)
     kernel = _preprocess_conv3d_kernel(kernel, dim_ordering)
@@ -1691,10 +1753,9 @@ def conv3d(x, kernel, strides=(1, 1, 1),
 
 
 def pool2d(x, pool_size, strides=(1, 1),
-           border_mode='valid', dim_ordering=_IMAGE_DIM_ORDERING,
+           border_mode='valid', dim_ordering='default',
            pool_mode='max'):
     '''2D Pooling.
-
     # Arguments
         pool_size: tuple of 2 integers.
         strides: tuple of 2 integers.
@@ -1702,8 +1763,10 @@ def pool2d(x, pool_size, strides=(1, 1),
         dim_ordering: one of "th", "tf".
         pool_mode: one of "max", "avg".
     '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
     if dim_ordering not in {'th', 'tf'}:
-        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
 
     padding = _preprocess_border_mode(border_mode)
     strides = (1,) + strides + (1,)
@@ -1722,9 +1785,8 @@ def pool2d(x, pool_size, strides=(1, 1),
 
 
 def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
-           dim_ordering=_IMAGE_DIM_ORDERING, pool_mode='max'):
+           dim_ordering='default', pool_mode='max'):
     '''3D Pooling.
-
     # Arguments
         pool_size: tuple of 3 integers.
         strides: tuple of 3 integers.
@@ -1732,8 +1794,10 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
         dim_ordering: one of "th", "tf".
         pool_mode: one of "max", "avg".
     '''
+    if dim_ordering == 'default':
+        dim_ordering = image_dim_ordering()
     if dim_ordering not in {'th', 'tf'}:
-        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+        raise ValueError('Unknown dim_ordering ' + str(dim_ordering))
 
     padding = _preprocess_border_mode(border_mode)
     strides = (1,) + strides + (1,)
@@ -1788,9 +1852,9 @@ def ctc_label_dense_to_sparse(labels, label_lengths):
     max_num_labels_tns = tf.pack([label_shape[1]])
 
     def range_less_than(previous_state, current_input):
-        return tf.expand_dims(tf.range(label_shape[1]), 0) < current_input
+        return tf.expand_dims(tf.range(label_shape[1]), 0) < tf.fill(max_num_labels_tns, current_input)
 
-    init = tf.cast(tf.fill(max_num_labels_tns, 0), tf.bool)
+    init = tf.cast(tf.fill([1, label_shape[1]], 0), tf.bool)
     dense_mask = functional_ops.scan(range_less_than, label_lengths,
                                      initializer=init, parallel_iterations=1)
     dense_mask = dense_mask[:, 0, :]
@@ -1812,7 +1876,6 @@ def ctc_label_dense_to_sparse(labels, label_lengths):
 def ctc_batch_cost(y_true, y_pred, input_length, label_length):
 
     '''Runs CTC loss algorithm on each batch element.
-
     # Arguments
         y_true: tensor (samples, max_string_length) containing the truth labels
         y_pred: tensor (samples, time_steps, num_categories) containing the prediction,
@@ -1821,7 +1884,6 @@ def ctc_batch_cost(y_true, y_pred, input_length, label_length):
                 each batch item in y_pred
         label_length: tensor (samples,1) containing the sequence length for
                 each batch item in y_true
-
     # Returns
         Tensor with shape (samples,1) containing the
             CTC loss of each element
@@ -1842,7 +1904,6 @@ def ctc_decode(y_pred, input_length, greedy=True, beam_width=100,
     '''Decodes the output of a softmax using either
        greedy (also known as best path) or a constrained dictionary
        search.
-
     # Arguments
         y_pred: tensor (samples, time_steps, num_categories) containing the prediction,
                 or output of the softmax
@@ -1853,7 +1914,6 @@ def ctc_decode(y_pred, input_length, greedy=True, beam_width=100,
         beam_width: if greedy is false: a beam search decoder will be used
                 with a beam of this width
         top_paths: if greedy is false: how many of the most probable paths will be returned
-
     # Returns
         Tuple:
             List: if greedy is true, returns a list of one element that contains
@@ -1878,3 +1938,46 @@ def ctc_decode(y_pred, input_length, greedy=True, beam_width=100,
                      for st in decoded]
 
     return (decoded_dense, log_prob)
+
+
+# HIGH ORDER FUNCTIONS
+
+def map_fn(fn, elems, name=None):
+    '''Map the function fn over the elements elems and return the outputs.
+    # Arguments
+        fn: Callable that will be called upon each element in elems
+        elems: tensor
+        name: A string name for the map node in the graph
+    # Returns
+        Tensor with first dimension equal to the elems and second depending on
+        fn
+    '''
+    return tf.map_fn(fn, elems, name=name)
+
+
+def foldl(fn, elems, initializer=None, name=None):
+    '''Reduce elems using fn to combine them from left to right.
+    # Arguments
+        fn: Callable that will be called upon each element in elems and an
+            accumulator, for instance lambda acc, x: acc + x
+        elems: tensor
+        initializer: The first value used (elems[0] in case of None)
+        name: A string name for the foldl node in the graph
+    # Returns
+        Same type and shape as initializer
+    '''
+    return tf.foldl(fn, elems, initializer=initializer, name=name)
+
+
+def foldr(fn, elems, initializer=None, name=None):
+    '''Reduce elems using fn to combine them from right to left.
+    # Arguments
+        fn: Callable that will be called upon each element in elems and an
+            accumulator, for instance lambda acc, x: acc + x
+        elems: tensor
+        initializer: The first value used (elems[-1] in case of None)
+        name: A string name for the foldr node in the graph
+    # Returns
+        Same type and shape as initializer
+    '''
+    return tf.foldr(fn, elems, initializer=initializer, name=name)

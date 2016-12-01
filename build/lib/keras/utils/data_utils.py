@@ -183,10 +183,37 @@ def get_plot_path(filename, dir='project'):
         path = get_absolute_dir_project('model_saved/plots')
         if not os.path.exists(path):
             os.mkdir(path)
-        return os.path.join(path, filename)
     elif dir is 'dataset':
         dir_base = os.path.expanduser(os.path.join('~', '.keras'))
-        dir = os.path.join(dir_base, 'plots')
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-        return os.path.join(dir, filename)
+        path = os.path.join(dir_base, 'plots')
+        if not os.path.exists(path):
+            os.mkdir(path)
+    else:
+        raise ValueError("Only support project and dataset as dir input")
+    if filename == '' or filename is None:
+        return path
+    return os.path.join(path, filename)
+
+
+def get_plot_path_with_subdir(filename, subdir, dir='project'):
+    """
+    Allow user to get plot path with subdir
+
+    Parameters
+    ----------
+    filename
+    subdir : str    support
+        'summary' for summary graph, 'run' for run-time graph, 'models' for model graph
+    dir : str       support 'project' under project plot path, 'dataset' under ~/.keras/plots
+
+    Returns
+    -------
+    path : str      absolute path of the given filename, or directory if filename is None or ''
+    """
+    path = get_plot_path('', dir=dir)
+    path = os.path.join(path, subdir)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    if filename == '' or filename is None:
+        return path
+    return os.path.join(path, filename)

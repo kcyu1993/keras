@@ -180,16 +180,18 @@ def conv_block_original(input_tensor, kernel_size, filters, stage, block, stride
     return x
 
 
-def covariance_block_original(input_tensor, nb_class, stage, block, parametric=[], activation='relu'):
-    cov_name_base = 'cov' + str(stage) + block + '_branch'
+def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu'):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
     wp_name_base = 'wp' + str(stage) + block + '_branch'
 
-    x = SecondaryStatistic(name=cov_name_base)(input_tensor)
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon)(input_tensor)
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
     x = WeightedProbability(nb_class, activation=activation, name=wp_name_base)(x)
-    # TODO Test the softmax activation
     return x
 
 

@@ -83,9 +83,12 @@ class ExampleEngine(object):
         save_log        True to save log
         title           Title of all saving files.
         """
+
         self.model = model
         self.title = title
         self.mode = 0 # 0 for fit ndarray, 1 for fit generator
+
+        # Data input
         if isinstance(data, (list,tuple)):
             assert len(data) == 2
             self.train = data
@@ -144,6 +147,8 @@ class ExampleEngine(object):
         if not os.path.exists(self.weight_path):
             print("weight not found, create a new one or transfer from current weight")
             self.load_weight = False
+
+        # Keras Callback
         self.cbks = []
         if self.save_weight and self.save_per_epoch:
             self.cbks.append(ModelCheckpoint(self.weight_path + ".tmp", verbose=1))
@@ -153,9 +158,10 @@ class ExampleEngine(object):
             self.cbks.append(ReduceLROnPlateau(min_lr=0.0001, verbose=1))
         self.early_stop = early_stop
         if self.early_stop:
-            self.cbks.append(EarlyStopping(patience=20, verbose=1))
+            self.cbks.append(EarlyStopping(patience=50, verbose=1))
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=False):
+
         self.batch_size = batch_size
         self.nb_epoch = nb_epoch
         if self.load_weight:
@@ -179,12 +185,15 @@ class ExampleEngine(object):
                 except Exception:
                     raise Exception
             raise
+
         self.history = history
         if self.save_weight and self.save_per_epoch:
             # Potentially remove the tmp file.
             os.remove(self.weight_path + '.tmp')
+
         if self.log_flag:
             sys.stdout.close()
+
         return history
 
     def fit_generator(self):
@@ -212,6 +221,8 @@ class ExampleEngine(object):
             valid = self.validation
         if not augmentation:
             print('Not using data augmentation.')
+            # shape = (nb_samples, channel, img_w, img_h)
+            # (nb_samples,) + vectorized_categories  # 1 -> [0,1,0], 2
             hist = self.model.fit(X_train, Y_train,
                                   batch_size=self.batch_size,
                                   nb_epoch=self.nb_epoch,
@@ -245,39 +256,70 @@ class ExampleEngine(object):
                                             verbose=self.verbose,
                                             validation_data=valid,
                                             callbacks=self.cbks)
-
             if self.save_weight:
                 self.model.save_weights(self.weight_path)
         return hist
 
-    def plot_result(self, metric='acc', linestyle='-', show=False, dictionary=None):
+    def plot_result(self, metric=('loss', 'acc'), linestyle='-', show=False, dictionary=None):
+        """
+        Plot result according to metrics passed in
+        Parameters
+        ----------
+        metric : list or str  ('loss','acc') or one of them
+        linestyle
+        show
+        dictionary
+
+        Returns
+        -------
+
+        """
+        filename = "{}-{}_{}.png".format(self.title, self.model.name, self.mode)
         if self.history is None:
             return
         history = self.history.history
         if dictionary is not None:
             history = dictionary
-        if metric is 'acc':
-            train = history['acc']
-            valid = history['val_acc']
-        elif metric is 'loss':
-            train = history['loss']
-            valid = history['val_loss']
+        if isinstance(metric, str):
+            if metric is 'acc':
+                train = history['acc']
+                valid = history['val_acc']
+            elif metric is 'loss':
+                train = history['loss']
+                valid = history['val_loss']
+            else:
+                raise RuntimeError("plot only support metric as loss, acc")
+            x_factor = range(len(train))
+            from keras.utils.visualize_util import plot_train_test
+            from _tkinter import TclError
+            try:
+                plot_train_test(train, valid, x_factor=x_factor, show=show,
+                                xlabel='epoch', ylabel=metric,
+                                linestyle=linestyle,
+                                filename=filename, plot_type=0)
+                self.save_history(history)
+            except TclError:
+                print("Catch the Tcl Error, save the history accordingly")
+                self.save_history(history)
+                return
         else:
-            raise RuntimeError("plot only support metric as loss, acc")
-        x_factor = range(len(train))
-        filename = "{}-{}_{}.png".format(self.title, self.model.name, self.mode)
-        from keras.utils.visualize_util import plot_train_test
-        from _tkinter import TclError
-        try:
-            plot_train_test(train, valid, x_factor=x_factor, show=show,
-                            xlabel='epoch', ylabel=metric,
-                            linestyle=linestyle,
-                            filename=filename, plot_type=0)
-            self.save_history(history)
-        except TclError:
-            print("Catch the Tcl Error, save the history accordingly")
-            self.save_history(history)
-            return
+            assert len(metric) == 2
+            tr_loss = history['loss']
+            tr_acc = history['acc']
+            va_loss = history['val_loss']
+            va_acc = history['val_acc']
+            x_factor = range(len(tr_loss))
+            from keras.utils.visualize_util import plot_loss_acc
+            from _tkinter import TclError
+            try:
+                plot_loss_acc(tr_loss, va_loss, tr_acc=tr_acc, te_acc=va_acc, show=show,
+                              xlabel='epoch', ylabel=metric,
+                              filename=filename)
+                self.save_history(history)
+            except TclError:
+                print("Catch the Tcl Error, save the history accordingly")
+                self.save_history(history)
+                return
 
     def save_history(self, history, tmp=False):
         from keras.callbacks import History

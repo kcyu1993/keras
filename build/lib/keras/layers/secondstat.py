@@ -29,6 +29,7 @@ class SecondaryStatistic(Layer):
         This is just the 2D covariance matrix for all samples feed in.
 
     # Arguments
+        eps             weight of elipson * I to add to cov matrix, default 0
         out_dim         weight matrix, if none, make it align with nb filters
         weights         initial weights.
         W_regularizer   regularize the weight if possible in future
@@ -38,25 +39,29 @@ class SecondaryStatistic(Layer):
 
     '''
 
-    def __init__(self, output_dim=None, parametrized=False,
+    def __init__(self, eps=0, output_dim=None, parametrized=False,
                  init='glorot_uniform', activation='linear', weights=None,
                  W_regularizer=None, dim_ordering='default', **kwargs):
+        if dim_ordering is 'default':
+            dim_ordering = K.image_dim_ordering()
+
         self.out_dim = output_dim
         self.parametrized = parametrized
 
         # input parameter preset
+
         self.nb_filter = 0
         self.cols = 0
         self.rows = 0
         self.nb_samples = 0
+        self.eps = eps
 
         self.activation = activations.get(activation)
 
         self.init = initializations.get(init, dim_ordering=dim_ordering)
         self.initial_weights = weights
         self.W_regularizer = regularizers.get(W_regularizer)
-        self.dim_ordering = 'th'
-
+        self.dim_ordering = dim_ordering
         self.input_spec = [InputSpec(ndim=4)]
         super(SecondaryStatistic, self).__init__(**kwargs)
 
@@ -98,10 +103,23 @@ class SecondaryStatistic(Layer):
                 self.out_dim = self.cov_dim
                 self.W = K.eye(self.cov_dim, name='{}_W'.format(self.name))
                 self.non_trainable_weights = [self.W]
+
+        elif self.dim_ordering == 'tf':
+            # TODO generate tensorflow codes
+            self.cov_dim = input_shape[3]
+            self.nb_samples = input_shape[0]
+            self.nb_filter = input_shape[3]
+            self.rows = input_shape[1]
+            self.cols = input_shape[2]
+
+
         else:
             raise Exception('Invalid dim_ordering: ' + self.dim_ordering
                             + ' tensorflow not supported')
 
+        self.b_shape = (self.cov_dim, self.cov_dim)
+        self.b = K.expand_dims(K.eye(self.cov_dim, name="{}_b".format(self.name)), 0)
+        # self.non_trainable_weights += [self.b,]
         self.built = True
 
     def get_output_shape_for(self, input_shape):
@@ -112,14 +130,22 @@ class SecondaryStatistic(Layer):
             raise Exception("Secondary stat layer not built")
         logging.debug('Secondary_stat parameter', type(x))  # Confirm the type of x is indeed tensor4D
         cov_mat = self.calculate_pre_cov(x)
-
+        print('call during second {}'.format(self.eps))
+        cov_mat += self.eps * self.b
         return cov_mat
 
     def get_config(self):
+        """
+        To serialize the model given and generate all related parameters
+        Returns
+        -------
+
+        """
         config = {'init': self.init.__name__,
                   'activation': self.activation.__name__,
                   'dim_ordering': self.dim_ordering,
                   'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
+                  'eps': self.eps
                   }
         base_config = super(SecondaryStatistic, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -132,7 +158,12 @@ class SecondaryStatistic(Layer):
 
     def reshape_tensor3d(self, x):
         # Given a 4D tensor, reshape to 3D
-        return K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
+        if self.dim_ordering == 'th':
+            return K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
+        elif self.dim_ordering == 'tf':
+            return K.reshape(x, (-1, self.cols * self.rows, self.nb_filter))
+        else:
+            raise ValueError("Dim ordering wrong {}".format(self.dim_ordering))
 
     def calculate_pre_cov(self, x):
         """
@@ -140,14 +171,18 @@ class SecondaryStatistic(Layer):
         :param x:
         :return:
         """
-        xf = self.reshape_tensor3d(x)
-        xf_mean = K.mean(xf, axis=2, keepdims=2)
-        xf_normal = xf - xf_mean
-        tx = K.sum(elemwise.Elemwise(scalar_op=scalar.mul)(
-            xf_normal.dimshuffle([0, 'x', 1, 2]),
-            xf_normal.dimshuffle([0, 1, 'x', 2])
-        ), axis=3)
-        cov = tx / (self.rows * self.cols - 1)
+        if self.dim_ordering == 'th':
+            xf = self.reshape_tensor3d(x)
+            xf_mean = K.mean(xf, axis=2, keepdims=2)
+            xf_normal = xf - xf_mean
+            tx = K.sum(elemwise.Elemwise(scalar_op=scalar.mul)(
+                xf_normal.dimshuffle([0, 'x', 1, 2]),
+                xf_normal.dimshuffle([0, 1, 'x', 2])
+            ), axis=3)
+            cov = tx / (self.rows * self.cols - 1)
+        else:
+            raise NotImplemented
+
         return cov
 
     def calculate_covariance(self, x):

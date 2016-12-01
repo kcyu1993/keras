@@ -1,5 +1,5 @@
 import os
-from .data_utils import get_plot_path
+from .data_utils import get_plot_path, get_plot_path_with_subdir
 try:
     import matplotlib
     matplotlib.use('Agg')
@@ -10,11 +10,11 @@ except ImportError:
     raise RuntimeError("Cannot import matplotlib")
 
 
-def plot_multiple_loss_acc(tr_loss, te_loss, tr_acc, te_acc, epochs=None, show=False,
-                           names=('train', 'test'), xlabel='epoch', ylabel=('loss', 'mis-class'),
-                           linestyle=('dotted', '-'), color=('b', 'g'),
-                           filename='default.png'
-                           ):
+def plot_loss_acc(tr_loss, te_loss, tr_acc, te_acc, epochs=None, show=False,
+                  names=('train', 'test'), xlabel='epoch', ylabel=('loss', 'mis-class'),
+                  linestyle=('dotted', '-'), color=('b', 'g'),
+                  filename='default.png'
+                  ):
     assert len(tr_loss) == len(te_loss)
     assert len(tr_acc) == len(te_acc)
     if epochs is None:
@@ -45,7 +45,7 @@ def plot_multiple_loss_acc(tr_loss, te_loss, tr_acc, te_acc, epochs=None, show=F
 
     if show:
         plt.show()
-    plt_path = get_plot_path("train_test " + filename)
+    plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='run')
     plt.savefig(plt_path)
     plt.close()
     return plt_path
@@ -113,7 +113,7 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
 
     if show:
         plt.show()
-    plt_path = get_plot_path("train_test " + filename)
+    plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='summary')
     plt.savefig(plt_path)
     plt.close()
     return plt_path
@@ -150,7 +150,7 @@ def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
 
     if show:
         plt.show()
-    plt_path = get_plot_path("train_test " + filename)
+    plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='run')
     plt.savefig(plt_path)
     plt.close()
     return plt_path
