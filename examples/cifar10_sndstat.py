@@ -456,6 +456,7 @@ def run_routine8():
 def run_routine9():
     """
     Fitnet v2 complete test
+    2016.12.2 Not testing the epsilon yet due to the work priority
 
     Returns
     -------
@@ -463,6 +464,16 @@ def run_routine9():
     """
     print("routine 9")
     run_fitnet_merge([])
+
+
+def run_routine10():
+    """
+
+    Returns
+    -------
+
+    """
+    pass
 
 
 if __name__ == '__main__':

@@ -427,15 +427,16 @@ class LearningRateScheduler(Callback):
 
 
 class TensorBoard(Callback):
-    ''' Tensorboard basic visualizations.
+    ''' Should expand this tensor board to support fancy stuff
+     Intuitively, save the "SummaryWriter" in  oen of the property.
+     Access then afterwards, when you want to perform a save?
 
+    Tensorboard basic visualizations.
     This callback writes a log for TensorBoard, which allows
     you to visualize dynamic graphs of your training and test
     metrics, as well as activation histograms for the different
     layers in your model.
-
     TensorBoard is a visualization tool provided with TensorFlow.
-
     If you have installed TensorFlow with pip, you should be able
     to launch TensorBoard from the command line:
     ```
@@ -443,7 +444,6 @@ class TensorBoard(Callback):
     ```
     You can find more information about TensorBoard
     [here](https://www.tensorflow.org/versions/master/how_tos/summaries_and_tensorboard/index.html).
-
     # Arguments
         log_dir: the path of the directory where to save the log
             files to be parsed by Tensorboard
@@ -530,10 +530,11 @@ class TensorBoard(Callback):
                 continue
             summary = tf.Summary()
             summary_value = summary.value.add()
-            summary_value.simple_value = value
+            summary_value.simple_value = value.item()
             summary_value.tag = name
             self.writer.add_summary(summary, epoch)
         self.writer.flush()
+
 
 
 class ReduceLROnPlateau(Callback):
