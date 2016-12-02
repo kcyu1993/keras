@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
+import logging
 
 mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 
@@ -89,15 +90,15 @@ def naive_cnn():
     sess.run(tf.global_variables_initializer())
 
     # define the training process
-    for i in range(20000):
+    for i in range(100):
         batch = mnist.train.next_batch(50)
         if i % 100 == 0:
             train_accuracy = accuracy.eval(feed_dict={
                 x: batch[0], y_: batch[1], keep_prob: 1.0})
-            print("step %d, training accuracy %g" % (i, train_accuracy))
+            logging.info("step %d, training accuracy %g" % (i, train_accuracy))
         train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
-    print("test accuracy %g" % accuracy.eval(feed_dict={
+    logging.info("test accuracy %g" % accuracy.eval(feed_dict={
         x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
 
 
@@ -120,9 +121,15 @@ def tensorflow_mnist():
 
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    print(accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
+    logging.info(accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
 
 
 if __name__ == '__main__':
+    import coloredlogs
+    coloredlogs.install(level=logging.INFO)
+    # logging.basicConfig(level=logging.INFO)
+    # logging.info('Begin network training')
     naive_cnn()
+    print('hah')
+    # logging.info('End network training')
     # tensorflow_mnist()
