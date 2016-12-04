@@ -15,9 +15,11 @@ from __future__ import absolute_import
 
 import logging
 
+import keras.backend as K
+
 from keras.callbacks import ModelCheckpoint, \
     CSVLogger, LearningRateScheduler, \
-    EarlyStopping, ReduceLROnPlateau
+    EarlyStopping, ReduceLROnPlateau, TensorBoard
 from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
 from keras.utils.io_utils import cpickle_load, cpickle_save
 from keras.utils.logger import Logger
@@ -61,7 +63,7 @@ class ExampleEngine(object):
     def __init__(self, data, model, validation=None, test=None,
                  load_weight=True, save_weight=True,
                  lr_decay=False, early_stop=False,
-                 save_per_epoch=False,
+                 save_per_epoch=False, tensorboard=False,
                  batch_size=128, nb_epoch=100,
                  verbose=2, logfile=None, save_log=True,
                  title='default'):
@@ -151,9 +153,17 @@ class ExampleEngine(object):
         self.lr_decay = lr_decay
         if self.lr_decay:
             self.cbks.append(ReduceLROnPlateau(min_lr=0.0001, verbose=1))
+
         self.early_stop = early_stop
         if self.early_stop:
             self.cbks.append(EarlyStopping(patience=20, verbose=1))
+
+        self.tensorboard = tensorboard
+        if self.tensorboard:
+            if K._BACKEND == 'tensorflow':
+                tb_path = '/tmp/tensorflow/cifar_fitnet'
+                print("Creating tensorboard to save to {}".format(tb_path))
+                self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=True))
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=False):
         self.batch_size = batch_size

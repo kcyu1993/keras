@@ -23,21 +23,18 @@
 
 """
 
-from keras.layers import SecondaryStatistic, WeightedProbability
-from keras.layers import Flatten, Dense, Dropout, O2Transform
-from keras.models import Model, Sequential
-from keras.utils.np_utils import to_categorical
+import sys
 
+from example_engine import ExampleEngine
+from keras.applications.resnet50 import ResNet50MINC, ResCovNet50MINC
+from keras.applications.vgg19 import VGG19, VGG19_bottom
+from keras.datasets.minc import Minc2500, MincOriginal
+from keras.layers import O2Transform
+from keras.layers import SecondaryStatistic, WeightedProbability
+from keras.models import Model
 from keras.utils.data_utils import *
 from keras.utils.logger import Logger
-from keras.datasets.minc import Minc2500, MincOriginal
-from example_engine import ExampleEngine
-
-# Load the model
-from keras.applications.vgg19 import VGG19, VGG19_bottom
-from keras.applications.resnet50 import ResNet50MINC, ResCovNet50MINC
-
-import sys
+from keras.utils.np_utils import to_categorical
 
 LOG_PATH = get_absolute_dir_project('model_saved/log')
 # global constants
@@ -171,8 +168,7 @@ def run_minc2500_model(model, title="", load_w=True, save_w=True, plot=False, ve
                            load_weight=load_w, save_weight=save_w, title=title)
     history = engine.fit(nb_epoch=NB_EPOCH)
     if plot:
-        engine.plot_result('acc')
-        engine.plot_result('loss')
+        engine.plot_result()
 
 
 def run_minc_original_VGG_2500():
@@ -249,12 +245,27 @@ def run_routine4():
     print("ResCovNet 50 mode 0")
     run_minc_original_rescovnet(load=True, save=True)
 
+
+def run_routine5():
+    from kyu.models.minc import minc_fitnet_v2
+    model = minc_fitnet_v2()
+    run_minc2500_model(model, title='minc-fitnet_v2', load_w=False)
+
+
+def run_routine5_tf():
+    from kyu.models.minc import minc_fitnet_v2
+    import tensorflow as tf
+    with tf.device('/gpu:0'):
+        model = minc_fitnet_v2()
+        run_minc2500_model(model, title='minc-fitnet_v2', load_w=False)
+
 if __name__ == '__main__':
     # test_minc_original_loader()
     # run_minc_original_VGG_generator()
-    NB_EPOCH = 50
+    NB_EPOCH = 150
     # run_routine3()
-    run_routine4()
+    # run_routine4()
+    run_routine5()
     # run_routine2()
     # test_minc_original_alexnet_reduced()
     # test_VGG()

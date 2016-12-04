@@ -1,12 +1,15 @@
 import os
+
+from cifar10_sndstat import cifar_fitnet_v2
 from example_engine import ExampleEngine
 from keras.applications.resnet50 import ResCovNet50CIFAR
+
 
 
 def plot_cifar_fitnet():
     from example_engine import gethistoryfiledir
     hist_dir = gethistoryfiledir()
-    folder_name = 'Fitnet_CIFAR'
+    folder_name = 'Fitnet_v2_CIFAR_mode4'
     hist_dir = os.path.join(hist_dir, folder_name)
     file_list = []
     model_list = []
@@ -22,12 +25,13 @@ def plot_cifar_fitnet():
             model_list.append(model_name)
 
     # For each plot: decode into title-model-hash.history
-    from keras.utils.visualize_util import plot_multiple_train_test, plot_multiple_loss_acc
+    from keras.utils.visualize_util import plot_multiple_train_test, plot_loss_acc
     list_tr_mis = []
     list_te_mis = []
     list_tr_loss = []
     list_te_loss = []
     valid_model = []
+    sig_id = []
     for ind, name in enumerate(model_list):
         try:
             hist_dict = ExampleEngine.load_history(os.path.join(hist_dir, file_list[ind]))
@@ -43,7 +47,9 @@ def plot_cifar_fitnet():
         list_tr_mis.append(tr_mis)
         list_te_mis.append(te_mis)
         valid_model.append(name)
-        # plot_multiple_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
+        if name == 'fitnet_v2_baseline_0' or name == 'fitnet_v2_baseline_1':
+            sig_id.append(ind)
+        # plot_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
         #                        tr_mis, te_mis,
         #                        filename=name+'.png'
         #                        )
@@ -70,13 +76,14 @@ def plot_cifar_fitnet():
     # sig_id = (len(list_tr_mis) - 2, len(list_tr_mis) - 1)
     plot_multiple_train_test(list_tr_mis, list_te_mis, valid_model,
                              xlabel='epoch', ylabel='mis-classification',
-                             filename='models-cifar10-Fitnet',
-                             # significant=sig_id, sig_color=('r', 'b', 'k')
-                             xlim=[0,400], ylim=[0, 1]
+                             filename=folder_name,
+                             significant=sig_id, sig_color=('k', 'b', 'r'),
+                             # xlim=[0,200], ylim=[0, 0.5]
+                             xlim=[0,200], ylim=[0, 0.5]
                              )
 
 
-def plot_results():
+def plot_rescov_results():
     from example_engine import gethistoryfiledir
     hist_dir = gethistoryfiledir()
     # folder_name = 'Fitnet_CIFAR'
@@ -96,7 +103,7 @@ def plot_results():
             model_list.append(model_name)
 
     # For each plot: decode into title-model-hash.history
-    from keras.utils.visualize_util import plot_multiple_train_test, plot_multiple_loss_acc
+    from keras.utils.visualize_util import plot_multiple_train_test, plot_loss_acc
     list_tr_mis = []
     list_te_mis = []
     list_tr_loss = []
@@ -117,7 +124,7 @@ def plot_results():
         list_tr_mis.append(tr_mis)
         list_te_mis.append(te_mis)
         valid_model.append(name)
-        # plot_multiple_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
+        # plot_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
         #                        tr_mis, te_mis,
         #                        filename=name+'.png'
         #                        )
@@ -150,15 +157,20 @@ def plot_results():
 
 
 def plot_models():
-    parametrics = [[], [50,], [100,],[100, 50]]
+    # parametrics = [[], [50,], [100,],[100, 50]]
+    parametrics = [[],]
     nb_classes = 10
-    from keras.utils.visualize_util import plot, get_plot_path
-    for mode in range(0, 7):
+    from keras.utils.visualize_util import plot
+    from keras.utils.data_utils import get_plot_path_with_subdir
+    for mode in range(0, 6):
         for para in parametrics:
-            model = ResCovNet50CIFAR(parametrics=para, nb_class=nb_classes, mode=mode)
-            plot(model, to_file=get_plot_path(model.name + ".png"))
+            # model = ResCovNet50CIFAR(parametrics=para, nb_class=nb_classes, mode=mode)
+            model = cifar_fitnet_v2(parametrics=para, mode=mode)
+            path = get_plot_path_with_subdir(model.name + '.png', subdir='models', dir='project')
+            plot(model, to_file=path)
 
 
 if __name__ == '__main__':
-    plot_results()
-    # plot_cifar_fitnet()
+    # plot_rescov_results()
+    plot_cifar_fitnet()
+    # plot_models()

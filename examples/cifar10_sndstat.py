@@ -14,25 +14,22 @@ save it in a different format, load it in Python 3 and repickle it.
 from __future__ import print_function
 
 import logging
+import sys
 
+from example_engine import ExampleEngine
+from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_original
 from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.engine import Input
 from keras.engine import Model
 from keras.engine import merge
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
 from keras.layers import Convolution2D, MaxPooling2D, O2Transform
-from keras.optimizers import SGD, rmsprop
+from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
+from keras.models import Sequential
+from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
-from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_original
-
-import sys
-import os
-
-from example_engine import ExampleEngine
 
 batch_size = 32
 nb_classes = 10
@@ -89,7 +86,6 @@ def cifar_fitnet_v1(second=False, parametric=[]):
     """
     basename = 'fitnet_v1'
 
-
     model = Sequential()
     model.add(Convolution2D(16, 3, 3, border_mode='valid', input_shape=input_shape))
     model.add(Activation('relu'))
@@ -137,7 +133,7 @@ def cifar_fitnet_v1(second=False, parametric=[]):
     return model
 
 
-def cifar_fitnet_v2(parametrics=[], mode=0):
+def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0):
     """
         Implement the fit model has 205K param
         Without any Maxout design in this version
@@ -151,6 +147,10 @@ def cifar_fitnet_v2(parametrics=[], mode=0):
         basename += '_para-'
         for para in parametrics:
             basename += str(para) + '_'
+    basename += 'mode_{}'.format(str(mode))
+
+    if epsilon > 0:
+        basename += '-epsilon_{}'.format(str(epsilon))
 
     input_tensor = Input(input_shape)
     x = Convolution2D(16, 3, 3, border_mode='same')(input_tensor)
@@ -192,18 +192,21 @@ def cifar_fitnet_v2(parametrics=[], mode=0):
         x = Dense(nb_classes)(x)
         x = Activation('softmax')(x)
     elif mode == 1: # Original Cov_Net
-        x = covariance_block_original(x, nb_class, stage=4, block='a', parametric=parametrics)
+        x = covariance_block_original(x, nb_class, stage=4, block='a', epsilon=epsilon, parametric=parametrics)
         x = Activation('softmax')(x)
 
     elif mode == 2: # Concat balanced
-        cov_branch = covariance_block_original(cov_input, nb_class, stage=4, block='a', parametric=parametrics)
+        cov_branch = covariance_block_original(cov_input, nb_class,
+                                               stage=4, epsilon=epsilon,
+                                               block='a', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
         x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
     elif mode == 3: # Concat two softmax
-        cov_branch = covariance_block_original(cov_input, nb_class, stage=4, block='a', parametric=parametrics)
+        cov_branch = covariance_block_original(cov_input, nb_class, epsilon=epsilon,
+                                               stage=4, block='a', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
         cov_branch = Activation('softmax')(cov_branch)
@@ -211,42 +214,62 @@ def cifar_fitnet_v2(parametrics=[], mode=0):
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
     elif mode == 4: # Concat multiple branches (balanced)
-        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
+                                                stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
+                                                stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
+                                                stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class)(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
     elif mode == 5: # Concat multiple 'softmax' final layers
-        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a',
+        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
+                                                stage=2, block='a',
                                                 parametric=parametrics, activation='softmax')
-        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b',
+        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
+                                                stage=3, block='b',
                                                 parametric=parametrics, activation='softmax')
-        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c',
+        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
+                                                stage=4, block='c',
                                                 parametric=parametrics, activation='softmax')
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
-    elif mode == 6: # Average multiple softmax
-        cov_branch1 = covariance_block_original(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_original(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_original(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+    elif mode == 6: # Average multiple relu
+        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
+                                                stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
+                                                stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
+                                                stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
         cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
         x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 7: # Average multiple softmax
+        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
+                                                stage=2, block='a',
+                                                parametric=parametrics, activation='softmax')
+        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
+                                                stage=3, block='b',
+                                                parametric=parametrics, activation='softmax')
+        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
+                                                stage=4, block='c',
+                                                parametric=parametrics, activation='softmax')
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
     else:
         raise ValueError("Mode not supported {}".format(mode))
 
-    model = Model(input_tensor, x)
-
-
-    model.name = basename
+    model = Model(input_tensor, x, name=basename)
     return model
 
 
@@ -355,13 +378,18 @@ def run_resnet_merge(parametrics=[], verbose=1, start=0, stop=3):
         model = ResCovNet50CIFAR(parametrics=parametrics, nb_class=nb_classes, mode=mode)
         fit_model(model, load=False, save=True, verbose=verbose)
 
-def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6):
+
+def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, epsilon=1e-4):
+    print('epsilon = ' + str(epsilon))
     for mode in range(start, stop):
-        model = cifar_fitnet_v2(parametrics, mode)
-        fit_model(model, load=False, save=True, verbose=verbose)
+        if mode in [3,5,7]:
+            print('skip mode {}'.format(mode))
+            continue
+        model = cifar_fitnet_v2(parametrics=parametrics, epsilon=epsilon, mode=mode)
+        fit_model(model, load=False, save=True, verbose=verbose, title='cifar')
 
 
-def fit_model(model, load=False, save=True, verbose=1):
+def fit_model(model, load=False, save=True, verbose=1, title='cifar10'):
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
@@ -369,16 +397,16 @@ def fit_model(model, load=False, save=True, verbose=1):
     save_log = True
     engine = ExampleEngine([X_train, Y_train], model, [X_test, Y_test],
                            load_weight=load, save_weight=save, save_log=save_log,
-                           lr_decay=True, early_stop=False,
-                           batch_size=batch_size, nb_epoch=nb_epoch, title='cifar10', verbose=verbose)
+                           lr_decay=True, early_stop=True,
+                           batch_size=batch_size, nb_epoch=nb_epoch, title=title, verbose=verbose)
 
     if save_log:
         sys.stdout = engine.stdout
     model.summary()
     engine.fit(batch_size=batch_size, nb_epoch=nb_epoch, augmentation=data_augmentation)
     score = engine.model.evaluate(X_test, Y_test, verbose=0)
-    engine.plot_result('loss')
-    engine.plot_result('acc')
+    # engine.plot_result('loss')
+    engine.plot_result()
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
     if save_log:
         sys.stdout = engine.stdout.close()
@@ -462,22 +490,39 @@ def run_routine9():
     -------
 
     """
-    print("routine 9")
-    run_fitnet_merge([])
+    epsilon = 0
+    # print("routine 9, epsilon and 6 -  epoch {}".format(nb_epoch))
+    print("routine 9, epsilon {} and  epoch {}".format(epsilon, nb_epoch))
+    # run_fitnet_merge([], 1, 1, 6, epsilon=1e-4) # Mode 1 for epsilon fails.
+    # run_fitnet_merge([],1, 6, 8) # mode 6,7
+    # run_fitnet_merge([], 1, 1, 8, epsilon=1e-4)
+    run_fitnet_merge([50,], 1, 1, 8, epsilon=epsilon)
+    run_fitnet_merge([100,], 1, 1, 8, epsilon=epsilon)
+    run_fitnet_merge([50, 100], 1, 0, 8, epsilon=epsilon)
 
 
 def run_routine10():
     """
+    Try the backend as Tensorflow
 
     Returns
     -------
 
     """
-    pass
+    nb_epoch = 50
+    model = cifar_fitnet_v1(False)
+    fit_model(model, load=False, save=False, verbose=2)
+
+
+def run_routine11():
+    nb_epoch = 200
+    from kyu.models.cifar import cifar_fitnet_v2
+    model = cifar_fitnet_v2([], mode=8)
+    fit_model(model, load=False, save=True, verbose=2)
 
 
 if __name__ == '__main__':
-    nb_epoch = 400
+    nb_epoch = 200
     # run_routine1()
     # print('test')
     # run_routine1()
@@ -489,5 +534,6 @@ if __name__ == '__main__':
     # run_resnet_snd(True, verbose=1)
     # plot_models()
     # run_routine8()
-    run_routine9()
-    # plot_results()
+    # run_routine9()
+    run_routine11()
+    # plot_rescov_results()
