@@ -69,7 +69,7 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
         x_factor = range(len(train_errors))
     cmap = get_cmap(len(train_errors) + 1)
     if significant is not None:
-        assert len(significant) == len(sig_color)
+        assert len(significant) <= len(sig_color)
         tr_err = []
         te_err = []
         model_n = []

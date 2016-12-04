@@ -14,25 +14,22 @@ save it in a different format, load it in Python 3 and repickle it.
 from __future__ import print_function
 
 import logging
+import sys
 
+from example_engine import ExampleEngine
+from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_original
 from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.engine import Input
 from keras.engine import Model
 from keras.engine import merge
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
 from keras.layers import Convolution2D, MaxPooling2D, O2Transform
-from keras.optimizers import SGD, rmsprop
+from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
+from keras.models import Sequential
+from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
-from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_original
-
-import sys
-import os
-
-from example_engine import ExampleEngine
 
 batch_size = 32
 nb_classes = 10
@@ -506,12 +503,22 @@ def run_routine9():
 
 def run_routine10():
     """
+    Try the backend as Tensorflow
 
     Returns
     -------
 
     """
-    pass
+    nb_epoch = 50
+    model = cifar_fitnet_v1(False)
+    fit_model(model, load=False, save=False, verbose=2)
+
+
+def run_routine11():
+    nb_epoch = 200
+    from kyu.models.cifar import cifar_fitnet_v2
+    model = cifar_fitnet_v2([], mode=8)
+    fit_model(model, load=False, save=True, verbose=2)
 
 
 if __name__ == '__main__':
@@ -527,5 +534,6 @@ if __name__ == '__main__':
     # run_resnet_snd(True, verbose=1)
     # plot_models()
     # run_routine8()
-    run_routine9()
+    # run_routine9()
+    run_routine11()
     # plot_rescov_results()
