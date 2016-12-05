@@ -199,6 +199,20 @@ def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
+
+    elif mode == 8:
+        block1_x = Flatten()(block1_x)
+        block2_x = Flatten()(block2_x)
+        # block3_x = Flatten()(block3_x)
+        dense_branch1 = Dense(nb_class, activation='relu', name='fc_block1')(block1_x)
+        dense_branch2 = Dense(nb_class, activation='relu', name='fc_block2')(block2_x)
+        # dense_branch3 = Dense(nb_class, activation='relu', name='fc_block3')(block3_x)
+
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc_relu')(x)
+        # x = merge([x, dense_branch1, dense_branch2], mode='sum', name='sum')
+        x = merge([x, dense_branch1, dense_branch2], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
     else:
         raise ValueError("Mode not supported {}".format(mode))
 

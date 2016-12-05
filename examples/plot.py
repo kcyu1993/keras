@@ -9,7 +9,7 @@ from keras.applications.resnet50 import ResCovNet50CIFAR
 def plot_cifar_fitnet():
     from example_engine import gethistoryfiledir
     hist_dir = gethistoryfiledir()
-    folder_name = 'Fitnet_v2_CIFAR'
+    folder_name = 'Fitnet_v2_CIFAR_mode4'
     hist_dir = os.path.join(hist_dir, folder_name)
     file_list = []
     model_list = []
@@ -31,6 +31,7 @@ def plot_cifar_fitnet():
     list_tr_loss = []
     list_te_loss = []
     valid_model = []
+    sig_id = []
     for ind, name in enumerate(model_list):
         try:
             hist_dict = ExampleEngine.load_history(os.path.join(hist_dir, file_list[ind]))
@@ -46,6 +47,8 @@ def plot_cifar_fitnet():
         list_tr_mis.append(tr_mis)
         list_te_mis.append(te_mis)
         valid_model.append(name)
+        if name == 'fitnet_v2_baseline_0' or name == 'fitnet_v2_baseline_1':
+            sig_id.append(ind)
         # plot_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
         #                        tr_mis, te_mis,
         #                        filename=name+'.png'
@@ -73,9 +76,10 @@ def plot_cifar_fitnet():
     # sig_id = (len(list_tr_mis) - 2, len(list_tr_mis) - 1)
     plot_multiple_train_test(list_tr_mis, list_te_mis, valid_model,
                              xlabel='epoch', ylabel='mis-classification',
-                             filename='models-cifar10-Fitnet-v2',
-                             # significant=sig_id, sig_color=('r', 'b', 'k')
-                             xlim=[0,400], ylim=[0, 1]
+                             filename=folder_name,
+                             significant=sig_id, sig_color=('k', 'b', 'r'),
+                             # xlim=[0,200], ylim=[0, 0.5]
+                             xlim=[0,200], ylim=[0, 0.5]
                              )
 
 
@@ -167,6 +171,6 @@ def plot_models():
 
 
 if __name__ == '__main__':
-    plot_rescov_results()
+    # plot_rescov_results()
     plot_cifar_fitnet()
     # plot_models()
