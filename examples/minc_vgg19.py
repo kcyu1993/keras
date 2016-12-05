@@ -249,7 +249,7 @@ def run_routine4():
 def run_routine5():
     from kyu.models.minc import minc_fitnet_v2
     model = minc_fitnet_v2()
-    run_minc2500_model(model, title='minc-fitnet_v2', load_w=False)
+    run_minc2500_model(model, title='minc-fitnet_v3', load_w=False)
 
 
 def run_routine5_tf():
