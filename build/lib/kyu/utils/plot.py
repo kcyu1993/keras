@@ -1,9 +1,7 @@
 import os
 
-from cifar10_sndstat import cifar_fitnet_v2
 from example_engine import ExampleEngine
-from keras.applications.resnet50 import ResCovNet50CIFAR
-
+from kyu.theano.cifar.cifar10_sndstat import cifar_fitnet_v2
 
 
 def plot_cifar_fitnet():
@@ -25,7 +23,7 @@ def plot_cifar_fitnet():
             model_list.append(model_name)
 
     # For each plot: decode into title-model-hash.history
-    from keras.utils.visualize_util import plot_multiple_train_test, plot_loss_acc
+    from keras.utils.visualize_util import plot_multiple_train_test
     list_tr_mis = []
     list_te_mis = []
     list_tr_loss = []
@@ -103,7 +101,7 @@ def plot_rescov_results():
             model_list.append(model_name)
 
     # For each plot: decode into title-model-hash.history
-    from keras.utils.visualize_util import plot_multiple_train_test, plot_loss_acc
+    from keras.utils.visualize_util import plot_multiple_train_test
     list_tr_mis = []
     list_te_mis = []
     list_tr_loss = []

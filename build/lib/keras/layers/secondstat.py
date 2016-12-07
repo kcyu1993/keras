@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from theano import scalar
-from theano.tensor import elemwise, Elemwise
 
 from keras.engine import Layer, InputSpec
 from keras import initializations, regularizers
 from keras import backend as K
 from keras import activations
 
-from theano import tensor as T
+# TODO Remove this theano import to prevent any usage in tensorflow backend
+# Potentially check Keras backend then import relevant libraries
+if K._BACKEND == 'theano':
+    from theano import scalar
+    from theano.tensor import elemwise, Elemwise
+    from theano import tensor as T
+
 import logging
 
 

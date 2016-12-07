@@ -665,7 +665,7 @@ class Dense(Layer):
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, input_dim=None, **kwargs):
-        self.init = initializations.get(init)
+        self.init = initializations.get(init, dim_ordering=K.image_dim_ordering())
         self.activation = activations.get(activation)
         self.output_dim = output_dim
         self.input_dim = input_dim

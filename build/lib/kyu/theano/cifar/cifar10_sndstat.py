@@ -16,7 +16,7 @@ from __future__ import print_function
 import logging
 import sys
 
-from example_engine import ExampleEngine
+from kyu.utils.example_engine import ExampleEngine
 from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_original
 from keras.datasets import cifar10
 from keras.datasets import cifar100
@@ -46,18 +46,20 @@ SND_PATH = get_absolute_dir_project('model_saved/cifar10_cnn_sndstat.weights')
 SND_PATH = get_absolute_dir_project('model_saved/cifar10_fitnet.weights')
 LOG_PATH = get_absolute_dir_project('model_saved/log')
 
-cifar_10 = True
+cifar_10 = False
+label_mode = 'fine'
 if cifar_10:
     # the data, shuffled and split between train and test sets
     (X_train, y_train), (X_test, y_test) = cifar10.load_data()
 else:
     # the data, shuffled and split between train and test sets
     # label_mode = 'fine'
-    label_mode = 'fine'
     (X_train, y_train), (X_test, y_test) = cifar100.load_data(label_mode=label_mode)
     if label_mode is 'fine':
+        print('use cifar 100 fine')
         nb_classes = 100
     elif label_mode is 'coarse':
+        print('use cifar 100 coarse')
         nb_classes = 20
 
 print('X_train shape:', X_train.shape)
@@ -139,8 +141,16 @@ def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0):
         Without any Maxout design in this version
         Just follows the general architecture
 
-        :return: model sequential
-        """
+    Parameters
+    ----------
+    parametrics
+    epsilon
+    mode : 0 - 7
+
+    Returns
+    -------
+    model
+    """
     nb_class = nb_classes
     basename = 'fitnet_v2'
     if parametrics is not []:
@@ -379,9 +389,12 @@ def run_resnet_merge(parametrics=[], verbose=1, start=0, stop=3):
         fit_model(model, load=False, save=True, verbose=verbose)
 
 
-def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, epsilon=1e-4):
+def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, mode_list=None, epsilon=1e-4):
     print('epsilon = ' + str(epsilon))
-    for mode in range(start, stop):
+    if mode_list is None:
+        mode_list = range(start=start, stop=stop)
+
+    for mode in mode_list:
         if mode in [3,5,7]:
             print('skip mode {}'.format(mode))
             continue
@@ -390,6 +403,8 @@ def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, epsilon=1e-4):
 
 
 def fit_model(model, load=False, save=True, verbose=1, title='cifar10'):
+
+
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
@@ -515,10 +530,30 @@ def run_routine10():
 
 
 def run_routine11():
+    """
+    Test the CIFAR fitnet model
+    Returns
+    -------
+
+    """
     nb_epoch = 200
     from kyu.models.cifar import cifar_fitnet_v2
     model = cifar_fitnet_v2([], mode=8)
     fit_model(model, load=False, save=True, verbose=2)
+
+
+def run_routine12():
+    """
+    Create for CIFAR 100 Test
+    Parametric test
+    Returns
+    -------
+
+    """
+    nb_epoch = 200
+    print("Routine 12 nb_epoch {}".format(nb_epoch))
+    # run_fitnet_merge([100], 1, mode_list=[4,0,1,2,3,5,6,7])
+    run_fitnet_merge([100], 1, mode_list=[0])
 
 
 if __name__ == '__main__':
@@ -535,5 +570,6 @@ if __name__ == '__main__':
     # plot_models()
     # run_routine8()
     # run_routine9()
-    run_routine11()
+    # run_routine11()
     # plot_rescov_results()
+    run_routine12()
