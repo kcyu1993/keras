@@ -8,7 +8,7 @@ from keras.layers import Convolution2D, Dense, Activation, Flatten
 from keras.utils import np_utils
 from keras.utils.np_utils import to_categorical
 from keras.utils.test_utils import get_test_data, keras_test
-from examples.example_engine import ExampleEngine, CVEngine
+from kyu.utils.examples.example_engine import ExampleEngine, CVEngine
 
 input_shape = (3, 28, 28)
 nb_classes = 10

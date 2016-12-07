@@ -1,11 +1,8 @@
 import pytest
-import numpy as np
-# from numpy.testing import assert_allclose
 
-from examples.cifar10_sndstat import cifar_fitnet_v1
-from keras.utils.test_utils import image_classification, keras_test
 from keras.applications.resnet50 import ResCovNet50CIFAR
-
+from keras.utils.test_utils import image_classification, keras_test
+from kyu.theano.cifar.cifar10_sndstat import cifar_fitnet_v1
 
 nb_class = 10
 input_shape = (3, 32, 32)

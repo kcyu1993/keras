@@ -820,7 +820,11 @@ def batch_flatten(x):
     '''Turn a n-D tensor into a 2D tensor where
     the first dimension is conserved.
     '''
-    x = tf.reshape(x, tf.pack([-1, prod(shape(x)[1:])]))
+    # TODO Modified batch_flatten to adapt Tensorflow graph creation
+    x_shape = x.get_shape()
+    x_prod = np.prod(x_shape[1:])
+    x = tf.reshape(x, tf.pack([-1, x_prod]))
+    # x = tf.reshape(x, tf.pack([-1, prod(shape(x)[1:])]))
     return x
 
 

@@ -32,20 +32,34 @@ data set, compile the program and train the model.
 
 http://tensorflow.org/tutorials/deep_cnn/
 """
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+
+"""
+Make sure it could be run [check]
+Add the keras model into such process to make it trainable in TF framework
+
+Use this CIFAR example as general framework to feed model
+"""
 
 from datetime import datetime
 import time
 
 import tensorflow as tf
 
-from tensorflow.models.image.cifar10 import cifar10
-
+# from tensorflow.models.image.cifar10 import cifar10
+from kyu.tensorflow.cifar.cifar10_keras import cifar_fitnet_v1, cifar_fitnet_v1_test
+# from kyu.tensorflow.cifar.cifar10_models import fitnet_inference
+import kyu.tensorflow.cifar.cifar10_models as cifar10
+from kyu.tensorflow.cifar.cifar10_slim import fitnet_slim
+from keras.objectives import categorical_crossentropy
+import keras.backend as K
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
+tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train1',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 1000000,
@@ -60,15 +74,36 @@ def train():
         global_step = tf.contrib.framework.get_or_create_global_step()
 
         # Get images and labels for CIFAR-10.
-        images, labels = cifar10.distorted_inputs()
+        # images, labels = cifar10.distorted_inputs()
+        images, labels = cifar10.inputs(False)
 
         # Build a Graph that computes the logits predictions from the
         # inference model.
-        logits = cifar10.inference(images)
+        # logits = cifar10.inference(images)
 
         # Calculate loss.
-        loss = cifar10.loss(logits, labels)
 
+
+        # Define keras part
+        K.set_learning_phase(1)
+        # model = cifar_fitnet_v1((24, 24, 3))
+
+        #
+        model = cifar_fitnet_v1((24, 24, 3))
+        logits = model(images)
+
+        # loss = tf.reduce_mean(K.categorical_crossentropy(logits, labels, from_logits=True))
+        # test_image = tf.placeholder(tf.float32, shape=(None, 24, 24, 3))
+        # logits = cifar_fitnet_v1_test(test_image)
+
+        # logits = cifar_fitnet_v1_test(images)
+
+        # logits = cifar10.fitnet_inference(images)
+
+        # Use slim to build model
+        # logits = fitnet_slim(images)
+
+        loss = cifar10.loss(logits, labels)
         # Build a Graph that trains the model with one batch of examples and
         # updates the model parameters.
         train_op = cifar10.train(loss, global_step)
@@ -103,6 +138,7 @@ def train():
                        tf.train.NanTensorHook(loss),
                        _LoggerHook()],
                 config=tf.ConfigProto(
+                    allow_soft_placement=True,
                     log_device_placement=FLAGS.log_device_placement)) as mon_sess:
             while not mon_sess.should_stop():
                 mon_sess.run(train_op)
