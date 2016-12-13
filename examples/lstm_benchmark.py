@@ -40,7 +40,7 @@ X_test = sequence.pad_sequences(X_test, max_length)
 # Compile and train different models while meauring performance.
 results = []
 for mode in modes:
-    print('Testing mode: consume_less="{}"'.format(mode))
+    print('Testing cov_mode: consume_less="{}"'.format(mode))
 
     model = Sequential()
     model.add(Embedding(max_features, embedding_dim, input_length=max_length, dropout=0.2))

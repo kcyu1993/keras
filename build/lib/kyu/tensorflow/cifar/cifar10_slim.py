@@ -28,3 +28,6 @@ def fitnet_slim(input_tensor):
     return x
 
 
+def losses(a,b):
+    losses = slim.losses
+

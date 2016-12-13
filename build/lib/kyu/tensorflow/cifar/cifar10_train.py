@@ -101,7 +101,7 @@ def train():
         # logits = cifar10.fitnet_inference(images)
 
         # Use slim to build model
-        # logits = fitnet_slim(images)
+        logits = fitnet_slim(images)
 
         loss = cifar10.loss(logits, labels)
         # Build a Graph that trains the model with one batch of examples and

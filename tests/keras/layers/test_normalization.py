@@ -18,12 +18,12 @@ input_shapes = [np.ones((10, 10)), np.ones((10, 10, 10))]
 def basic_batchnorm_test():
     from keras import regularizers
     layer_test(normalization.BatchNormalization,
-               kwargs={'mode': 1,
+               kwargs={'cov_mode': 1,
                        'gamma_regularizer': regularizers.l2(0.01),
                        'beta_regularizer': regularizers.l2(0.01)},
                input_shape=(3, 4, 2))
     layer_test(normalization.BatchNormalization,
-               kwargs={'mode': 0},
+               kwargs={'cov_mode': 0},
                input_shape=(3, 4, 2))
 
 

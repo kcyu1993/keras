@@ -84,7 +84,7 @@ class Convolution1D(Layer):
                  bias=True, input_dim=None, input_length=None, **kwargs):
 
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for Convolution1D:', border_mode)
+            raise Exception('Invalid border cov_mode for Convolution1D:', border_mode)
         self.nb_filter = nb_filter
         self.filter_length = filter_length
         self.init = initializations.get(init, dim_ordering='th')
@@ -257,7 +257,7 @@ class AtrousConvolution1D(Convolution1D):
                  bias=True, **kwargs):
 
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for AtrousConv1D:', border_mode)
+            raise Exception('Invalid border cov_mode for AtrousConv1D:', border_mode)
 
         self.atrous_rate = int(atrous_rate)
 
@@ -344,8 +344,8 @@ class Convolution2D(Layer):
             (eg. maxnorm, nonneg), applied to the main weights matrix.
         b_constraint: instance of the [constraints](../constraints.md) module,
             applied to the bias.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -374,7 +374,7 @@ class Convolution2D(Layer):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for Convolution2D:', border_mode)
+            raise Exception('Invalid border cov_mode for Convolution2D:', border_mode)
         self.nb_filter = nb_filter
         self.nb_row = nb_row
         self.nb_col = nb_col
@@ -583,8 +583,8 @@ class Deconvolution2D(Convolution2D):
             (eg. maxnorm, nonneg), applied to the main weights matrix.
         b_constraint: instance of the [constraints](../constraints.md) module,
             applied to the bias.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -618,7 +618,7 @@ class Deconvolution2D(Convolution2D):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for Deconvolution2D:', border_mode)
+            raise Exception('Invalid border cov_mode for Deconvolution2D:', border_mode)
 
         self.output_shape_ = output_shape
 
@@ -718,8 +718,8 @@ class AtrousConvolution2D(Convolution2D):
             (eg. maxnorm, nonneg), applied to the main weights matrix.
         b_constraint: instance of the [constraints](../constraints.md) module,
             applied to the bias.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -752,7 +752,7 @@ class AtrousConvolution2D(Convolution2D):
             dim_ordering = K.image_dim_ordering()
 
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for AtrousConv2D:', border_mode)
+            raise Exception('Invalid border cov_mode for AtrousConv2D:', border_mode)
 
         self.atrous_rate = tuple(atrous_rate)
 
@@ -867,8 +867,8 @@ class SeparableConvolution2D(Layer):
             (eg. maxnorm, nonneg), applied to the pointwise weights matrix.
         b_constraint: instance of the [constraints](../constraints.md) module,
             applied to the bias.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -906,10 +906,10 @@ class SeparableConvolution2D(Layer):
             dim_ordering = K.image_dim_ordering()
 
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for SeparableConv2D:', border_mode)
+            raise Exception('Invalid border cov_mode for SeparableConv2D:', border_mode)
 
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for SeparableConv2D:', border_mode)
+            raise Exception('Invalid border cov_mode for SeparableConv2D:', border_mode)
         self.nb_filter = nb_filter
         self.nb_row = nb_row
         self.nb_col = nb_col
@@ -1082,8 +1082,8 @@ class Convolution3D(Layer):
             (eg. maxnorm, nonneg), applied to the main weights matrix.
         b_constraint: instance of the [constraints](../constraints.md) module,
             applied to the bias.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 4.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 4.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -1113,7 +1113,7 @@ class Convolution3D(Layer):
             dim_ordering = K.image_dim_ordering()
 
         if border_mode not in {'valid', 'same'}:
-            raise Exception('Invalid border mode for Convolution3D:', border_mode)
+            raise Exception('Invalid border cov_mode for Convolution3D:', border_mode)
         self.nb_filter = nb_filter
         self.kernel_dim1 = kernel_dim1
         self.kernel_dim2 = kernel_dim2
@@ -1285,8 +1285,8 @@ class UpSampling2D(Layer):
     # Arguments
         size: tuple of 2 integers. The upsampling factors for rows and columns.
         dim_ordering: 'th' or 'tf'.
-            In 'th' mode, the channels dimension (the depth)
-            is at index 1, in 'tf' mode is it at index 3.
+            In 'th' cov_mode, the channels dimension (the depth)
+            is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -1348,8 +1348,8 @@ class UpSampling3D(Layer):
     # Arguments
         size: tuple of 3 integers. The upsampling factors for dim1, dim2 and dim3.
         dim_ordering: 'th' or 'tf'.
-            In 'th' mode, the channels dimension (the depth)
-            is at index 1, in 'tf' mode is it at index 4.
+            In 'th' cov_mode, the channels dimension (the depth)
+            is at index 1, in 'tf' cov_mode is it at index 4.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -1451,8 +1451,8 @@ class ZeroPadding2D(Layer):
             How many zeros to add at the beginning and end of
             the 2 padding dimensions (axis 3 and 4).
         dim_ordering: 'th' or 'tf'.
-            In 'th' mode, the channels dimension (the depth)
-            is at index 1, in 'tf' mode is it at index 3.
+            In 'th' cov_mode, the channels dimension (the depth)
+            is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -1511,8 +1511,8 @@ class ZeroPadding3D(Layer):
             How many zeros to add at the beginning and end of
             the 3 padding dimensions (axis 3, 4 and 5).
         dim_ordering: 'th' or 'tf'.
-            In 'th' mode, the channels dimension (the depth)
-            is at index 1, in 'tf' mode is it at index 4.
+            In 'th' cov_mode, the channels dimension (the depth)
+            is at index 1, in 'tf' cov_mode is it at index 4.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -1615,8 +1615,8 @@ class Cropping2D(Layer):
             How many units should be trimmed off at the beginning and end of
             the 2 cropping dimensions (width, height).
         dim_ordering: 'th' or 'tf'.
-            In 'th' mode, the channels dimension (the depth)
-            is at index 1, in 'tf' mode is it at index 3.
+            In 'th' cov_mode, the channels dimension (the depth)
+            is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -1699,8 +1699,8 @@ class Cropping3D(Layer):
             How many units should be trimmed off at the beginning and end of
             the 3 cropping dimensions (kernel_dim1, kernel_dim2, kernerl_dim3).
         dim_ordering: 'th' or 'tf'.
-            In 'th' mode, the channels dimension (the depth)
-            is at index 1, in 'tf' mode is it at index 4.
+            In 'th' cov_mode, the channels dimension (the depth)
+            is at index 1, in 'tf' cov_mode is it at index 4.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".

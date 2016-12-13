@@ -629,7 +629,7 @@ class Sequential(Model):
                 (if the model has multiple inputs).
             y: labels, as a Numpy array.
             batch_size: integer. Number of samples per gradient update.
-            verbose: verbosity mode, 0 or 1.
+            verbose: verbosity cov_mode, 0 or 1.
             sample_weight: sample weights, as a Numpy array.
 
         # Returns
@@ -662,7 +662,7 @@ class Sequential(Model):
         # Arguments
             x: the input data, as a Numpy array.
             batch_size: integer.
-            verbose: verbosity mode, 0 or 1.
+            verbose: verbosity cov_mode, 0 or 1.
 
         # Returns
             A Numpy array of predictions.
@@ -751,7 +751,7 @@ class Sequential(Model):
             x: input data, as a Numpy array or list of Numpy arrays
                 (if the model has multiple inputs).
             batch_size: integer.
-            verbose: verbosity mode, 0 or 1.
+            verbose: verbosity cov_mode, 0 or 1.
 
         # Returns
             A Numpy array of probability predictions.
@@ -772,7 +772,7 @@ class Sequential(Model):
             x: input data, as a Numpy array or list of Numpy arrays
                 (if the model has multiple inputs).
             batch_size: integer.
-            verbose: verbosity mode, 0 or 1.
+            verbose: verbosity cov_mode, 0 or 1.
 
         # Returns
             A numpy array of class predictions.
@@ -805,7 +805,7 @@ class Sequential(Model):
             samples_per_epoch: integer, number of samples to process before
                 going to the next epoch.
             nb_epoch: integer, total number of iterations on the data.
-            verbose: verbosity mode, 0, 1, or 2.
+            verbose: verbosity cov_mode, 0, 1, or 2.
             callbacks: list of callbacks to be called during training.
             validation_data: this can be either
                 - a generator for the validation data

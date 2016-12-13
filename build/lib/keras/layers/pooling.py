@@ -182,8 +182,8 @@ class MaxPooling2D(_Pooling2D):
             If None, it will default to `pool_size`.
         border_mode: 'valid' or 'same'.
             Note: 'same' will only work with TensorFlow for the time being.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -224,8 +224,8 @@ class AveragePooling2D(_Pooling2D):
             If None, it will default to `pool_size`.
         border_mode: 'valid' or 'same'.
             Note: 'same' will only work with TensorFlow for the time being.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -329,8 +329,8 @@ class MaxPooling3D(_Pooling3D):
             (2, 2, 2) will halve the size of the 3D input in each dimension.
         strides: tuple of 3 integers, or None. Strides values.
         border_mode: 'valid' or 'same'.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 4.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 4.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -369,8 +369,8 @@ class AveragePooling3D(_Pooling3D):
             (2, 2, 2) will halve the size of the 3D input in each dimension.
         strides: tuple of 3 integers, or None. Strides values.
         border_mode: 'valid' or 'same'.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 4.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 4.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -470,8 +470,8 @@ class GlobalAveragePooling2D(_GlobalPooling2D):
     '''Global average pooling operation for spatial data.
 
     # Arguments
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -498,8 +498,8 @@ class GlobalMaxPooling2D(_GlobalPooling2D):
     '''Global max pooling operation for spatial data.
 
     # Arguments
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".

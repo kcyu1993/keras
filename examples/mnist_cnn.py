@@ -16,7 +16,6 @@ from keras.layers import Convolution2D, MaxPooling2D
 from keras.utils import np_utils
 from keras import backend as K
 
-import tensorflow as tf
 
 
 batch_size = 128
@@ -43,6 +42,7 @@ def mnist_cnn_tf():
     -------
     Nothing
     """
+    import tensorflow as tf
     with tf.device("/gpu:0"):
         img = tf.placeholder(tf.float32, shape=(None, img_rows * img_cols))
         labels = tf.placeholder(tf.float32, shape=(None, nb_classes))
@@ -57,6 +57,7 @@ def mnist_cnn_tf():
 
 
 def tf_run_session():
+    import tensorflow as tf
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
 
@@ -111,45 +112,50 @@ def mnist_cnn_keras():
     # convert class vectors to binary class matrices
     Y_train = np_utils.to_categorical(y_train, nb_classes)
     Y_test = np_utils.to_categorical(y_test, nb_classes)
+    if K._BACKEND == 'tensorflow':
+        K.clear_session()
+        K.set_learning_phase(1)
+        import tensorflow as tf
+    # with tf.device("/gpu:0"):
 
-    K.clear_session()
+    model = Sequential()
 
-    with tf.device("/gpu:0"):
-        model = Sequential()
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+                            border_mode='valid',
+                            input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=pool_size))
+    model.add(Dropout(0.25))
 
-        model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
-                                border_mode='valid',
-                                input_shape=input_shape))
-        model.add(Activation('relu'))
-        model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
-        model.add(Activation('relu'))
-        model.add(MaxPooling2D(pool_size=pool_size))
-        model.add(Dropout(0.25))
+    model.add(Flatten())
+    model.add(Dense(128))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(nb_classes))
+    model.add(Activation('softmax'))
 
-        model.add(Flatten())
-        model.add(Dense(128))
-        model.add(Activation('relu'))
-        model.add(Dropout(0.5))
-        model.add(Dense(nb_classes))
-        model.add(Activation('softmax'))
-
-        model.compile(loss='categorical_crossentropy',
-                      optimizer='adadelta',
-                      metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='sgd',
+                  metrics=['accuracy'])
 
         # model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
         #           verbose=1, validation_data=(X_test, Y_test))
-        input_tensor = tf.placeholder(tf.float32, shape=(None, 28, 28, 1))
-        output_tensor = model(input_tensor)
+        # input_tensor = tf.placeholder(tf.float32, shape=(None, 28, 28, 1))
+        # output_tensor = model(input_tensor)
 
-    train_step = tf.train.GradientDescentOptimizer(0.5).minimize(output_tensor)
+    # train_step = tf.train.GradientDescentOptimizer(0.5).minimize(output_tensor)
+    model.fit(X_train, Y_train, nb_epoch=10)
     # sess.run()
-
+    if K._BACKEND == 'tensorflow':
+        K.set_learning_phase(0)
     score = model.evaluate(X_test, Y_test, verbose=0)
     print('Test score:', score[0])
     print('Test accuracy:', score[1])
 
 
 if __name__ == '__main__':
-    tf.logging.set_verbosity(10)
-    tf_run_session()
+    # tf.logging.set_verbosity(10)
+    # tf_run_session()
+    mnist_cnn_keras()

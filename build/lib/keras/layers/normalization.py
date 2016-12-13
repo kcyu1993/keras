@@ -10,7 +10,7 @@ class BatchNormalization(Layer):
 
     # Arguments
         epsilon: small float > 0. Fuzz parameter.
-        mode: integer, 0, 1 or 2.
+        cov_mode: integer, 0, 1 or 2.
             - 0: feature-wise normalization.
                 Each feature map in the input will
                 be normalized separately. The axis on which
@@ -22,11 +22,11 @@ class BatchNormalization(Layer):
                 During training we use per-batch statistics to normalize
                 the data, and during testing we use running averages
                 computed during the training phase.
-            - 1: sample-wise normalization. This mode assumes a 2D input.
-            - 2: feature-wise normalization, like mode 0, but
+            - 1: sample-wise normalization. This cov_mode assumes a 2D input.
+            - 2: feature-wise normalization, like cov_mode 0, but
                 using per-batch statistics to normalize the data during both
                 testing and training.
-        axis: integer, axis along which to normalize in mode 0. For instance,
+        axis: integer, axis along which to normalize in cov_mode 0. For instance,
             if your input tensor has shape (samples, channels, rows, cols),
             set axis to 1 to normalize per feature map (channels axis).
         momentum: momentum in the computation of the
@@ -121,13 +121,13 @@ class BatchNormalization(Layer):
                     x, self.gamma, self.beta, reduction_axes,
                     epsilon=self.epsilon)
             else:
-                # mode 0
+                # cov_mode 0
                 if self.called_with not in {None, x}:
                     raise Exception('You are attempting to share a '
                                     'same `BatchNormalization` layer across '
                                     'different data flows. '
                                     'This is not possible. '
-                                    'You should use `mode=2` in '
+                                    'You should use `cov_mode=2` in '
                                     '`BatchNormalization`, which has '
                                     'a similar behavior but is shareable '
                                     '(see docs for a description of '
@@ -169,7 +169,7 @@ class BatchNormalization(Layer):
 
     def get_config(self):
         config = {"epsilon": self.epsilon,
-                  "mode": self.mode,
+                  "cov_mode": self.mode,
                   "axis": self.axis,
                   "gamma_regularizer": self.gamma_regularizer.get_config() if self.gamma_regularizer else None,
                   "beta_regularizer": self.beta_regularizer.get_config() if self.beta_regularizer else None,

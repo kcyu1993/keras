@@ -243,7 +243,7 @@ class ImageDataGenerator(object):
             to select this range.
         channel_shift_range: shift range for each channels.
         fill_mode: points outside the boundaries are filled according to the
-            given mode ('constant', 'nearest', 'reflect' or 'wrap'). Default
+            given cov_mode ('constant', 'nearest', 'reflect' or 'wrap'). Default
             is 'nearest'.
         cval: value used for points outside the boundaries when fill_mode is
             'constant'. Default is 0.
@@ -252,8 +252,8 @@ class ImageDataGenerator(object):
         rescale: rescaling factor. If None or 0, no rescaling is applied,
             otherwise we multiply the data by the value provided (before applying
             any other transformation).
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode it is at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode it is at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "th".
@@ -569,7 +569,7 @@ class DirectoryIterator(Iterator):
         self.image_data_generator = image_data_generator
         self.target_size = tuple(target_size)
         if color_mode not in {'rgb', 'grayscale'}:
-            raise ValueError('Invalid color mode:', color_mode,
+            raise ValueError('Invalid color cov_mode:', color_mode,
                              '; expected "rgb" or "grayscale".')
         self.color_mode = color_mode
         self.dim_ordering = dim_ordering
@@ -672,6 +672,7 @@ class DirectoryIterator(Iterator):
             return batch_x
         return batch_x, batch_y
 
+
 class DirectoryIteratorWithFile(DirectoryIterator):
     """
     Directory with the text file
@@ -708,7 +709,7 @@ class DirectoryIteratorWithFile(DirectoryIterator):
         self.image_data_generator = image_data_generator
         self.target_size = tuple(target_size)
         if color_mode not in {'rgb', 'grayscale'}:
-            raise ValueError('Invalid color mode:', color_mode,
+            raise ValueError('Invalid color cov_mode:', color_mode,
                              '; expected "rgb" or "grayscale".')
         self.color_mode = color_mode
         self.dim_ordering = dim_ordering
@@ -794,7 +795,7 @@ class MincOriginalIterator(Iterator):
         self.image_data_generator = image_data_generator
         self.target_size = tuple(target_size)
         if color_mode not in {'rgb', 'grayscale'}:
-            raise ValueError('Invalid color mode:', color_mode,
+            raise ValueError('Invalid color cov_mode:', color_mode,
                              '; expected "rgb" or "grayscale".')
         self.color_mode = color_mode
         self.dim_ordering = dim_ordering

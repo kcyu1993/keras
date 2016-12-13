@@ -1,3 +1,5 @@
+import tempfile
+
 import numpy as np
 from numpy.testing import assert_allclose
 import inspect
@@ -51,11 +53,12 @@ def layer_test(layer_cls, kwargs={}, input_shape=None, input_dtype=None,
         input_shape = input_data.shape
 
     if expected_output_dtype is None:
+        if input_dtype is None:
+            input_dtype = input_data.dtype
         expected_output_dtype = input_dtype
 
     # instantiation
     layer = layer_cls(**kwargs)
-
     # test get_weights , set_weights
     weights = layer.get_weights()
     layer.set_weights(weights)
@@ -71,6 +74,7 @@ def layer_test(layer_cls, kwargs={}, input_shape=None, input_dtype=None,
     else:
         x = Input(shape=input_shape[1:], dtype=input_dtype)
     y = layer(x)
+
     assert K.dtype(y) == expected_output_dtype
 
     model = Model(input=x, output=y)
@@ -105,6 +109,12 @@ def layer_test(layer_cls, kwargs={}, input_shape=None, input_dtype=None,
     # test JSON serialization
     json_model = model.to_json()
     model = model_from_json(json_model)
+
+    # test save weights to file
+    _, fname = tempfile.mkstemp(suffix='.weights')
+    model.save_weights(fname)
+    model.load_weights(fname)
+    model.load_weights(fname, by_name=True)
 
     # for further checks in the caller function
     return actual_output
