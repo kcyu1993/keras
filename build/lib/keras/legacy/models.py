@@ -70,10 +70,10 @@ class Graph(Model):
             metrics: list of str (name of metrics) or
                 list of metrics functions. See [metrics](metrics.md).
             sample_weight_modes: optional dictionary mapping certain
-                output names to a sample weight mode ("temporal" and None
+                output names to a sample weight cov_mode ("temporal" and None
                 are the only supported modes). If you need to do
                 timestep-wise loss weighting on one of your graph outputs,
-                you will need to set the sample weight mode for this output
+                you will need to set the sample weight cov_mode for this output
                 to "temporal".
             loss_weights: dictionary you can pass to specify a weight
                 coefficient for each loss function (in a multi-output model).
@@ -138,7 +138,7 @@ class Graph(Model):
                  create_output=False):
         '''Adds a node in the graph. It can be connected to multiple
         inputs, which will first be merged into one tensor
-        according to the mode specified.
+        according to the cov_mode specified.
 
         # Arguments
             layer: the layer at the node.
@@ -238,7 +238,7 @@ class Graph(Model):
                 raise Exception('Duplicate node identifier: ' + o)
         if merge_mode:
             if merge_mode not in {'sum', 'ave', 'mul', 'dot', 'cos', 'concat'}:
-                raise Exception('Invalid merge mode:', merge_mode)
+                raise Exception('Invalid merge cov_mode:', merge_mode)
         input_layers = []
         for i in range(len(inputs)):
             input = inputs[i]
@@ -557,7 +557,7 @@ class Graph(Model):
             samples_per_epoch: integer, number of samples to process before
                 going to the next epoch.
             nb_epoch: integer, total number of iterations on the data.
-            verbose: verbosity mode, 0, 1, or 2.
+            verbose: verbosity cov_mode, 0, 1, or 2.
             callbacks: list of callbacks to be called during training.
             validation_data: dictionary mapping input names and outputs names
                 to appropriate Numpy arrays to be used as

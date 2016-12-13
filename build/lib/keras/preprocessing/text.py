@@ -157,7 +157,7 @@ class Tokenizer(object):
 
     def texts_to_matrix(self, texts, mode='binary'):
         '''Convert a list of texts to a Numpy matrix,
-        according to some vectorization mode.
+        according to some vectorization cov_mode.
 
         # Arguments:
             texts: list of strings.
@@ -168,7 +168,7 @@ class Tokenizer(object):
 
     def sequences_to_matrix(self, sequences, mode='binary'):
         '''Converts a list of sequences into a Numpy matrix,
-        according to some vectorization mode.
+        according to some vectorization cov_mode.
 
         # Arguments:
             sequences: list of sequences
@@ -186,7 +186,7 @@ class Tokenizer(object):
 
         if mode == 'tfidf' and not self.document_count:
             raise Exception('Fit the Tokenizer on some data '
-                            'before using tfidf mode.')
+                            'before using tfidf cov_mode.')
 
         X = np.zeros((len(sequences), nb_words))
         for i, seq in enumerate(sequences):
@@ -214,5 +214,5 @@ class Tokenizer(object):
                     idf = np.log(1 + self.document_count / (1 + self.index_docs.get(j, 0)))
                     X[i][j] = tf * idf
                 else:
-                    raise Exception('Unknown vectorization mode: ' + str(mode))
+                    raise Exception('Unknown vectorization cov_mode: ' + str(mode))
         return X

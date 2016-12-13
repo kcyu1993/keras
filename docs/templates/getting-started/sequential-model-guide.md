@@ -104,7 +104,7 @@ The `Merge` layer supports a number of pre-defined modes:
 - `dot`: dot product. You can specify which axes to reduce along via the argument `dot_axes`.
 - `cos`: cosine proximity between vectors in 2D tensors.
 
-You can also pass a function as the `mode` argument, allowing for arbitrary transformations:
+You can also pass a function as the `cov_mode` argument, allowing for arbitrary transformations:
 
 ```python
 merged = Merge([left_branch, right_branch], mode=lambda x: x[0] - x[1])

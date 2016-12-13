@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from keras.applications.resnet50 import covariance_block_original, ResNet50CIFAR
+from keras.applications.resnet50 import covariance_block_vector_space, ResNet50CIFAR, covariance_block_original
 from keras.engine import Input
 from keras.engine import merge
 from keras.layers import \
@@ -66,14 +66,26 @@ def cifar_fitnet_v1(second=False, parametric=[], nb_classes=10, input_shape=(3,3
     return model
 
 
-def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_shape=(3,32,32)):
+def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_shape=(3,32,32),
+                    cov_mode='dense'):
     """
         Implement the fit model has 205K param
         Without any Maxout design in this version
         Just follows the general architecture
 
+        Update 12.09.2016
+        Switch between Cov-O2Transform and Cov-Dense
+
         :return: model sequential
-        """
+    """
+    # Function name
+    if cov_mode == 'o2transform':
+        covariance_block = covariance_block_original
+    elif cov_mode == 'dense':
+        covariance_block = covariance_block_vector_space
+    else:
+        raise ValueError('covariance cov_mode not supported')
+
     nb_class = nb_classes
     basename = 'fitnet_v2'
     if parametrics is not []:
@@ -93,7 +105,7 @@ def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
     x = Convolution2D(16, 3, 3, border_mode='same')(x)
     x = Activation('relu')(x)
     x = MaxPooling2D()(x)
-    x = Dropout(0.25)(x)
+    # x = Dropout(0.25)(x)
     block1_x = x
 
     x = Convolution2D(32, 3, 3, border_mode='same')(x)
@@ -103,7 +115,7 @@ def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
     x = Convolution2D(32, 3, 3, border_mode='same')(x)
     x = Activation('relu')(x)
     x = MaxPooling2D()(x)
-    x = Dropout(0.25)(x)
+    # x = Dropout(0.25)(x)
 
     block2_x = x
     x = Convolution2D(48, 3, 3, border_mode='same')(x)
@@ -113,7 +125,7 @@ def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
     x = Convolution2D(64, 3, 3, border_mode='same')(x)
     x = Activation('relu')(x)
     x = MaxPooling2D()(x)
-    x = Dropout(0.25)(x)
+    # x = Dropout(0.25)(x)
     # model.add(MaxPooling2D(pool_size=(2, 2)))
 
     block3_x = x
@@ -125,21 +137,21 @@ def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         x = Dense(nb_classes)(x)
         x = Activation('softmax')(x)
     elif mode == 1: # Original Cov_Net
-        x = covariance_block_original(x, nb_class, stage=4, block='a', epsilon=epsilon, parametric=parametrics)
+        x = covariance_block(x, nb_class, stage=4, block='a', epsilon=epsilon, parametric=parametrics)
         x = Activation('softmax')(x)
 
     elif mode == 2: # Concat balanced
-        cov_branch = covariance_block_original(cov_input, nb_class,
-                                               stage=4, epsilon=epsilon,
-                                               block='a', parametric=parametrics)
+        cov_branch = covariance_block(cov_input, nb_class,
+                                                   stage=4, epsilon=epsilon,
+                                                   block='a', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
         x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
     elif mode == 3: # Concat two softmax
-        cov_branch = covariance_block_original(cov_input, nb_class, epsilon=epsilon,
-                                               stage=4, block='a', parametric=parametrics)
+        cov_branch = covariance_block(cov_input, nb_class, epsilon=epsilon,
+                                                   stage=4, block='a', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
         cov_branch = Activation('softmax')(cov_branch)
@@ -147,57 +159,71 @@ def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
     elif mode == 4: # Concat multiple branches (balanced)
-        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
-                                                stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
-                                                stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
-                                                stage=4, block='c', parametric=parametrics)
+        cov_branch1 = covariance_block(block1_x, nb_class, epsilon=epsilon,
+                                                    stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block(block2_x, nb_class, epsilon=epsilon,
+                                                    stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block(block3_x, nb_class, epsilon=epsilon,
+                                                    stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class)(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
     elif mode == 5: # Concat multiple 'softmax' final layers
-        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
-                                                stage=2, block='a',
-                                                parametric=parametrics, activation='softmax')
-        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
-                                                stage=3, block='b',
-                                                parametric=parametrics, activation='softmax')
-        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
-                                                stage=4, block='c',
-                                                parametric=parametrics, activation='softmax')
+        cov_branch1 = covariance_block(block1_x, nb_class, epsilon=epsilon,
+                                                    stage=2, block='a',
+                                                    parametric=parametrics, activation='softmax')
+        cov_branch2 = covariance_block(block2_x, nb_class, epsilon=epsilon,
+                                                    stage=3, block='b',
+                                                    parametric=parametrics, activation='softmax')
+        cov_branch3 = covariance_block(block3_x, nb_class, epsilon=epsilon,
+                                                    stage=4, block='c',
+                                                    parametric=parametrics, activation='softmax')
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
 
     elif mode == 6: # Average multiple relu
-        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
-                                                stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
-                                                stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
-                                                stage=4, block='c', parametric=parametrics)
+        cov_branch1 = covariance_block(block1_x, nb_class, epsilon=epsilon,
+                                                    stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block(block2_x, nb_class, epsilon=epsilon,
+                                                    stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block(block3_x, nb_class, epsilon=epsilon,
+                                                    stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
         cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
         x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 7: # Average multiple softmax
-        cov_branch1 = covariance_block_original(block1_x, nb_class, epsilon=epsilon,
-                                                stage=2, block='a',
-                                                parametric=parametrics, activation='softmax')
-        cov_branch2 = covariance_block_original(block2_x, nb_class, epsilon=epsilon,
-                                                stage=3, block='b',
-                                                parametric=parametrics, activation='softmax')
-        cov_branch3 = covariance_block_original(block3_x, nb_class, epsilon=epsilon,
-                                                stage=4, block='c',
-                                                parametric=parametrics, activation='softmax')
+        cov_branch1 = covariance_block(block1_x, nb_class, epsilon=epsilon,
+                                                    stage=2, block='a',
+                                                    parametric=parametrics, activation='softmax')
+        cov_branch2 = covariance_block(block2_x, nb_class, epsilon=epsilon,
+                                                    stage=3, block='b',
+                                                    parametric=parametrics, activation='softmax')
+        cov_branch3 = covariance_block(block3_x, nb_class, epsilon=epsilon,
+                                                    stage=4, block='c',
+                                                    parametric=parametrics, activation='softmax')
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+
+    elif mode == 8:
+        block1_x = Flatten()(block1_x)
+        block2_x = Flatten()(block2_x)
+        # block3_x = Flatten()(block3_x)
+        dense_branch1 = Dense(nb_class, activation='relu', name='fc_block1')(block1_x)
+        dense_branch2 = Dense(nb_class, activation='relu', name='fc_block2')(block2_x)
+        # dense_branch3 = Dense(nb_class, activation='relu', name='fc_block3')(block3_x)
+
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc_relu')(x)
+        # x = merge([x, dense_branch1, dense_branch2], cov_mode='sum', name='sum')
+        x = merge([x, dense_branch1, dense_branch2], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     else:
         raise ValueError("Mode not supported {}".format(mode))

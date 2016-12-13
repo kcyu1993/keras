@@ -85,15 +85,18 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
                 tr_err.append(train_errors[i])
                 te_err.append(test_errors[i])
                 model_n.append(modelnames[i])
-        cmap = get_cmap(len(tr_err))
+        cmap = get_cmap(len(tr_err) + 1)
     else:
         tr_err = train_errors
         te_err = test_errors
 
     for i in range(len(tr_err)):
+        # if significant is not None:
+            # if i in significant:
+            #     continue
         col = cmap(i)
         plt.plot(range(len(tr_err[i])), tr_err[i], color=col, linestyle=linestyle[0])
-        plt.plot(range(len(te_err[i])), te_err[i], color=col, linestyle=linestyle[1], label=modelnames[i])
+        plt.plot(range(len(te_err[i])), te_err[i], color=col, linestyle=linestyle[1], label=model_n[i])
     if significant is not None:
         for i in range(len(sig_tr)):
             plt.plot(range(len(sig_tr[i])), sig_tr[i], color=sig_color[i], linestyle=linestyle[0],

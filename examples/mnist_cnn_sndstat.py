@@ -35,7 +35,7 @@ import logging
 
 import numpy as np
 
-from example_engine import ExampleEngine
+from kyu.utils.example_engine import ExampleEngine
 
 np.random.seed(1337)  # for reproducibility
 

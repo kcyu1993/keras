@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from theano import scalar
-from theano.tensor import elemwise, Elemwise
 
 from keras.engine import Layer, InputSpec
 from keras import initializations, regularizers
 from keras import backend as K
 from keras import activations
 
-from theano import tensor as T
+# TODO Remove this theano import to prevent any usage in tensorflow backend
+# Potentially check Keras backend then import relevant libraries
+
+
 import logging
 
 
@@ -38,18 +39,34 @@ class SecondaryStatistic(Layer):
 
 
     '''
-
-    def __init__(self, eps=0, output_dim=None, parametrized=False,
+    def __init__(self, eps=0,
+                 cov_mode='channel',
                  init='glorot_uniform', activation='linear', weights=None,
                  W_regularizer=None, dim_ordering='default', **kwargs):
-        if dim_ordering is 'default':
+        if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
 
-        self.out_dim = output_dim
-        self.parametrized = parametrized
+        if dim_ordering == 'th':
+            self.axis_filter = 1
+            self.axis_row = 2
+            self.axis_col = 3
+        else:
+            self.axis_filter = 3
+            self.axis_row = 1
+            self.axis_col = 2
+
+        # if cov_mode is 'channel':
+        #     self.axis_cov = (self.axis_filter,)
+        #     self.axis_non_cov = (self.axis_row, self.axis_col)
+        # elif cov_mode is 'feature':
+        #     self.axis_cov = (self.axis_row, self.axis_col)
+        #     self.axis_non_cov = (self.axis_filter,)
+        if cov_mode not in ['channel', 'feature']:
+            raise ValueError('only support cov_mode across channel and features, given {}'.format(cov_mode))
+
+        self.cov_mode = cov_mode
 
         # input parameter preset
-
         self.nb_filter = 0
         self.cols = 0
         self.rows = 0
@@ -67,57 +84,40 @@ class SecondaryStatistic(Layer):
 
     def build(self, input_shape):
         """
-        Build the model based on input shape
+        Build the model based on input shape,
         Should not set the weight vector here.
+        Add the cov_mode in 'channel' or 'feature',
+            by using self.cov_axis.
+
+        dim-ordering is only related to the axes
         :param input_shape:
         :return:
         """
-        # print('secondary_stat: input shape lenth', len(input_shape))
+        print('secondary_stat: input shape lenth', len(input_shape))
+        print('second_stat: input shape {}'.format(input_shape))
+        print('second_stat: axis filter {}'.format(self.axis_filter))
+        self.nb_samples = input_shape[0]
+        self.nb_filter = input_shape[self.axis_filter]
+        self.rows = input_shape[self.axis_row]
+        self.cols = input_shape[self.axis_col]
 
-        if self.dim_ordering == 'th':
-
-            self.cov_dim = input_shape[1]
-
-            self.nb_samples = input_shape[0]
-            self.nb_filter = input_shape[1]
-            self.rows = input_shape[2]
-            self.cols = input_shape[3]
-            # print("Second layer build: input shape is {}".format(input_shape))
-            # Set out_dim accordingly.
-            if self.parametrized:
-                if self.out_dim is None:
-                    self.out_dim = self.cov_dim
-                # Create the weight vector
-                self.W_shape = (self.cov_dim, self.out_dim)
-                if self.initial_weights is not None:
-                    self.set_weights(self.initial_weights)
-                    del self.initial_weights
-                else:
-                    self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
-                self.trainable_weights = [self.W]
-
-            else:
-                # No input parameters, set the weights to identity matrix
-                self.W_shape = (self.cov_dim, self.cov_dim)
-                # print('second_stat: weight shape: ',self.W_shape)
-                self.out_dim = self.cov_dim
-                self.W = K.eye(self.cov_dim, name='{}_W'.format(self.name))
-                self.non_trainable_weights = [self.W]
-
-        elif self.dim_ordering == 'tf':
-            # TODO generate tensorflow codes
-            self.cov_dim = input_shape[3]
-            self.nb_samples = input_shape[0]
-            self.nb_filter = input_shape[3]
-            self.rows = input_shape[1]
-            self.cols = input_shape[2]
-
-
+        # Calculate covariance axis
+        if self.cov_mode is 'channel':
+            self.cov_dim = self.nb_filter
         else:
-            raise Exception('Invalid dim_ordering: ' + self.dim_ordering
-                            + ' tensorflow not supported')
+            self.cov_dim = self.rows * self.cols
+
+        # Set out_dim accordingly.
+        self.out_dim = self.cov_dim
+        print('output_dim:' + str(self.out_dim))
+
+        self.W_shape = (self.cov_dim, self.cov_dim)
+        print('second_stat: weight shape: ',self.W_shape)
+        self.W = K.eye(self.cov_dim, name='{}_W'.format(self.name))
+        self.non_trainable_weights = [self.W]
 
         self.b_shape = (self.cov_dim, self.cov_dim)
+        # TODO should nout use expand dim here
         self.b = K.expand_dims(K.eye(self.cov_dim, name="{}_b".format(self.name)), 0)
         # self.non_trainable_weights += [self.b,]
         self.built = True
@@ -150,40 +150,48 @@ class SecondaryStatistic(Layer):
         base_config = super(SecondaryStatistic, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-    def reshape_tensor2d(self, x):
-        # given a 3D tensor, reshape it to 2D.
-        return K.reshape(K.flatten(x.T),
-                         (self.cols * self.rows,
-                          self.nb_filter))
-
     def reshape_tensor3d(self, x):
-        # Given a 4D tensor, reshape to 3D
+        """
+        Transpose and reshape to a format
+        (None, cov_axis, data_axis)
+        Parameters
+        ----------
+        x : tensor  (None, filter, cols, rows) for th,
+                    (None, cols, rows, filter) for tf
+        Returns
+        -------
+        """
         if self.dim_ordering == 'th':
-            return K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
-        elif self.dim_ordering == 'tf':
-            return K.reshape(x, (-1, self.cols * self.rows, self.nb_filter))
+            tx = K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
         else:
-            raise ValueError("Dim ordering wrong {}".format(self.dim_ordering))
+            tx = K.reshape(x, (-1, self.cols * self.rows, self.nb_filter))
+            tx = K.transpose(tx, (0,2,1))
+        if self.cov_mode is 'channel':
+            return tx
+        else:
+            return K.transpose(tx, (0,2,1))
 
     def calculate_pre_cov(self, x):
         """
         4D tensor to 3D (N, nb_filter, col* row)
-        :param x:
-        :return:
+        :param x: Keras.tensor  (N, nb_filter, col, row) data being called
+        :return: Keras.tensor   (N, nb_filter, col* row)
         """
-        if self.dim_ordering == 'th':
-            xf = self.reshape_tensor3d(x)
-            xf_mean = K.mean(xf, axis=2, keepdims=2)
-            xf_normal = xf - xf_mean
-            tx = K.sum(elemwise.Elemwise(scalar_op=scalar.mul)(
-                xf_normal.dimshuffle([0, 'x', 1, 2]),
-                xf_normal.dimshuffle([0, 1, 'x', 2])
-            ), axis=3)
+        xf = self.reshape_tensor3d(x)
+        xf_mean = K.mean(xf, axis=2, keepdims=True)
+        xf_normal = xf - xf_mean
+
+        tx = K.sum(K.multiply(K.expand_dims(xf_normal, dim=1),
+                              K.expand_dims(xf_normal, dim=2)),
+                   axis=3)
+        if self.cov_mode is 'channel':
             cov = tx / (self.rows * self.cols - 1)
         else:
-            raise NotImplemented
+            cov = tx / (self.nb_filter - 1)
 
         return cov
+
+    # Deprecated method
 
     def calculate_covariance(self, x):
         """
@@ -192,20 +200,57 @@ class SecondaryStatistic(Layer):
         :param x:   data matrix (nb_filter, ncol, nrow)
         :return:    Covariance matrix (nb_filter, nb_filter)
         """
-
-        tx = self.reshape_tensor2d(x)
+        # tx = self.reshape_tensor2d(x)
         # Calcualte the covariance
-        tx_mean = K.mean(tx, axis=0)
+        # tx_mean = K.mean(tx, axis=0)
         # return tx_mean
-        tx_normal = tx - tx_mean
+        # tx_normal = tx - tx_mean
         # return tx_normal
-        tx_cov = K.dot(tx_normal.T, tx_normal) / (self.cols * self.rows - 1)
-        return tx_cov
+        # tx_cov = K.dot(tx_normal.T, tx_normal) / (self.cols * self.rows - 1)
+        # return tx_cov
+        raise DeprecationWarning("deprecated, should use calculate_pre_cov to do 4D direct computation")
 
+    def reshape_tensor2d(self, x):
+        # given a 3D tensor, reshape it to 2D.
+        raise DeprecationWarning("no longer support")
+        # return K.reshape(K.flatten(x.T),
+        #                  (self.cols * self.rows,
+        #                   self.nb_filter))
+
+
+class FlattenSymmetric(Layer):
+    """
+    Flatten Symmetric is a layer to flatten the previous layer with symmetric matrix.
+
+        # Input shape
+            3D tensor with (samples, input_dim, input_dim)
+        # Output shape
+            2D tensor with (samples, input_dim * (input_dim +1) / 2 )
+            Drop the duplicated terms
+        # Arguments
+            name            name of the model
+    """
+
+    def __init__(self, **kwargs):
+        self.input_spec = [InputSpec(ndim='3+')]
+        super(FlattenSymmetric, self).__init__(**kwargs)
+
+    def get_output_shape_for(self, input_shape):
+        if not all(input_shape[1:]):
+            raise Exception('The shape of the input to "Flatten" '
+                            'is not fully defined '
+                            '(got ' + str(input_shape[1:]) + '. '
+                            'Make sure to pass a complete "input_shape" '
+                            'or "batch_input_shape" argument to the first '
+                            'layer in your model.')
+        assert input_shape[1] == input_shape[2]
+        return input_shape[0], input_shape[1]*(input_shape[1]+1)/2
+
+    def call(self, x, mask=None):
+        return K.batch_flatten(x)
 
 class O2Transform(Layer):
     ''' This layer shall stack one trainable weights out of previous input layer.
-
 
         # Input shape
             3D tensor with
@@ -228,21 +273,20 @@ class O2Transform(Layer):
     def __init__(self, output_dim=None,
                  init='glorot_uniform', activation='relu', weights=None,
                  W_regularizer=None, dim_ordering='default', **kwargs):
+        if dim_ordering == 'default':
+            dim_ordering = K.image_dim_ordering()
+        self.dim_ordering = dim_ordering
+
+        # Set out_dim accordingly.
         self.out_dim = output_dim
 
         # input parameter preset
         self.nb_samples = 0
-
         self.activation = activations.get(activation)
-
         self.init = initializations.get(init, dim_ordering=dim_ordering)
         self.initial_weights = weights
         self.W_regularizer = regularizers.get(W_regularizer)
-        self.dim_ordering = 'th'
-
         self.input_spec = [InputSpec(ndim=3)]
-        # Set out_dim accordingly.
-
         super(O2Transform, self).__init__(**kwargs)
 
     def build(self, input_shape):
@@ -255,19 +299,14 @@ class O2Transform(Layer):
         assert len(input_shape) == 3
         assert input_shape[1] == input_shape[2]
 
-        if self.dim_ordering == 'th':
-            # Create the weight vector
-            self.W_shape = (input_shape[1], self.out_dim)
-            if self.initial_weights is not None:
-                self.set_weights(self.initial_weights)
-                del self.initial_weights
-            else:
-                self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
-            self.trainable_weights = [self.W]
+        # Create the weight vector
+        self.W_shape = (input_shape[1], self.out_dim)
+        if self.initial_weights is not None:
+            self.set_weights(self.initial_weights)
+            del self.initial_weights
         else:
-            raise Exception('Invalid dim_ordering: ' + self.dim_ordering
-                            + ' tensorflow not supported')
-
+            self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
+        self.trainable_weights = [self.W]
         self.built = True
 
     def get_output_shape_for(self, input_shape):
@@ -281,7 +320,7 @@ class O2Transform(Layer):
         #                         sequences=[x],
         #                         non_sequences=None)
         #
-        com = K.dot(T.transpose(K.dot(x, self.W),[0,2,1]), self.W)
+        com = K.dot(K.transpose(K.dot(x, self.W),[0,2,1]), self.W)
         # print("O2Transform shape" + com.eval().shape)
         return com
 
@@ -353,7 +392,7 @@ class WeightedProbability(Layer):
         '''
         logging.debug("prob_out: x_shape {}".format(x.shape))
         # new_W = K.expand_dims(self.W, dim=1)
-        output = K.sum(Elemwise(scalar_op=scalar.mul)(self.W, K.dot(x, self.W)), axis=1)
+        output = K.sum(K.multiply(self.W, K.dot(x, self.W)), axis=1)
         if self.bias:
             output += self.b
         return self.activation(output)

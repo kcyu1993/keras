@@ -81,7 +81,7 @@ class LocallyConnected1D(Layer):
                  W_constraint=None, b_constraint=None,
                  bias=True, input_dim=None, input_length=None, **kwargs):
         if border_mode != 'valid':
-            raise Exception('Invalid border mode for LocallyConnected1D '
+            raise Exception('Invalid border cov_mode for LocallyConnected1D '
                             '(only "valid" is supported):', border_mode)
         self.nb_filter = nb_filter
         self.filter_length = filter_length
@@ -239,8 +239,8 @@ class LocallyConnected2D(Layer):
             (eg. maxnorm, nonneg), applied to the main weights matrix.
         b_constraint: instance of the [constraints](../constraints.md) module,
             applied to the bias.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
         bias: whether to include a bias (i.e. make the layer affine rather than linear).
 
     # Input shape
@@ -266,7 +266,7 @@ class LocallyConnected2D(Layer):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
         if border_mode != 'valid':
-            raise Exception('Invalid border mode for LocallyConnected2D '
+            raise Exception('Invalid border cov_mode for LocallyConnected2D '
                             '(only "valid" is supported):', border_mode)
         self.nb_filter = nb_filter
         self.nb_row = nb_row

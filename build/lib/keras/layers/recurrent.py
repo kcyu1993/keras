@@ -555,7 +555,7 @@ class GRU(Recurrent):
                 x_r = K.dot(x * B_W[1], self.W_r) + self.b_r
                 x_h = K.dot(x * B_W[2], self.W_h) + self.b_h
             else:
-                raise Exception('Unknown `consume_less` mode.')
+                raise Exception('Unknown `consume_less` cov_mode.')
             z = self.inner_activation(x_z + K.dot(h_tm1 * B_U[0], self.U_z))
             r = self.inner_activation(x_r + K.dot(h_tm1 * B_U[1], self.U_r))
 
@@ -793,7 +793,7 @@ class LSTM(Recurrent):
                 x_c = K.dot(x * B_W[2], self.W_c) + self.b_c
                 x_o = K.dot(x * B_W[3], self.W_o) + self.b_o
             else:
-                raise Exception('Unknown `consume_less` mode.')
+                raise Exception('Unknown `consume_less` cov_mode.')
 
             i = self.inner_activation(x_i + K.dot(h_tm1 * B_U[0], self.U_i))
             f = self.inner_activation(x_f + K.dot(h_tm1 * B_U[1], self.U_f))

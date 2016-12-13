@@ -107,8 +107,8 @@ class SpatialDropout2D(Dropout):
 
     # Arguments
         p: float between 0 and 1. Fraction of the input units to drop.
-        dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
-            (the depth) is at index 1, in 'tf' mode is it at index 3.
+        dim_ordering: 'th' or 'tf'. In 'th' cov_mode, the channels dimension
+            (the depth) is at index 1, in 'tf' cov_mode is it at index 3.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -155,8 +155,8 @@ class SpatialDropout3D(Dropout):
     # Arguments
         p: float between 0 and 1. Fraction of the input units to drop.
         dim_ordering: 'th' or 'tf'.
-            In 'th' mode, the channels dimension (the depth)
-            is at index 1, in 'tf' mode is it at index 4.
+            In 'th' cov_mode, the channels dimension (the depth)
+            is at index 1, in 'tf' cov_mode is it at index 4.
             It defaults to the `image_dim_ordering` value found in your
             Keras config file at `~/.keras/keras.json`.
             If you never set it, then it will be "tf".
@@ -665,7 +665,7 @@ class Dense(Layer):
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, input_dim=None, **kwargs):
-        self.init = initializations.get(init)
+        self.init = initializations.get(init, dim_ordering=K.image_dim_ordering())
         self.activation = activations.get(activation)
         self.output_dim = output_dim
         self.input_dim = input_dim

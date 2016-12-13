@@ -1,13 +1,21 @@
+# System-wise files
 *.DS_Store
 *.pyc
 *.swp
 
+# temp files
+v/*
 temp/*
 dist/*
 keras/datasets/data/*
 keras/datasets/temp/*
 docs/site/*
 docs/theme/*
+
+# project build files
+build/lib/keras/applications/__pycache__/
+
+# project related files
 tags
 Keras.egg-info
 
@@ -17,8 +25,10 @@ Keras.egg-info
 
 # developer environments
 .idea
+
 # Dropbox attributes
 .dropbox.attr
+
 # new image models
 /examples/ImageModels/docs/
 /examples/ImageModels/Model/
@@ -26,6 +36,8 @@ Keras.egg-info
 /data/t10k-labels-idx1-ubyte
 /data/mnist.pkl.gz
 /data/t10k-patterns-idx3-ubyte
+
+# log related files
 /model_saved/cifar10_cnn_sndstat.weights
 /model_saved/cifar10_baseline.weights
 data/
@@ -35,5 +47,5 @@ model_saved/cifar10_cnn_sndstat.weights
 /build/.ipynb_checkpoints/
 /build/bdist.macosx-10.6-x86_64/
 /model_saved/
-build/lib/keras/applications/__pycache__/
+
 
