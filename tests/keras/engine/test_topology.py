@@ -509,7 +509,7 @@ def test_recursion():
 
 #     # we can then concatenate the two vectors:
 #     merged_vector = merge([encoded_a, encoded_b],
-#                           mode='concat', concat_axis=-1)
+#                           cov_mode='concat', concat_axis=-1)
 
 #     # and add a logistic regression on top
 #     predictions = Dense(1, activation='sigmoid')(merged_vector)

@@ -1100,7 +1100,7 @@ def Input(shape=None, batch_shape=None,
 
 class Merge(Layer):
     '''A `Merge` layer can be used to merge a list of tensors
-    into a single tensor, following some merge `mode`.
+    into a single tensor, following some merge `cov_mode`.
 
     # Example usage
 
@@ -1112,7 +1112,7 @@ class Merge(Layer):
     model2.add(Dense(32))
 
     merged_model = Sequential()
-    merged_model.add(Merge([model1, model2], mode='concat', concat_axis=1)
+    merged_model.add(Merge([model1, model2], cov_mode='concat', concat_axis=1)
     # TODO: would this actually work? it needs to.
     # achieve this with get_source_inputs in Sequential.
     ```
@@ -1121,14 +1121,14 @@ class Merge(Layer):
         layers: can be a list of Keras tensors or
             a list of layer instances. Must be more
             than one layer/tensor.
-        mode: string or lambda/function. If string, must be one
+        cov_mode: string or lambda/function. If string, must be one
             of: 'sum', 'mul', 'concat', 'ave', 'cos', 'dot', 'max'.
             If lambda/function, it should take as input a list of tensors
             and return a single tensor.
-        concat_axis: integer, axis to use in mode `concat`.
-        dot_axes: integer or tuple of integers, axes to use in mode `dot` or `cos`.
+        concat_axis: integer, axis to use in cov_mode `concat`.
+        dot_axes: integer or tuple of integers, axes to use in cov_mode `dot` or `cos`.
         output_shape: either a shape tuple (tuple of integers), or a lambda/function
-            to compute `output_shape` (only if merge mode is a lambda/function).
+            to compute `output_shape` (only if merge cov_mode is a lambda/function).
             If the argument is a tuple,
             it should be expected output shape, *not* including the batch size
             (same convention as the `input_shape` argument in layers).
@@ -1143,7 +1143,7 @@ class Merge(Layer):
             to consider for merging
             (in case some input layer node returns multiple tensors).
         output_mask: mask or lambda/function to compute the output mask (only
-            if merge mode is a lambda/function). If the latter case, it should
+            if merge cov_mode is a lambda/function). If the latter case, it should
             take as input a list of masks and return a single mask.
     '''
     def __init__(self, layers=None, mode='sum', concat_axis=-1,
@@ -1196,7 +1196,7 @@ class Merge(Layer):
         '''
         if not hasattr(mode, '__call__'):
             if mode not in {'sum', 'mul', 'concat', 'ave', 'cos', 'dot', 'max'}:
-                raise Exception('Invalid merge mode: ' + str(mode))
+                raise Exception('Invalid merge cov_mode: ' + str(mode))
         if type(layers) not in {list, tuple} or len(layers) < 2:
             raise Exception('A Merge should only be applied to a list of '
                             'layers with at least 2 elements. Found: ' + str(layers))
@@ -1217,7 +1217,7 @@ class Merge(Layer):
             input_shapes_set = set(input_shapes)
             if len(input_shapes_set) > 1:
                 raise Exception('Only layers of same output shape can '
-                                'be merged using ' + mode + ' mode. ' +
+                                'be merged using ' + mode + ' cov_mode. ' +
                                 'Layer shapes: %s' % input_shapes)
         if mode in {'cos', 'dot'}:
             if len(layers) > 2:
@@ -1238,7 +1238,7 @@ class Merge(Layer):
             if type(self.dot_axes[0]) is not int or type(self.dot_axes[1]) is not int:
                 raise Exception('Invalid format for dot_axes - list elements should be "int".')
             if shape1[self.dot_axes[0]] != shape2[self.dot_axes[1]]:
-                raise Exception('Dimension incompatibility using dot mode: ' +
+                raise Exception('Dimension incompatibility using dot cov_mode: ' +
                                 '%s != %s. ' % (shape1[self.dot_axes[0]], shape2[self.dot_axes[1]]) +
                                 'Layer shapes: %s, %s' % (shape1, shape2))
         elif mode == 'concat':
@@ -1248,7 +1248,7 @@ class Merge(Layer):
                 del reduced_inputs_shapes[i][self.concat_axis]
                 shape_set.add(tuple(reduced_inputs_shapes[i]))
             if len(shape_set) > 1:
-                raise Exception('"concat" mode can only merge layers with matching ' +
+                raise Exception('"concat" cov_mode can only merge layers with matching ' +
                                 'output shapes except for the concat axis. ' +
                                 'Layer shapes: %s' % (input_shapes))
 
@@ -1256,7 +1256,7 @@ class Merge(Layer):
         if type(inputs) is not list or len(inputs) <= 1:
             raise Exception('Merge must be called on a list of tensors '
                             '(at least 2). Got: ' + str(inputs))
-        # case: "mode" is a lambda or function.
+        # case: "cov_mode" is a lambda or function.
         if hasattr(self.mode, '__call__'):
             # TODO: consider making it possible to
             # pass custom arguments to lambda.
@@ -1300,7 +1300,7 @@ class Merge(Layer):
             output = K.expand_dims(output, 1)
             return output
         else:
-            raise Exception('Unknown merge mode.')
+            raise Exception('Unknown merge cov_mode.')
 
     def __call__(self, inputs, mask=None):
         '''We disable successive calls to __call__ for Merge layers.
@@ -1355,7 +1355,7 @@ class Merge(Layer):
             else:
                 # TODO: consider shape auto-inference with TF
                 raise Exception('The Merge layer ' + self.name +
-                                ' has a callable `mode` argument, ' +
+                                ' has a callable `cov_mode` argument, ' +
                                 'and we cannot infer its output shape because ' +
                                 'no `output_shape` argument was provided.' +
                                 'Make sure to pass a shape tuple (or a callable) ' +
@@ -1417,7 +1417,7 @@ class Merge(Layer):
                 return self._output_mask
         else:
             # this should have been caught earlier
-            raise Exception('Invalid merge mode: {}'.format(self.mode))
+            raise Exception('Invalid merge cov_mode: {}'.format(self.mode))
 
     def get_config(self):
         if isinstance(self.mode, python_types.LambdaType):
@@ -1441,7 +1441,7 @@ class Merge(Layer):
             output_shape_type = 'raw'
 
         return {'name': self.name,
-                'mode': mode,
+                'cov_mode': mode,
                 'mode_type': mode_type,
                 'concat_axis': self.concat_axis,
                 'dot_axes': self.dot_axes,
@@ -1452,11 +1452,11 @@ class Merge(Layer):
     def from_config(cls, config):
         mode_type = config.pop('mode_type')
         if mode_type == 'function':
-            mode = globals()[config['mode']]
+            mode = globals()[config['cov_mode']]
         elif mode_type == 'lambda':
-            mode = func_load(config['mode'], globs=globals())
+            mode = func_load(config['cov_mode'], globs=globals())
         else:
-            mode = config['mode']
+            mode = config['cov_mode']
 
         output_shape_type = config.pop('output_shape_type')
         if output_shape_type == 'function':
@@ -1466,7 +1466,7 @@ class Merge(Layer):
         else:
             output_shape = config['output_shape']
 
-        config['mode'] = mode
+        config['cov_mode'] = mode
         config['output_shape'] = output_shape
         return super(Merge, cls).from_config(config)
 
@@ -1481,18 +1481,18 @@ def merge(inputs, mode='sum', concat_axis=-1,
     ```python
     tensor_a = Input(shape=(32,))
     tensor_b = Input(shape=(32,))
-    merged_tensor = merge([tensor_a, tensor_b], mode='concat', concat_axis=1)
+    merged_tensor = merge([tensor_a, tensor_b], cov_mode='concat', concat_axis=1)
     ```
 
     # Arguments
-        mode: string or lambda/function. If string, must be one
+        cov_mode: string or lambda/function. If string, must be one
             of: 'sum', 'mul', 'concat', 'ave', 'cos', 'dot'.
             If lambda/function, it should take as input a list of tensors
             and return a single tensor.
-        concat_axis: integer, axis to use in mode `concat`.
-        dot_axes: integer or tuple of integers, axes to use in mode `dot` or `cos`.
+        concat_axis: integer, axis to use in cov_mode `concat`.
+        dot_axes: integer or tuple of integers, axes to use in cov_mode `dot` or `cos`.
         output_shape: shape tuple (tuple of integers), or lambda/function
-            to compute output_shape (only if merge mode is a lambda/function).
+            to compute output_shape (only if merge cov_mode is a lambda/function).
             If the latter case, it should take as input a list of shape tuples
             (1:1 mapping to input tensors) and return a single shape tuple, including the
             batch size (same convention as the `get_output_shape_for` method of layers).

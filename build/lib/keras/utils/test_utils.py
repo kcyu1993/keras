@@ -75,8 +75,6 @@ def layer_test(layer_cls, kwargs={}, input_shape=None, input_dtype=None,
         x = Input(shape=input_shape[1:], dtype=input_dtype)
     y = layer(x)
 
-    print("layer eps {}".format(layer.eps))
-
     assert K.dtype(y) == expected_output_dtype
 
     model = Model(input=x, output=y)

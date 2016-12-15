@@ -98,7 +98,7 @@ if get_graph:
 
     from keras import backend as K
 
-    # all new operations will be in test mode from now on
+    # all new operations will be in test cov_mode from now on
     K.set_learning_phase(0)
 
     # serialize the model and get its weights, for quick re-building

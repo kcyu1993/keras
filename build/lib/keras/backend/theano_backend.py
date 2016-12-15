@@ -241,8 +241,19 @@ def batch_dot(x, y, axes=None):
     return out
 
 
-def transpose(x):
-    return T.transpose(x)
+def transpose(x, axes=None):
+    """
+    Modify to support Theano transpose given axis
+    Parameters
+    ----------
+    x: tensor   tensor to be transposed
+    axes: tuple tuple of axis order information
+
+    Returns
+    -------
+    Theano.tensor
+    """
+    return T.transpose(x, axes=axes)
 
 
 def gather(reference, indices):
@@ -255,6 +266,11 @@ def gather(reference, indices):
 
 
 # ELEMENT-WISE OPERATIONS
+
+def multiply(a,b):
+    from theano.tensor.elemwise import Elemwise
+    from theano.scalar import mul
+    return Elemwise(scalar_op=mul)(a, b)
 
 
 def max(x, axis=None, keepdims=False):
@@ -1075,7 +1091,7 @@ def _preprocess_border_mode(border_mode):
     elif border_mode == 'valid':
         th_border_mode = 'valid'
     else:
-        raise Exception('Border mode not supported: ' + str(border_mode))
+        raise Exception('Border cov_mode not supported: ' + str(border_mode))
     return th_border_mode
 
 
@@ -1226,7 +1242,7 @@ def conv3d(x, kernel, strides=(1, 1, 1),
         raise Exception('Unknown dim_ordering ' + str(dim_ordering))
 
     if border_mode not in {'same', 'valid'}:
-        raise Exception('Invalid border mode: ' + str(border_mode))
+        raise Exception('Invalid border cov_mode: ' + str(border_mode))
 
     if dim_ordering == 'tf':
         # TF uses the last dimension as channel dimension,
@@ -1286,7 +1302,7 @@ def pool2d(x, pool_size, strides=(1, 1), border_mode='valid',
     elif border_mode == 'valid':
         padding = (0, 0)
     else:
-        raise Exception('Invalid border mode: ' + str(border_mode))
+        raise Exception('Invalid border cov_mode: ' + str(border_mode))
 
     if dim_ordering not in {'th', 'tf'}:
         raise Exception('Unknown dim_ordering ' + str(dim_ordering))
@@ -1305,7 +1321,7 @@ def pool2d(x, pool_size, strides=(1, 1), border_mode='valid',
                                 padding=padding,
                                 mode='average_exc_pad')
     else:
-        raise Exception('Invalid pooling mode: ' + str(pool_mode))
+        raise Exception('Invalid pooling cov_mode: ' + str(pool_mode))
 
     if border_mode == 'same':
         expected_width = (x.shape[2] + strides[0] - 1) // strides[0]
@@ -1329,7 +1345,7 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
         ignore_border = True
         padding = (0, 0)
     else:
-        raise Exception('Invalid border mode: ' + str(border_mode))
+        raise Exception('Invalid border cov_mode: ' + str(border_mode))
 
     if dim_ordering not in {'th', 'tf'}:
         raise Exception('Unknown dim_ordering ' + str(dim_ordering))
@@ -1371,7 +1387,7 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
                                 padding=padding,
                                 mode='average_exc_pad')
     else:
-        raise Exception('Invalid pooling mode: ' + str(pool_mode))
+        raise Exception('Invalid pooling cov_mode: ' + str(pool_mode))
 
     if dim_ordering == 'tf':
         pool_out = pool_out.dimshuffle((0, 2, 3, 4, 1))

@@ -642,7 +642,7 @@ class Model(Container):
 
             for metric in output_metrics:
                 if metric == 'accuracy' or metric == 'acc':
-                    # custom handling of accuracy (because of class mode duality)
+                    # custom handling of accuracy (because of class cov_mode duality)
                     output_shape = self.internal_output_shapes[i]
                     if output_shape[-1] == 1 or self.loss_functions[i] == objectives.binary_crossentropy:
                         # case: binary accuracy
@@ -747,7 +747,7 @@ class Model(Container):
                 the outputs of `f`
             batch_size: integer batch size
             nb_epoch: number of times to iterate over the data
-            verbose: verbosity mode, 0, 1 or 2
+            verbose: verbosity cov_mode, 0, 1 or 2
             callbacks: list of callbacks to be called during training
             val_f: Keras function to call for validation
             val_ins: list of tensors to be fed to `val_f`
@@ -854,7 +854,7 @@ class Model(Container):
             f: Keras function returning a list of tensors.
             ins: list of tensors to be fed to `f`.
             batch_size: integer batch size.
-            verbose: verbosity mode.
+            verbose: verbosity cov_mode.
 
         # Returns
             Array of predictions (if the model has a single output)
@@ -898,7 +898,7 @@ class Model(Container):
             f: Keras function returning a list of tensors.
             ins: list of tensors to be fed to `f`.
             batch_size: integer batch size.
-            verbose: verbosity mode.
+            verbose: verbosity cov_mode.
 
         # Returns
             Scalar loss (if the model has a single output and no metrics)
@@ -997,7 +997,7 @@ class Model(Container):
                 mapping output names to Numpy arrays.
             batch_size: integer. Number of samples per gradient update.
             nb_epoch: integer, the number of times to iterate over the training data arrays.
-            verbose: 0, 1, or 2. Verbosity mode. 0 = silent, 1 = verbose, 2 = one log line per epoch.
+            verbose: 0, 1, or 2. Verbosity cov_mode. 0 = silent, 1 = verbose, 2 = one log line per epoch.
             callbacks: list of callbacks to be called during training.
                 See [callbacks](/callbacks).
             validation_split: float between 0 and 1:
@@ -1107,7 +1107,7 @@ class Model(Container):
 
     def evaluate(self, x, y, batch_size=32, verbose=1, sample_weight=None):
         '''Returns the loss value and metrics values for the model
-        in test mode. Computation is done in batches.
+        in test cov_mode. Computation is done in batches.
 
         # Arguments
             x: Numpy array of test data,
@@ -1150,7 +1150,7 @@ class Model(Container):
             x: the input data, as a Numpy array
                 (or list of Numpy arrays if the model has multiple outputs).
             batch_size: integer.
-            verbose: verbosity mode, 0 or 1.
+            verbose: verbosity cov_mode, 0 or 1.
 
         # Returns
             A Numpy array of predictions.
@@ -1298,7 +1298,7 @@ class Model(Container):
             samples_per_epoch: integer, number of samples to process before
                 going to the next epoch.
             nb_epoch: integer, total number of iterations on the data.
-            verbose: verbosity mode, 0, 1, or 2.
+            verbose: verbosity cov_mode, 0, 1, or 2.
             callbacks: list of callbacks to be called during training.
             validation_data: this can be either
                 - a generator for the validation data

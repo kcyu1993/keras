@@ -22,7 +22,7 @@ py_all = all
 _SESSION = None
 # This dictionary holds a mapping {graph: learning_phase}.
 # A learning phase is a bool tensor used to run Keras models in
-# either train mode (learning_phase == 1) or test mode (learning_phase == 0).
+# either train cov_mode (learning_phase == 1) or test cov_mode (learning_phase == 0).
 _GRAPH_LEARNING_PHASES = {}
 # This boolean flag can be set to True to leave variable initialization
 # up to the user.
@@ -423,10 +423,11 @@ def batch_dot(x, y, axes=None):
     return out
 
 
-def transpose(x):
+def transpose(x, axes=None):
     '''Transposes a matrix.
+    Modify to support perm
     '''
-    return tf.transpose(x)
+    return tf.transpose(x, perm=axes)
 
 
 def gather(reference, indices):
@@ -442,6 +443,21 @@ def gather(reference, indices):
 
 
 # ELEMENT-WISE OPERATIONS
+
+def multiply(a, b):
+    """
+    Matrix element-wise multiplication
+    Parameters
+    ----------
+    a
+    b
+
+    Returns
+    -------
+    tf.multiply(a,b)
+    """
+    return tf.multiply(a,b)
+
 
 def _normalize_axis(axis, ndim):
     if type(axis) is tuple:
@@ -1586,7 +1602,7 @@ def _preprocess_border_mode(border_mode):
     elif border_mode == 'valid':
         padding = 'VALID'
     else:
-        raise Exception('Invalid border mode: ' + str(border_mode))
+        raise Exception('Invalid border cov_mode: ' + str(border_mode))
     return padding
 
 
@@ -1783,7 +1799,7 @@ def pool2d(x, pool_size, strides=(1, 1),
     elif pool_mode == 'avg':
         x = tf.nn.avg_pool(x, pool_size, strides, padding=padding)
     else:
-        raise Exception('Invalid pooling mode: ' + str(pool_mode))
+        raise Exception('Invalid pooling cov_mode: ' + str(pool_mode))
 
     return _postprocess_conv2d_output(x, dim_ordering)
 
@@ -1814,7 +1830,7 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
     elif pool_mode == 'avg':
         x = tf.nn.avg_pool3d(x, pool_size, strides, padding=padding)
     else:
-        raise Exception('Invalid pooling mode: ' + str(pool_mode))
+        raise Exception('Invalid pooling cov_mode: ' + str(pool_mode))
 
     return _postprocess_conv3d_output(x, dim_ordering)
 

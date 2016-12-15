@@ -230,17 +230,17 @@ class ModelCheckpoint(Callback):
     # Arguments
         filepath: string, path to save the model file.
         monitor: quantity to monitor.
-        verbose: verbosity mode, 0 or 1.
+        verbose: verbosity cov_mode, 0 or 1.
         save_best_only: if `save_best_only=True`,
             the latest best model according to
             the quantity monitored will not be overwritten.
-        mode: one of {auto, min, max}.
+        cov_mode: one of {auto, min, max}.
             If `save_best_only=True`, the decision
             to overwrite the current save file is made
             based on either the maximization or the
             minimization of the monitored quantity. For `val_acc`,
             this should be `max`, for `val_loss` this should
-            be `min`, etc. In `auto` mode, the direction is
+            be `min`, etc. In `auto` cov_mode, the direction is
             automatically inferred from the name of the monitored quantity.
         save_weights_only: if True, then only the model's weights will be
             saved (`model.save_weights(filepath)`), else the full model
@@ -258,8 +258,8 @@ class ModelCheckpoint(Callback):
         self.save_weights_only = save_weights_only
 
         if mode not in ['auto', 'min', 'max']:
-            warnings.warn('ModelCheckpoint mode %s is unknown, '
-                          'fallback to auto mode.' % (mode),
+            warnings.warn('ModelCheckpoint cov_mode %s is unknown, '
+                          'fallback to auto cov_mode.' % (mode),
                           RuntimeWarning)
             mode = 'auto'
 
@@ -316,13 +316,13 @@ class EarlyStopping(Callback):
         monitor: quantity to be monitored.
         patience: number of epochs with no improvement
             after which training will be stopped.
-        verbose: verbosity mode.
-        mode: one of {auto, min, max}. In `min` mode,
+        verbose: verbosity cov_mode.
+        cov_mode: one of {auto, min, max}. In `min` cov_mode,
             training will stop when the quantity
             monitored has stopped decreasing; in `max`
-            mode it will stop when the quantity
+            cov_mode it will stop when the quantity
             monitored has stopped increasing; in `auto`
-            mode, the direction is automatically inferred
+            cov_mode, the direction is automatically inferred
             from the name of the monitored quantity.
     '''
     def __init__(self, monitor='val_loss', patience=0, verbose=0, mode='auto'):
@@ -334,8 +334,8 @@ class EarlyStopping(Callback):
         self.wait = 0
 
         if mode not in ['auto', 'min', 'max']:
-            warnings.warn('EarlyStopping mode %s is unknown, '
-                          'fallback to auto mode.' % (self.mode),
+            warnings.warn('EarlyStopping cov_mode %s is unknown, '
+                          'fallback to auto cov_mode.' % (self.mode),
                           RuntimeWarning)
             mode = 'auto'
 
@@ -453,7 +453,15 @@ class TensorBoard(Callback):
         write_graph: whether to visualize the graph in Tensorboard.
             The log file can become quite large when
             write_graph is set to True.
+
+    # Updates:
+        2016.12.14 Implement a naive version of Convolution2d weights visualization tools.
+            With tf.reshape, it flatten 4D weight tensor into 2D by treating the one kernel as a pixel.
+            Now it use new_shape = [nb_cols * nb_filter, nb_rows * stack_size] and direct transform
+            Detail logic should be taken care of outside this Tensorboard Callbacks.
+
     '''
+    # TODO 2016/12/14: Implement gradients visualization tools
 
     def __init__(self, log_dir='./logs', histogram_freq=0, write_graph=True, write_images=False):
         super(TensorBoard, self).__init__()
@@ -480,8 +488,17 @@ class TensorBoard(Callback):
 
                     if self.write_images:
                         w_img = tf.squeeze(weight)
-
                         shape = w_img.get_shape()
+
+                        if len(shape) == 4:
+                            # Add logic for convolutional weights (nb_col, nb_row, nb_previous, nb_filter)
+                            # Reshape into 2D tensor
+                            # shape_new = tf.pack(shape[0],shape[2], shape[1],shape[3])
+                            shape_new = tf.pack((shape[0]*shape[2], shape[1]*shape[3]))
+                            # shape_new =
+                            w_img = tf.reshape(tensor=w_img, shape=shape_new, name='reshape')
+                            shape = w_img.get_shape()
+
                         if len(shape) > 1 and shape[0] > shape[1]:
                             w_img = tf.transpose(w_img)
 
@@ -559,12 +576,12 @@ class ReduceLROnPlateau(Callback):
         patience: number of epochs with no improvement
             after which learning rate will be reduced.
         verbose: int. 0: quiet, 1: update messages.
-        mode: one of {auto, min, max}. In `min` mode,
+        cov_mode: one of {auto, min, max}. In `min` cov_mode,
             lr will be reduced when the quantity
             monitored has stopped decreasing; in `max`
-            mode it will be reduced when the quantity
+            cov_mode it will be reduced when the quantity
             monitored has stopped increasing; in `auto`
-            mode, the direction is automatically inferred
+            cov_mode, the direction is automatically inferred
             from the name of the monitored quantity.
         epsilon: threshold for measuring the new optimum,
             to only focus on significant changes.
@@ -595,8 +612,8 @@ class ReduceLROnPlateau(Callback):
 
     def reset(self):
         if self.mode not in ['auto', 'min', 'max']:
-            warnings.warn('Learning Rate Plateau Reducing mode %s is unknown, '
-                          'fallback to auto mode.' % (self.mode), RuntimeWarning)
+            warnings.warn('Learning Rate Plateau Reducing cov_mode %s is unknown, '
+                          'fallback to auto cov_mode.' % (self.mode), RuntimeWarning)
             self.mode = 'auto'
         if self.mode == 'min' or (self.mode == 'auto' and 'acc' not in self.monitor):
             self.monitor_op = lambda a, b: np.less(a, b - self.epsilon)

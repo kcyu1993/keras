@@ -242,7 +242,7 @@ def run_routine3(): # ResCov 1
 
 
 def run_routine4():
-    print("ResCovNet 50 mode 0")
+    print("ResCovNet 50 cov_mode 0")
     run_minc_original_rescovnet(load=True, save=True)
 
 

@@ -169,8 +169,8 @@ class Bidirectional(Wrapper):
     '''
     def __init__(self, layer, merge_mode='concat', weights=None, **kwargs):
         if merge_mode not in ['sum', 'mul', 'ave', 'concat', None]:
-            raise ValueError('Invalid merge mode. '
-                             'Merge mode should be one of '
+            raise ValueError('Invalid merge cov_mode. '
+                             'Merge cov_mode should be one of '
                              '{"sum", "mul", "ave", "concat", None}')
         self.forward_layer = layer
         config = layer.get_config()
