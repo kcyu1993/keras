@@ -249,6 +249,94 @@ class FlattenSymmetric(Layer):
     def call(self, x, mask=None):
         return K.batch_flatten(x)
 
+
+class LogTransform(Layer):
+    """
+    LogTranform layer supports the input of a 3D tensor, output a corresponding 3D tensor in
+        Log-Euclidean space
+
+    It implement the Matrix Logarithm with a small shift (epsilon)
+
+        # Input shape
+            3D tensor with (samples, input_dim, input_dim)
+        # Output shape
+            3D tensor with (samples, input_dim, input_dim)
+        # Arguments
+            epsilon
+
+    """
+
+    def __init__(self, epsilon=0, **kwargs):
+        self.input_spec = [InputSpec(ndim='3+')]
+        self.eps = epsilon
+        super(LogTransform, self).__init__(**kwargs)
+
+    def get_output_shape_for(self, input_shape):
+        if not all(input_shape[1:]):
+            raise Exception('The shape of the input to "LogTransform'
+                            'is not fully defined '
+                            '(got ' + str( input_shape[1:]) + '. ')
+        assert input_shape[1] == input_shape[2]
+        return input_shape
+
+    def get_config(self):
+        """ Get config for model save and reload """
+        config = {'epsilon':self.eps}
+        base_config = super(LogTransform, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def call(self, x, mask=None):
+        """
+        2016.12.15 Implement with the theano.scan
+
+        Returns
+        -------
+        3D tensor with same shape as input
+        """
+        if K.backend() == 'theano':
+            from theano import scan
+            components, update = scan(fn=lambda tx: self.logm(tx),
+                                      outputs_info=None,
+                                      sequences=[x],
+                                      non_sequences=None)
+
+            return components
+        else:
+            raise NotImplementedError
+
+    def logm(self, x):
+        """
+        Log-transform of a 2D tensor, assume it is square and symmetric positive definite.
+
+        Parameters
+        ----------
+        x : 2D square tensor
+
+        Returns
+        -------
+        result : 2D square tensor with same shape
+        """
+        if K.backend() == 'theano':
+            # construct theano tensor operation
+            from theano.tensor.nlinalg import svd, diag
+            from theano.tensor.elemwise import Elemwise
+            from theano.scalar import log
+            import theano.tensor as T
+            # This implementation would be extremely slow. but efficient?
+            u, d, v = svd(x)
+            d += self.eps
+            inner = diag(T.log(d))
+            # print(inner.eval())
+            res = T.dot(u, T.dot(inner, v))
+            # print("U shape {} V shape {}".format(u.eval().shape, v.eval().shape))
+            # print("D matrix {}".format(d.eval()))
+            # assert np.allclose(u.eval(), v.eval().transpose())
+            return res
+        else:
+            # support tensorflow implementation
+            raise NotImplementedError
+
+
 class O2Transform(Layer):
     ''' This layer shall stack one trainable weights out of previous input layer.
 
@@ -390,7 +478,7 @@ class WeightedProbability(Layer):
         :return: final output vector with w_i^T * W * w_i as item i, and propagate to all
             samples. Output Shape (nb_samples, vector c)
         '''
-        logging.debug("prob_out: x_shape {}".format(x.shape))
+        logging.debug("prob_out: x_shape {}".format(K.shape(x)))
         # new_W = K.expand_dims(self.W, dim=1)
         output = K.sum(K.multiply(self.W, K.dot(x, self.W)), axis=1)
         if self.bias:

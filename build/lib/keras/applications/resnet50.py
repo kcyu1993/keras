@@ -208,6 +208,21 @@ def covariance_block_vector_space(input_tensor, nb_class, stage, block, epsilon=
     return x
 
 
+def covariance_block_vector_space(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu'):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    dense_name_base = 'dense' + str(stage) + block + '_branch'
+
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon)(input_tensor)
+    x = Flatten()(x)
+    for id, param in enumerate(parametric):
+        x = Dense(param, activation=activation, name=dense_name_base + str(id))(x)
+    x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
+    return x
+
+
 def ResNet50(include_top=True, weights='imagenet',
              input_tensor=None):
     '''Instantiate the ResNet50 architecture,
