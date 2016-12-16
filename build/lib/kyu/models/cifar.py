@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from keras.applications.resnet50 import covariance_block_vector_space, ResNet50CIFAR, covariance_block_original
 from keras.engine import Input
 from keras.engine import merge
+from keras.layers import LogTransform
 from keras.layers import \
     SecondaryStatistic, Convolution2D, Activation, MaxPooling2D, Dropout, \
     Flatten, O2Transform, Dense, WeightedProbability
@@ -501,30 +502,47 @@ def model_original(nb_classes=10, input_shape=(3,32,32)):
     return model
 
 
-def model_snd(parametric=True, input_shape=(3,32,32)):
-    model = Sequential()
-    model.add(Convolution2D(32, 3, 3, border_mode='same',
-                            input_shape=input_shape))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(32, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+def model_snd(parametrics=[], input_shape=(3,32,32), nb_class=10, cov_mode='o2transform',
+              init='glorot_uniform'):
+    # Function name
+    if cov_mode == 'o2transform':
+        covariance_block = covariance_block_original
+    elif cov_mode == 'dense':
+        covariance_block = covariance_block_vector_space
+    else:
+        raise ValueError('covariance cov_mode not supported')
 
-    model.add(Convolution2D(64, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(64, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    basename = 'fitnet_v2'
+    if parametrics is not []:
+        basename += '_para-'
+        for para in parametrics:
+            basename += str(para) + '_'
 
-    model.add(SecondaryStatistic(activation='linear'))
-    if parametric:
-        model.add(O2Transform(activation='relu', output_dim=100))
-    model.add(WeightedProbability(10,activation='linear', init='normal'))
-    model.add(Activation('softmax'))
+    if input_shape[0] == 3:
+        # Define the channel
+        if K.image_dim_ordering() == 'tf':
+            input_shape = (input_shape[1], input_shape[2], input_shape[0])
+    input_tensor = Input(shape=input_shape)
+    x = Convolution2D(32, 3, 3, border_mode='same', init=init)(input_tensor)
+    x = Activation('relu')(x)
+    x = Convolution2D(32, 3, 3, border_mode='same', init=init)(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D()(x)
 
-    # let's train the model using SGD + momentum (how original).
+
+    x = Convolution2D(64, 3, 3, border_mode='same', init=init)(input_tensor)
+    x = Activation('relu')(x)
+    x = Convolution2D(64, 3, 3, border_mode='same', init=init)(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D()(x)
+
+    x = SecondaryStatistic(activation='linear')(x)
+    x = LogTransform(epsilon=1e-4)(x)
+    x = WeightedProbability(100, activation='relu')(x)
+    x = Dense(nb_class, name='fc')(x)
+    x = Activation('softmax')(x)
+
+    model = Model(input_tensor, x, name='cifar_log_wp100')
     return model
 
 

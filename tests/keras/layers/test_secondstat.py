@@ -29,44 +29,48 @@ def get_mat_log(data):
         assert np.allclose(u.eval(), v.eval().transpose())
         return result2.eval()
 
-
-def test_matrix_logrithm():
-
-    # Creation of data
-    data = np.random.randn(10, 10)
-    # make sure the data is symmetric
-    data = np.dot(data.transpose(), data)
-
-    # Assure the numerical stability and generate the result
-    data1 = data + epsilon * np.eye(10)
-    result = logm(data1)
-    # numpy operation (data = u * diag(d) * v
-    u, d, v = np.linalg.svd(data)
-    d += epsilon
-    d = np.diag(np.log(d))
-    result3 = np.dot(u, np.dot(d, v))
-    result2 = get_mat_log(data)
-    # print (result2, result)
-    print(result - result2)
-    assert np.allclose(result3, result) # pass
-    assert np.allclose(result2, result3, atol=1e-6)
-    assert np.allclose(result, result2, atol=1e-6)
+#
+# def test_matrix_logrithm():
+#
+#     # Creation of data
+#     data = np.random.randn(10, 10)
+#     # make sure the data is symmetric
+#     data = np.dot(data.transpose(), data)
+#
+#     # Assure the numerical stability and generate the result
+#     data1 = data + epsilon * np.eye(10)
+#     result = logm(data1)
+#     # numpy operation (data = u * diag(d) * v
+#     u, d, v = np.linalg.svd(data)
+#     d += epsilon
+#     d = np.diag(np.log(d))
+#     result3 = np.dot(u, np.dot(d, v))
+#     result2 = get_mat_log(data)
+#     # print (result2, result)
+#     print(result - result2)
+#     assert np.allclose(result3, result) # pass
+#     assert np.allclose(result2, result3, atol=1e-6)
+#     assert np.allclose(result, result2, atol=1e-6)
 
 
 def test_log_transform_layer():
     # generate 3D data tensor
-    data = np.random.randn(2, 10, 10)
+    input_shape = (2,10,10)
+    data = np.random.randn(*input_shape).astype(K.floatx())
     for i in range(data.shape[0]):
         data[i] = data[i].transpose().dot(data[i])
-
     # Generate corresponding 3D Tensor
-    k_tensor = K.variable(data)
+    # k_tensor = K.variable(data)
     res = layer_test(LogTransform,
                      input_data=data,
-                     kwargs={'epsilon', epsilon},
-                     input_
+                     kwargs={'epsilon': epsilon},
+                     input_shape=input_shape
                      )
+    res2 = np.zeros(shape=input_shape)
+    for i in range(input_shape[0]):
+        res2[i] = logm(data[i] + epsilon * np.eye(input_shape[1]))
 
+    assert np.allclose(res, res2)
 
 #
 # @keras_test
