@@ -18,7 +18,7 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
     for filename in os.listdir(hist_dir):
         if filename.endswith('.gz'):
             # file_list.append(filename)
-            try:gi
+            try:
                 hist_dict = ExampleEngine.load_history(os.path.join(hist_dir, filename))
             except IOError:
                 continue
