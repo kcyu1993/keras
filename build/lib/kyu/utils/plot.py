@@ -6,7 +6,7 @@ from example_engine import ExampleEngine
 
 def plot_cifar_fitnet(folder_name, significant_model=None,
                       log_history=None, log_model_name=None,
-                      xlim=(0,200), ylim=(0,0.5)):
+                      xlim=(0,200), ylim=(0, 1)):
 
     from example_engine import gethistoryfiledir
     hist_dir = gethistoryfiledir()
@@ -177,5 +177,5 @@ if __name__ == '__main__':
 
 
     # plot_rescov_results()
-    plot_cifar_fitnet('Fitnet_v2_CIFAR10-mode0_2', significant_model=['fitnet_v2_baseline_0'])
+    plot_cifar_fitnet('Fitnet_v2_CIFAR10_non_para_cov-dense', significant_model=['cifar-fitnet_v2_baseline_0'])
     # plot_models()

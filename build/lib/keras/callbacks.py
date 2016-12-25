@@ -453,15 +453,7 @@ class TensorBoard(Callback):
         write_graph: whether to visualize the graph in Tensorboard.
             The log file can become quite large when
             write_graph is set to True.
-
-    # Updates:
-        2016.12.14 Implement a naive version of Convolution2d weights visualization tools.
-            With tf.reshape, it flatten 4D weight tensor into 2D by treating the one kernel as a pixel.
-            Now it use new_shape = [nb_cols * nb_filter, nb_rows * stack_size] and direct transform
-            Detail logic should be taken care of outside this Tensorboard Callbacks.
-
     '''
-    # TODO 2016/12/14: Implement gradients visualization tools
 
     def __init__(self, log_dir='./logs', histogram_freq=0, write_graph=True, write_images=False):
         super(TensorBoard, self).__init__()
@@ -488,17 +480,8 @@ class TensorBoard(Callback):
 
                     if self.write_images:
                         w_img = tf.squeeze(weight)
+
                         shape = w_img.get_shape()
-
-                        if len(shape) == 4:
-                            # Add logic for convolutional weights (nb_col, nb_row, nb_previous, nb_filter)
-                            # Reshape into 2D tensor
-                            # shape_new = tf.pack(shape[0],shape[2], shape[1],shape[3])
-                            shape_new = tf.pack((shape[0]*shape[2], shape[1]*shape[3]))
-                            # shape_new =
-                            w_img = tf.reshape(tensor=w_img, shape=shape_new, name='reshape')
-                            shape = w_img.get_shape()
-
                         if len(shape) > 1 and shape[0] > shape[1]:
                             w_img = tf.transpose(w_img)
 
