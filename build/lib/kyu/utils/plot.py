@@ -6,7 +6,7 @@ from example_engine import ExampleEngine
 
 def plot_cifar_fitnet(folder_name, significant_model=None,
                       log_history=None, log_model_name=None,
-                      xlim=(0,200), ylim=(0, 1)):
+                      xlim=(0,200), ylim=(0,0.5)):
 
     from example_engine import gethistoryfiledir
     hist_dir = gethistoryfiledir()
@@ -20,7 +20,7 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
             # file_list.append(filename)
             try:
                 hist_dict = ExampleEngine.load_history(os.path.join(hist_dir, filename))
-            except IOError:
+            except EOFError, IOError:
                 continue
             model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1]
             model_name_list.append(model_name)
@@ -177,5 +177,10 @@ if __name__ == '__main__':
 
 
     # plot_rescov_results()
-    plot_cifar_fitnet('Fitnet_v2_CIFAR10_non_para_cov-dense', significant_model=['cifar-fitnet_v2_baseline_0'])
+    plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp10_mode1', significant_model=['fitnet_v2_baseline_0'])
+    plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp100_mode2', significant_model=['fitnet_v2_baseline_0'])
+    plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp100_mode1', significant_model=['fitnet_v2_baseline_0'])
+    plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp10_mode2', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp100', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10', significant_model=['fitnet_v2_baseline_0'])
     # plot_models()
