@@ -20,9 +20,9 @@ def crop(x, center_x, center_y, ratio=.23, channel_index=0):
     """
 
     :param x: as nparray (3,x,x)
-    :param center_x:
-    :param center_y:
-    :param ratio:
+    :param center_x: float  [0,1]
+    :param center_y: float  [0,1]
+    :param ratio: float     [0,1]
     :return:
     """
     ratio = max(0,ratio)
@@ -219,6 +219,28 @@ def crop_img(img, x, y, ratio=.23, target_size=None):
     return img
 
 
+def random_crop_img(img, target_size):
+    """
+    Random crop the image to target-size.
+
+    Parameters
+    ----------
+    img
+    target_size
+
+    Returns
+    -------
+
+    """
+    w,h = img.size
+    if not(w >= target_size[0] and h >= target_size[1]):
+        return img
+    cor_x = np.random.randint(0, w - target_size[0])
+    cor_y = np.random.randint(0, h - target_size[1])
+    img = img.crop((cor_x, cor_y, cor_x + target_size[0], cor_y + target_size[1]))
+    return img
+
+
 def list_pictures(directory, ext='jpg|jpeg|bmp|png'):
     return [os.path.join(directory, f) for f in sorted(os.listdir(directory))
             if os.path.isfile(os.path.join(directory, f)) and re.match('([\w]+\.(?:' + ext + '))', f)]
@@ -264,7 +286,7 @@ class ImageDataGenerator(object):
                  featurewise_std_normalization=False,
                  samplewise_std_normalization=False,
                  channelwise_std_normalization=False,
-                 channel_mean=(124,117,104),
+                 channel_mean=(123.68,116.79,103.939),
                  zca_whitening=False,
                  rotation_range=0.,
                  width_shift_range=0.,
@@ -967,3 +989,29 @@ class MincOriginalIterator(Iterator):
             self.total_batches_seen += 1
             yield (index_array[current_index: current_index + current_batch_size],
                    current_index, current_batch_size)
+
+
+
+class ImageDataGeneratorAdvanced(ImageDataGenerator):
+    """
+    Advanced operation:
+        Support ImageNet training data.
+
+    """
+    def __init__(self,
+                 rescaleshortedgeto=None,
+                 randomcrop=False,
+                 target_size=None,
+                 **kwargs):
+        self.randomcrop = randomcrop
+        self.rescaleshortedgeto = rescaleshortedgeto
+        self.target_size = target_size
+        super(ImageDataGeneratorAdvanced, self).__init__(**kwargs)
+
+    def advancedoperation(self, x):
+        if self.rescaleshortedgeto:
+            pass
+
+        if self.randomcrop and self.target_size is not None:
+            # Implement random crop
+            pass
