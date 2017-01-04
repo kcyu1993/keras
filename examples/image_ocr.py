@@ -59,7 +59,7 @@ np.random.seed(55)
 
 # this creates larger "blotches" of noise which look
 # more realistic than just adding gaussian noise
-# assumes greyscale with pixels ranging from 0 to 1
+# assumes grayscale with pixels ranging from 0 to 1
 
 def speckle(img):
     severity = np.random.uniform(0, 0.6)
