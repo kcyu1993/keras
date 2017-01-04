@@ -235,7 +235,7 @@ class ImageIterator(Iterator):
             # Random crop
             # img = random_crop_img(img, target_size=self.target_size)
             x = img_to_array(img, dim_ordering=self.dim_ordering)
-            x = self.image_data_generator.advanceoperation(x)
+            x = self.image_data_generator.advancedoperation(x)
             x = self.image_data_generator.random_transform(x)
             x = self.image_data_generator.standardize(x)
             batch_x[i] = x
