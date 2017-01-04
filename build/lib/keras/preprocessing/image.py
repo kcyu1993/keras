@@ -999,9 +999,9 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
 
     """
     def __init__(self,
+                 target_size,
                  rescaleshortedgeto=None,
                  randomcrop=False,
-                 target_size=None,
                  **kwargs):
         self.randomcrop = randomcrop
         self.rescaleshortedgeto = rescaleshortedgeto
@@ -1009,9 +1009,25 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         super(ImageDataGeneratorAdvanced, self).__init__(**kwargs)
 
     def advancedoperation(self, x):
+        """
+        Make the image to target size based on operations.
+
+        Parameters
+        ----------
+        x : ndarray (3, w, h)
+
+        Returns
+        -------
+        ndarray (3, target_size) or (target_size, 3)
+        """
+        width = x.shape[1]
+        height = x.shape[2]
+        cornor = (0.0, 0.0)
+
         if self.rescaleshortedgeto:
             pass
 
-        if self.randomcrop and self.target_size is not None:
-            # Implement random crop
+        if self.randomcrop:
+            # Cornor change
             pass
+        return x[:, cornor[0] + self.target_size[0], cornor[1] + self.target_size[1]]
