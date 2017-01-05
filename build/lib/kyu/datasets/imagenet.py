@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from keras.preprocessing.image import ImageDataGenerator, \
-    Iterator, load_img, img_to_array, array_to_img, crop_img, random_crop_img
+    Iterator, load_img, img_to_array, array_to_img, crop_img, random_crop_img, ImageDataGeneratorAdvanced
 import keras.backend as K
 import os
 import numpy as np
@@ -24,10 +24,10 @@ IMAGENET_VALID_BLACKLIST_FILE = 'ILSVRC2014_clsloc_validation_blacklist.txt'
 #     """
 #     def __init__(self,
 #                  rescaleshortedgeto=None,
-#                  randomcrop=False,
+#                  random_crop=False,
 #                  target_size=None,
 #                  **kwargs):
-#         self.randomcrop = randomcrop
+#         self.random_crop = random_crop
 #         self.rescaleshortedgeto = rescaleshortedgeto
 #         self.target_size = target_size
 #         super(ImageDataGeneratorAdvanced, self).__init__(**kwargs)
@@ -36,7 +36,7 @@ IMAGENET_VALID_BLACKLIST_FILE = 'ILSVRC2014_clsloc_validation_blacklist.txt'
 #         if self.rescaleshortedgeto:
 #             pass
 #
-#         if self.randomcrop and self.target_size is not None:
+#         if self.random_crop and self.target_size is not None:
 #             # Implement random crop
 #             pass
 #
@@ -144,7 +144,7 @@ class ImageIterator(Iterator):
                  image_data_generator=None,
                  dir_prefix='',
                  target_size=(224,224), color_mode='rgb',
-                 dim_ordering='th',
+                 dim_ordering='default',
                  class_mode='categorical',
                  batch_size=32,
                  shuffle=True,
@@ -193,8 +193,12 @@ class ImageIterator(Iterator):
         # Image settings
         self.target_size = target_size
         self.color_mode = color_mode
+        self.imageOpAdv = False
         if image_data_generator is None:
             image_data_generator = ImageDataGenerator(horizontal_flip=True)
+        elif isinstance(image_data_generator, ImageDataGeneratorAdvanced):
+            self.imageOpAdv = True
+            image_data_generator.target_size = self.target_size
         self.image_data_generator = image_data_generator
 
         if self.color_mode == 'rgb':
@@ -235,9 +239,14 @@ class ImageIterator(Iterator):
             # Random crop
             # img = random_crop_img(img, target_size=self.target_size)
             x = img_to_array(img, dim_ordering=self.dim_ordering)
-            x = self.image_data_generator.advancedoperation(x)
+            if self.imageOpAdv:
+                x = self.image_data_generator.advancedoperation(x)
+            else:
+                x = imresize(x, self.target_size).transpose(2,0,1)
+            x = x.astype(K.floatx())
             x = self.image_data_generator.random_transform(x)
             x = self.image_data_generator.standardize(x)
+
             batch_x[i] = x
 
         # optionally save augmented images to disk for debugging purposes
@@ -303,7 +312,11 @@ class ImageNetLoader(object):
 
     """
     def __init__(self, dirpath, metadata_path=None, mode='CLS-LOC', data_folder='Data', info_folder='ImageSets',
-                 train='train', valid='val', test='test'):
+                 train='train', valid='val', test='test', dim_ordering='default'):
+        if dim_ordering == 'default':
+            dim_ordering = K.image_dim_ordering()
+        self.dim_ordering = dim_ordering
+
         self.nb_class = 1000
 
         self.directory = dirpath
@@ -358,7 +371,7 @@ class ImageNetLoader(object):
         # self.test_list = np.asanyarray([self.decode(l, mode='test') for l in test_txt.readlines()])
 
 
-    def generator(self, mode='train', batch_size=32, target_size=(224,224),
+    def generator(self, mode='valid', batch_size=32, target_size=(224,224),
                   image_data_generator=None):
         if not mode in {'train', 'valid', 'test'}:
             raise ValueError('Mode should be one of train, valid, and test')
@@ -376,7 +389,8 @@ class ImageNetLoader(object):
 
         generator = ImageIterator(flist, cate_list, self.nb_class,
                                   image_data_generator=image_data_generator,
-                                  batch_size=batch_size, target_size=target_size)
+                                  batch_size=batch_size, target_size=target_size,
+                                  dim_ordering=self.dim_ordering)
         return generator
 
 

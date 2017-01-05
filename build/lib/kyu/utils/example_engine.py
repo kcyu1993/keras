@@ -163,17 +163,17 @@ class ExampleEngine(object):
         if self.early_stop:
             self.cbks.append(EarlyStopping(patience=20, verbose=1))
 
-        self.tensorboard = tensorboard
-        if self.tensorboard:
-            if K._BACKEND == 'tensorflow':
-                tb_path = os.path.join(getlogfiledir(), 'tensorboard', title)
-                print("Creating tensorboard to save to {}".format(tb_path))
-                self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=True))
+        # self.tensorboard = tensorboard
+        # if self.tensorboard:
+        #     if K._BACKEND == 'tensorflow':
+        #         tb_path = os.path.join(getlogfiledir(), 'tensorboard', title)
+        #         print("Creating tensorboard to save to {}".format(tb_path))
+        #         self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=True))
 
         self.tensorboard = tensorboard
         if self.tensorboard:
             if K._BACKEND == 'tensorflow':
-                tb_path = '/tmp/tensorflow/cifar_fitnet'
+                tb_path = '/tmp/tensorflow/' + title
                 print("Creating tensorboard to save to {}".format(tb_path))
                 self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=True))
 

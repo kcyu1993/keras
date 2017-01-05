@@ -287,7 +287,8 @@ class ImageDataGenerator(object):
                  featurewise_std_normalization=False,
                  samplewise_std_normalization=False,
                  channelwise_std_normalization=False,
-                 channel_mean=(123.68,116.79,103.939),
+                 # channel_mean=(123.68,116.79,103.939),
+                 channel_mean=(124,117,104),
                  zca_whitening=False,
                  rotation_range=0.,
                  width_shift_range=0.,
@@ -361,7 +362,7 @@ class ImageDataGenerator(object):
         if self.samplewise_center:
             x -= np.mean(x, axis=img_channel_index, keepdims=True)
         if self.channelwise_std_normalization:
-            x -= np.array(self.channel_mean)[:, np.newaxis, np.newaxis]
+            x -= np.array(self.channel_mean)
         if self.samplewise_std_normalization:
             x /= (np.std(x, axis=img_channel_index, keepdims=True) + 1e-7)
 
@@ -1000,16 +1001,26 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
 
     """
     def __init__(self,
-                 target_size,
+                 target_size=None,
                  rescaleshortedgeto=None,
-                 randomcrop=False,
+                 random_crop=False,
                  **kwargs):
-        self.randomcrop = randomcrop
+        """
+        Target size is allowed to be altered during training process.
+
+        Parameters
+        ----------
+        target_size
+        rescaleshortedgeto
+        random_crop
+        kwargs
+        """
+        self.random_crop = random_crop
         self.rescaleshortedgeto = rescaleshortedgeto
         self.target_size = target_size
         super(ImageDataGeneratorAdvanced, self).__init__(**kwargs)
 
-    def advancedoperation(self, x):
+    def advancedoperation(self, x, dim_ordering='default'):
         """
         Make the image to target size based on operations.
 
@@ -1021,11 +1032,16 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         -------
         ndarray (3, target_size) or (target_size, 3)
         """
+        if dim_ordering == 'default':
+            dim_ordering = self.dim_ordering
+        # Change back to th.
+        if dim_ordering == 'tf':
+            x = x.transpose(2,0,1)
+
         width = x.shape[1]
         height = x.shape[2]
         aspect_ratio = float(width) / float(height)
-
-        cornor = (0.0, 0.0)
+        cornor = [0.0, 0.0]
 
         # Rescale the image to target-size
         new_width = width if width > self.target_size[0] else self.target_size[0]
@@ -1033,13 +1049,31 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         if new_height < self.target_size[1]:
             new_height = self.target_size[1]
             new_width = new_height * aspect_ratio
-        tx = imresize(x, [x.shape[0], new_width, new_height])
-
 
         if self.rescaleshortedgeto:
-            pass
 
-        if self.randomcrop:
+            short_edge = min(new_height, new_width)
+            short_aspect_ratio = float(max(new_height, new_width))/\
+                                 float(min(new_height, new_width))
+            if new_width > new_height:
+                new_height = self.rescaleshortedgeto
+                new_width = new_height * aspect_ratio
+            else:
+                new_width = self.rescaleshortedgeto
+                new_height = new_width / aspect_ratio
+        # Note the image resize only supports tf like image shape
+        # x = x.transpose((1,2,0))
+        tx = imresize(x, [int(new_width), int(new_height)]).transpose(2,0,1)
+        if self.random_crop:
             # Cornor change
+            cornor[0] = np.random.randint(0, new_width - self.target_size[0])
+            cornor[1] = np.random.randint(0, new_height - self.target_size[1])
 
-        return x[:, cornor[0] + self.target_size[0], cornor[1] + self.target_size[1]]
+        tx =  tx[
+               :,
+               cornor[0]: cornor[0] + self.target_size[0],
+               cornor[1]: cornor[1] + self.target_size[1]
+               ]
+        if dim_ordering == 'tf':
+            tx = tx.transpose(1,2,0)
+        return tx

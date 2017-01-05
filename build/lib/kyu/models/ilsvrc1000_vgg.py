@@ -15,3 +15,9 @@ Second-layer structure:
 
 
 """
+
+from keras.applications.vgg16 import VGG16
+from keras.applications.vgg19 import VGG19
+from keras.applications.resnet50 import ResNet50, ResCovNet50
+
+
