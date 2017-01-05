@@ -2491,6 +2491,7 @@ class Container(Layer):
         some of the layers have changed.
         '''
         import h5py
+        print("{} loading weights from {}".format(self.name, filepath))
         f = h5py.File(filepath, mode='r')
         if 'layer_names' not in f.attrs and 'model_weights' in f:
             f = f['model_weights']

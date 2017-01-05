@@ -381,7 +381,8 @@ def run_routine13():
 
     """
     # params = [[50], [100], [100,50], [16, 8]]
-    params = [[100,100,100], [50,50,50],[25,25,25]]
+    # params = [[100,100,100], [50,50,50],[25,25,25]]
+    params = [[25,25,25]]
     # params = [[100,50], [50,25], [100,75], [100,75,50,25]]
     # params = [[64,32,16],[100,50,25]]
     # params = [[], [100], [32, 16], [16, 32]]
@@ -391,7 +392,7 @@ def run_routine13():
         for param in params:
             print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
             print('Initialize with glorot_normal')
-            run_fitnet_merge(param, mode_list=[1,2,3,4,5,6,7,8,9],
+            run_fitnet_merge(param, mode_list=[4,5,6,7,8,9],
             # run_fitnet_merge(param, mode_list=[1,2],
                              title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
                              cov_mode='o2transform', dropout=False, init='glorot_normal',
