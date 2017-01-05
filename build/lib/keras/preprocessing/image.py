@@ -9,6 +9,7 @@ import numpy as np
 import re
 from scipy import linalg
 import scipy.ndimage as ndi
+from scipy.misc import imresize
 from six.moves import range
 import os
 import threading
@@ -1022,12 +1023,23 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         """
         width = x.shape[1]
         height = x.shape[2]
+        aspect_ratio = float(width) / float(height)
+
         cornor = (0.0, 0.0)
+
+        # Rescale the image to target-size
+        new_width = width if width > self.target_size[0] else self.target_size[0]
+        new_height = width / aspect_ratio
+        if new_height < self.target_size[1]:
+            new_height = self.target_size[1]
+            new_width = new_height * aspect_ratio
+        tx = imresize(x, [x.shape[0], new_width, new_height])
+
 
         if self.rescaleshortedgeto:
             pass
 
         if self.randomcrop:
             # Cornor change
-            pass
+
         return x[:, cornor[0] + self.target_size[0], cornor[1] + self.target_size[1]]
