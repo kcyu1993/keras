@@ -8,9 +8,9 @@ Use backend Tensorflow
 
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-os.environ['KERAS_BACKEND'] = 'theano'
-# os.environ['KERAS_BACKEND'] = 'tensorflow'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['KERAS_BACKEND'] = 'theano'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 import sys
 from kyu.utils.example_engine import ExampleEngine
@@ -42,15 +42,15 @@ SAVE_LOG = False
 imageNetLoader = ImageNetLoader(IMAGENET_PATH)
 gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                  horizontal_flip=True,
-                                 channelwise_std_normalization=False)
+                                 channelwise_std_normalization=True)
 
-train = imageNetLoader.generator('valid', image_data_generator=gen)
+train = imageNetLoader.generator('train', image_data_generator=gen)
 valid = imageNetLoader.generator('valid', image_data_generator=gen)
 # test = imageNetLoader.generator('valid', image_data_generator=gen)
 
 
 def fit_model(model, load=True, save=True, title='imagenet'):
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=False)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
                   metrics=['accuracy'])
@@ -73,7 +73,7 @@ def fit_model(model, load=True, save=True, title='imagenet'):
         sys.stdout = engine.stdout.close()
 
 
-def runrutine1():
+def runroutine1():
     """
     Baseline result. VGG 16
     Returns
@@ -81,13 +81,13 @@ def runrutine1():
 
     """
 
-    model = VGG16()
-    # model = ResNet50()
+    # model = VGG16()
+    model = ResNet50(weights=None)
     fit_model(model)
 
 def test_runtine1():
     model = VGG16()
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
                   metrics=['accuracy'])
@@ -99,5 +99,5 @@ def test_runtine1():
 
 
 if __name__ == '__main__':
-    # runrutine1()
-    test_runtine1()
+    runroutine1()
+    # test_runtine 1()

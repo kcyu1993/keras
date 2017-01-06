@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from random import shuffle
+
 from keras.preprocessing.image import ImageDataGenerator, \
     Iterator, load_img, img_to_array, array_to_img, crop_img, random_crop_img, ImageDataGeneratorAdvanced
 import keras.backend as K
@@ -99,40 +101,38 @@ class ImageNetTools(object):
             self.corr_inv[self.corr[j]] = j
 
     def synset_to_id(self, synset):
-        a = next((i for (i, s) in self.synsets_imagenet_sorted if s == synset), None)
-        return a
+        a = next((s[0] for s in self.synsets if s[1] == synset), None)
+        # a = next((i for (i, s) in self.synsets_imagenet_sorted if s == synset), None)
+        return int(a)
 
     def id_to_synset(self, id_):
-        return str(self.synsets[self.corr_inv[id_] - 1][1][0])
+        # return str(self.synsets[self.corr_inv[id_] - 1][1][0])
+        return str(self.synsets[id_ - 1][1][0])
 
     def id_to_words(self, id_):
-        return self.synsets[self.corr_inv[id_] - 1][2][0]
+        # return self.synsets[self.corr_inv[id_] - 1][2][0]
+        return self.synsets[id_ - 1][2][0]
 
-    # Not used for now.
-    # def depthfirstsearch(self, id_, out=None):
-    #     if out is None:
-    #         out = []
-    #     if isinstance(id_, int):
-    #         pass
-    #     else:
-    #         id_ = next(int(s[0]) for s in self.synsets if s[1][0] == id_)
-    #
-    #     out.append(id_)
-    #     children = self.synsets[id_ - 1][4][0]
-    #     for c in children:
-    #         self.depthfirstsearch(int(c), out)
-    #     return out
-    #
-    # def synset_to_dfs_ids(self, synset):
-    #     ids = [x for x in self.depthfirstsearch(synset) if x <= 1000]
-    #     ids = [self.corr[x] for x in ids]
-    #     return ids
+    def nn_id_to_id(self, id_):
+        """
+        Sorted id into Real object id
+        Parameters
+        ----------
+        id_: neural net id
 
-    # def pprint_output(self, out, n_max_synsets=10):
-    #     best_ids = out.argsort()[::-1][:10]
-    #     for u in best_ids:
-    #         print("%.2f" % round(100 * out[u], 2) + " : " + self.id_to_words(u))
+        Returns
+        -------
+        Real Synset corresponding ID
+        """
+        return self.corr_inv[int(id_)]
 
+    def id_to_nnid(self, id_):
+        return self.corr[int(id_)]
+
+    def synset_to_nn_id(self, synset):
+        a = next((s[0] for s in self.synsets if s[1] == synset), None)
+        # a = next((i for (i, s) in self.synsets_imagenet_sorted if s == synset), None)
+        return self.corr[int(a)]
 
 
 class ImageIterator(Iterator):
@@ -219,7 +219,7 @@ class ImageIterator(Iterator):
 
         # Generate the image list and corresponding category
         self.img_files_list = [self.get_image_path(i) for i in imgloc_list]
-        self.img_cate_list = cate_list.astype(np.uint8)
+        self.img_cate_list = cate_list.astype(np.uint32)
 
         self.nb_sample = len(self.img_files_list)
         super(ImageIterator, self).__init__(self.nb_sample, batch_size, shuffle, seed)
@@ -242,7 +242,9 @@ class ImageIterator(Iterator):
             if self.imageOpAdv:
                 x = self.image_data_generator.advancedoperation(x)
             else:
-                x = imresize(x, self.target_size).transpose(2,0,1)
+                x = imresize(x, self.target_size)
+                if self.dim_ordering == 'th':
+                    x = x.transpose(2,0,1)
             x = x.astype(K.floatx())
             x = self.image_data_generator.random_transform(x)
             x = self.image_data_generator.standardize(x)
@@ -269,7 +271,8 @@ class ImageIterator(Iterator):
         elif self.class_mode == 'categorical':
             batch_y = np.zeros((len(batch_x), self.nb_class), dtype='float32')
             for i, j in enumerate(index_array):
-                label = self.img_cate_list[j] - 1
+                label = self.img_cate_list[j]
+                # label = self.img_cate_list[j] - 1
                 batch_y[i, label] = 1.
         else:
             return batch_x
@@ -361,8 +364,11 @@ class ImageNetLoader(object):
 
         print("Loading images list from given txt file ")
 
-        # print("from train_cls.txt ...")
-        # self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_txt.readlines()])
+        print("from train_cls.txt ...")
+        train_all = train_txt.readlines()
+        # shuffle(train_all)
+        self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all])
+        # self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all[:10000]])
 
         print("from valid.txt ...")
         self.valid_list = np.asanyarray([self.decode(l, mode='valid') for l in valid_txt.readlines()])
@@ -372,25 +378,25 @@ class ImageNetLoader(object):
 
 
     def generator(self, mode='valid', batch_size=32, target_size=(224,224),
-                  image_data_generator=None):
+                  image_data_generator=None, **kwargs):
         if not mode in {'train', 'valid', 'test'}:
             raise ValueError('Mode should be one of train, valid, and test')
         if mode == 'train':
             flist = self.train_list[:, 1]
-            cate_list = self.train_list[:, 2]
+            cate_list = self.train_list[:, 3]
         elif mode == 'valid':
             flist = self.valid_list[:, 1]
-            cate_list = self.valid_list[:, 2]
+            cate_list = self.valid_list[:, 3]
         elif mode == 'test':
             flist = self.test_list[:, 1]
-            cate_list = self.test_list[:, 2]
+            cate_list = self.test_list[:, 3]
         else:
             raise ValueError
 
         generator = ImageIterator(flist, cate_list, self.nb_class,
                                   image_data_generator=image_data_generator,
                                   batch_size=batch_size, target_size=target_size,
-                                  dim_ordering=self.dim_ordering)
+                                  dim_ordering=self.dim_ordering, **kwargs)
         return generator
 
 
@@ -428,5 +434,10 @@ class ImageNetLoader(object):
         #     raise IOError('File not found ' + abs_path)
 
         abs_path = os.path.join(self.data_folder, name, path + '.JPEG')
-        return int(index), abs_path, synset_id
+        nnid = self.imagenettool.id_to_nnid(synset_id)
+        return int(index), abs_path, int(synset_id), nnid
 
+
+if __name__ == '__main__':
+    path = '/cvlabdata1/cvlab/datasets_kyu/ILSVRC2015'
+    tool = ImageNetTools(path + '/ImageSets/meta_clsloc.mat')

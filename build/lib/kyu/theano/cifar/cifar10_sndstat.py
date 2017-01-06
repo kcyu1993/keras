@@ -382,12 +382,13 @@ def run_routine13():
     """
     # params = [[50], [100], [100,50], [16, 8]]
     # params = [[100,100,100], [50,50,50],[25,25,25]]
-    params = [[25,25,25]]
+    # params = [[25,25,25]]
     # params = [[100,50], [50,25], [100,75], [100,75,50,25]]
-    # params = [[64,32,16],[100,50,25]]
+    params = [[64,32,16],[100,50,25]]
     # params = [[], [100], [32, 16], [16, 32]]
     nb_epoch = 200
-    cov_outputs = [10]
+    # cov_outputs = [10]
+    cov_outputs = [50]
     for cov_output in cov_outputs:
         for param in params:
             print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
