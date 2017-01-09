@@ -49,6 +49,20 @@ def get_file_from_dir(fname, directory):
 
 def get_file(fname, origin, untar=False,
              md5_hash=None, cache_subdir='datasets'):
+    '''Downloads a file from a URL if it not already in the cache.
+
+    Passing the MD5 hash will verify the file after download as well as if it is already present in the cache.
+
+    # Arguments
+        fname: name of the file
+        origin: original URL of the file
+        untar: boolean, whether the file should be decompressed
+        md5_hash: MD5 hash of the file for verification
+        cache_subdir: directory being used as the cache
+
+    # Returns
+        Path to the downloaded file
+    '''
     datadir_base = os.path.expanduser(os.path.join('~', '.keras'))
     if not os.access(datadir_base, os.W_OK):
         datadir_base = os.path.join('/tmp', '.keras')
@@ -119,6 +133,15 @@ def get_file(fname, origin, untar=False,
 
 
 def validate_file(fpath, md5_hash):
+    '''Validates a file against a MD5 hash
+
+    # Arguments
+        fpath: path to the file being validated
+        md5_hash: the MD5 hash being validated against
+
+    # Returns
+        Whether the file is valid
+    '''
     hasher = hashlib.md5()
     with open(fpath, 'rb') as f:
         buf = f.read()
@@ -182,10 +205,37 @@ def get_plot_path(filename, dir='project'):
         path = get_absolute_dir_project('model_saved/plots')
         if not os.path.exists(path):
             os.mkdir(path)
-        return os.path.join(path, filename)
     elif dir is 'dataset':
         dir_base = os.path.expanduser(os.path.join('~', '.keras'))
-        dir = os.path.join(dir_base, 'plots')
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-        return os.path.join(dir, filename)
+        path = os.path.join(dir_base, 'plots')
+        if not os.path.exists(path):
+            os.mkdir(path)
+    else:
+        raise ValueError("Only support project and dataset as dir input")
+    if filename == '' or filename is None:
+        return path
+    return os.path.join(path, filename)
+
+
+def get_plot_path_with_subdir(filename, subdir, dir='project'):
+    """
+    Allow user to get plot path with subdir
+
+    Parameters
+    ----------
+    filename
+    subdir : str    support
+        'summary' for summary graph, 'run' for run-time graph, 'models' for model graph
+    dir : str       support 'project' under project plot path, 'dataset' under ~/.keras/plots
+
+    Returns
+    -------
+    path : str      absolute path of the given filename, or directory if filename is None or ''
+    """
+    path = get_plot_path('', dir=dir)
+    path = os.path.join(path, subdir)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    if filename == '' or filename is None:
+        return path
+    return os.path.join(path, filename)
