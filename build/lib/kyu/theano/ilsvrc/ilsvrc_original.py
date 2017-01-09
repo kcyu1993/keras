@@ -9,8 +9,8 @@ Use backend Tensorflow
 import os
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['KERAS_BACKEND'] = 'theano'
-os.environ['KERAS_BACKEND'] = 'tensorflow'
+os.environ['KERAS_BACKEND'] = 'theano'
+# os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 import sys
 from kyu.utils.example_engine import ExampleEngine
@@ -80,14 +80,14 @@ def runroutine1():
     -------
 
     """
-
-    # model = VGG16()
-    model = ResNet50(weights=None)
+    print("Fit VGG16 without any weights init")
+    model = VGG16(weights=None)
+    # model = ResNet50(weights=None)
     fit_model(model)
 
 def test_runtine1():
     model = VGG16()
-    sgd = SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
                   metrics=['accuracy'])

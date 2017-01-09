@@ -15,7 +15,13 @@ from __future__ import print_function
 
 import os
 os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['KERAS_BACKEND'] = 'theano'
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+import keras.backend as K
+if K.backend() == 'tensorflow':
+    K.set_image_dim_ordering('tf')
+else:
+    K.set_image_dim_ordering('th')
 
 from keras.datasets import cifar10
 from keras.preprocessing.image import ImageDataGenerator
@@ -24,6 +30,8 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.optimizers import SGD
 from keras.utils import np_utils
+
+from kyu.models.cifar import cifar_fitnet_v3
 
 batch_size = 32
 nb_classes = 10
@@ -50,14 +58,27 @@ model = Sequential()
 model.add(Convolution2D(32, 3, 3, border_mode='same',
                         input_shape=X_train.shape[1:]))
 model.add(Activation('relu'))
-model.add(Convolution2D(32, 3, 3))
+# model.add(Convolution2D(32, 3, 3, border_mode='valid'))
+# model.add(Activation('relu'))
+model.add(Convolution2D(32, 3, 3, border_mode='valid'))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 
+# model.add(Convolution2D(32, 3, 3, border_mode='same'))
+# model.add(Activation('relu'))
+# model.add(Convolution2D(32, 3, 3, border_mode='same'))
+# model.add(Activation('relu'))
+# model.add(Convolution2D(32, 3, 3, border_mode='same'))
+# model.add(Activation('relu'))
+# model.add(MaxPooling2D(pool_size=(2, 2)))
+
+
 model.add(Convolution2D(64, 3, 3, border_mode='same'))
 model.add(Activation('relu'))
-model.add(Convolution2D(64, 3, 3))
+model.add(Convolution2D(64, 3, 3, border_mode='valid'))
+model.add(Activation('relu'))
+model.add(Convolution2D(64, 3, 3, border_mode='valid'))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
@@ -69,11 +90,16 @@ model.add(Dropout(0.5))
 model.add(Dense(nb_classes))
 model.add(Activation('softmax'))
 
+# model = cifar_fitnet_v3([], mode=0)
+# model = cifar_fitnet_v3([], mode=0, input_shape=(32, 32, 3))
+
 # let's train the model using SGD + momentum (how original).
 sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy',
               optimizer=sgd,
               metrics=['accuracy'])
+
+model.summary()
 
 X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')

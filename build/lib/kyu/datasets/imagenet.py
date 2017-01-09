@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 from random import shuffle
 
 from keras.preprocessing.image import ImageDataGenerator, \
     Iterator, load_img, img_to_array, array_to_img, crop_img, random_crop_img, ImageDataGeneratorAdvanced
 import keras.backend as K
-import os
 import numpy as np
 import glob
 import logging
@@ -363,18 +365,21 @@ class ImageNetLoader(object):
         test_txt = open(os.path.join(self.info_folder, 'test.txt'), 'r')
 
         print("Loading images list from given txt file ")
-
         print("from train_cls.txt ...")
         train_all = train_txt.readlines()
+
+        """ Small sample settings"""
         # shuffle(train_all)
+        # train_all = train_all[:100000]
+
         self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all])
         # self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all[:10000]])
 
         print("from valid.txt ...")
         self.valid_list = np.asanyarray([self.decode(l, mode='valid') for l in valid_txt.readlines()])
 
-        # print('from test.txt ...')
-        # self.test_list = np.asanyarray([self.decode(l, mode='test') for l in test_txt.readlines()])
+        print('from test.txt ...')
+        self.test_list = np.asanyarray([self.decode(l, mode='test') for l in test_txt.readlines()])
 
 
     def generator(self, mode='valid', batch_size=32, target_size=(224,224),
@@ -434,10 +439,58 @@ class ImageNetLoader(object):
         #     raise IOError('File not found ' + abs_path)
 
         abs_path = os.path.join(self.data_folder, name, path + '.JPEG')
-        nnid = self.imagenettool.id_to_nnid(synset_id)
+        if synset_id == -1:
+            nnid = 0
+        else:
+            nnid = self.imagenettool.id_to_nnid(synset_id)
         return int(index), abs_path, int(synset_id), nnid
 
 
+def save_list_to_h5df():
+    import h5py
+
+    IMAGENET_PATH = '/home/kyu/.keras/datasets/ILSVRC2015'
+    TARGET_SIZE = (224, 224)
+    RESCALE_SMALL = 256
+
+    BATCH_SIZE = 16
+    NB_EPOCH = 70
+    VERBOSE = 1
+    SAVE_LOG = False
+
+    # ImageNet generator
+    imageNetLoader = ImageNetLoader(IMAGENET_PATH)
+    gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+                                     horizontal_flip=True,
+                                     channelwise_std_normalization=True)
+    SAVE_PATH = IMAGENET_PATH + '/ImageSets/CLS-LOC/'
+    print("Saving the file to " + SAVE_PATH)
+    f = h5py.File(SAVE_PATH + 'imagenet_keras_pipeline_lists.h5', 'w')
+    f.create_dataset('train_list', data=imageNetLoader.train_list,
+                     compression='gzip', compression_opts=9)
+    f.create_dataset('valid_list', data=imageNetLoader.valid_list,
+                     compression='gzip', compression_opts=9)
+    f.create_dataset('test_list', data=imageNetLoader.test_list,
+                     compression='gzip', compression_opts=9)
+
 if __name__ == '__main__':
-    path = '/cvlabdata1/cvlab/datasets_kyu/ILSVRC2015'
-    tool = ImageNetTools(path + '/ImageSets/meta_clsloc.mat')
+    # IMAGENET_PATH = '/home/kyu/.keras/datasets/ILSVRC2015'
+    # TARGET_SIZE = (224, 224)
+    # RESCALE_SMALL = 256
+    #
+    # BATCH_SIZE = 16
+    # NB_EPOCH = 70
+    # VERBOSE = 1
+    # SAVE_LOG = False
+    #
+    # # ImageNet generator
+    # imageNetLoader = ImageNetLoader(IMAGENET_PATH)
+    # gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+    #                                  horizontal_flip=True,
+    #                                  channelwise_std_normalization=True)
+    #
+    # train = imageNetLoader.generator('train', image_data_generator=gen)
+    # valid = imageNetLoader.generator('valid', image_data_generator=gen)
+    # # test = imageNetLoader.generator('valid', image_data_generator=gen)
+
+    save_list_to_h5df()

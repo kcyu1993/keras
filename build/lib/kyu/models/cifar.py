@@ -51,7 +51,8 @@ def cifar_fitnet_v3(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
     if input_shape[0] == 3:
         # Define the channel
         if K.image_dim_ordering() == 'tf':
-            input_shape = (input_shape[1], input_shape[2], input_shape[0])
+            if input_shape[0] in {1,3}:
+                input_shape = (input_shape[1], input_shape[2], input_shape[0])
 
     input_tensor = Input(input_shape)
     x = Convolution2D(16, 3, 3, border_mode='same', init=init)(input_tensor)
@@ -92,7 +93,9 @@ def cifar_fitnet_v3(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
     cov_input = block3_x
     if mode == 0: # Original Network
         x = Flatten()(x)
-        x = Dense(500)(x)
+        """ Alter here """
+        # x = Dense(500)(x)
+        x = Dense(512)(x)
         x = Dense(nb_classes)(x)
         x = Activation('softmax')(x)
 
