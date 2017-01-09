@@ -16,8 +16,8 @@ import os
 
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
-os.environ['KERAS_BACKEND'] = 'theano'
-# os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['KERAS_BACKEND'] = 'theano'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 import logging
 import sys
@@ -310,7 +310,8 @@ def run_routine10():
 
     """
     nb_epoch = 50
-    model = cifar_fitnet_v1(False)
+    # model = cifar_fitnet_v1(False)
+    model = cifar_fitnet_v3([], mode=0, input_shape=(32, 32, 3))
     fit_model(model, load=False, save=False, verbose=2)
 
 
@@ -416,4 +417,5 @@ if __name__ == '__main__':
     # run_routine11()
     # plot_rescov_results()
     # run_routine12()
-    run_routine13()
+    # run_routine13()
+    run_routine10()
