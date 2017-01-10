@@ -7,22 +7,22 @@
 
 Adapted from code contributed by BigMoyan.
 '''
-from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import print_function
 
 import warnings
 
-from ..layers import merge, Input
-from ..layers import Dense, Activation, Flatten
-from ..layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
-from ..layers import BatchNormalization, SecondaryStatistic, WeightedProbability, O2Transform
-from ..models import Model
+from kyu.models.keras_support import covariance_block_vector_space
+from .imagenet_utils import _obtain_input_shape
 from .. import backend as K
 from ..engine.topology import get_source_inputs
-from ..utils.layer_utils import convert_all_kernels_in_model
+from ..layers import BatchNormalization
+from ..layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
+from ..layers import Dense, Activation, Flatten
+from ..layers import merge, Input
+from ..models import Model
 from ..utils.data_utils import get_file
-from .imagenet_utils import decode_predictions, preprocess_input, _obtain_input_shape
-
+from ..utils.layer_utils import convert_all_kernels_in_model
 
 TH_WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_th_dim_ordering_th_kernels.h5'
 TF_WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels.h5'
@@ -99,36 +99,6 @@ def identity_block_original(input_tensor, kernel_size, filters, stage, block):
 
     x = merge([x, input_tensor], mode='sum')
     x = Activation('relu')(x)
-    return x
-
-
-def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu'):
-    if epsilon > 0:
-        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
-    else:
-        cov_name_base = 'cov' + str(stage) + block + '_branch'
-    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
-    wp_name_base = 'wp' + str(stage) + block + '_branch'
-
-    x = SecondaryStatistic(name=cov_name_base, eps=epsilon)(input_tensor)
-    for id, param in enumerate(parametric):
-        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
-    x = WeightedProbability(nb_class, activation=activation, name=wp_name_base)(x)
-    return x
-
-
-def covariance_block_vector_space(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu'):
-    if epsilon > 0:
-        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
-    else:
-        cov_name_base = 'cov' + str(stage) + block + '_branch'
-    dense_name_base = 'dense' + str(stage) + block + '_branch'
-
-    x = SecondaryStatistic(name=cov_name_base, eps=epsilon)(input_tensor)
-    x = Flatten()(x)
-    for id, param in enumerate(parametric):
-        x = Dense(param, activation=activation, name=dense_name_base + str(id))(x)
-    x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
     return x
 
 

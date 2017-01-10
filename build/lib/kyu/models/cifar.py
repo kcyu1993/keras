@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from keras.applications.resnet50 import covariance_block_vector_space, ResNet50CIFAR, covariance_block_original
+from keras.applications.resnet50 import covariance_block_vector_space, ResNet50CIFAR
+from kyu.models.ilsvrc1000_vgg import covariance_block_vector_space
+from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space
 from keras.engine import Input
 from keras.engine import merge
 from keras.layers import LogTransform
@@ -235,9 +237,7 @@ def cifar_fitnet_v4(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         x = Dense(nb_class, activation='relu', name='fc_relu')(x)
         # x = merge([x, dense_branch1, dense_branch2], cov_mode='sum', name='sum')
         x = merge([x, dense_branch1, dense_branch2], mode='ave', name='average')
-
     else:
-
         raise ValueError("Mode not supported {}".format(mode))
     if last_softmax:
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
@@ -474,6 +474,21 @@ def cifar_fitnet_v3(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         # x = merge([x, dense_branch1, dense_branch2], cov_mode='sum', name='sum')
         x = merge([x, dense_branch1, dense_branch2], mode='ave', name='average')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 10:
+        # use only block 2
+        cov_input = block2_x
+        cov_branch = covariance_block(cov_input, cov_branch_output,
+                                      stage=4, epsilon=epsilon,
+                                      block='a', parametric=parametrics)
+        x = cov_branch
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 11:
+        # Baseline for mode 10, let the stage 2 directly add with Dense(10)
+        x = Flatten()(block2_x)
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 12:
+        # concatenate the last layer with Cov from
+        pass
     else:
 
         raise ValueError("Mode not supported {}".format(mode))

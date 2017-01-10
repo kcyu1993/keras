@@ -7,9 +7,9 @@ from example_engine import ExampleEngine
 def plot_cifar_fitnet(folder_name, significant_model=None,
                       log_history=None, log_model_name=None,
                       xlim=(0,200), ylim=(0,0.5)):
-
+    # Execute on local machine
     from example_engine import gethistoryfiledir
-    hist_dir = gethistoryfiledir()
+    hist_dir = '/Users/kyu/mount/epfl/Dropbox/git/keras/model_saved/history'
     hist_dir = os.path.join(hist_dir, folder_name)
     hist_list = []
     model_name_list = []

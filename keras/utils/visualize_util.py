@@ -10,7 +10,6 @@ except ImportError:
     raise RuntimeError("Cannot import matplotlib")
 
 
-
 def plot_loss_acc(tr_loss, te_loss, tr_acc, te_acc, epochs=None, show=False,
                   names=('train', 'test'), xlabel='epoch', ylabel=('loss', 'mis-class'),
                   linestyle=('dotted', '-'), color=('b', 'g'),
@@ -118,7 +117,8 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
 
     if show:
         plt.show()
-    plt_path = get_plot_path("train_test " + filename)
+    plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='summary')
+    print("save plot to " + plt_path)
     plt.savefig(plt_path)
     plt.close()
     return plt_path

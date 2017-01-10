@@ -1,6 +1,7 @@
 
 from keras.applications import VGG19
-from keras.applications.resnet50 import ResCovNet50MINC, ResNet50MINC, covariance_block_vector_space
+from keras.applications.resnet50 import ResCovNet50MINC, ResNet50MINC
+from kyu.models.keras_support import covariance_block_vector_space
 from keras.applications.vgg19 import VGG19_bottom
 from keras.engine import Input
 from keras.engine import Model

@@ -46,7 +46,7 @@ gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                  # channelwise_std_normalization=True
                                  )
 
-train = imageNetLoader.generator('valid', image_data_generator=gen)
+train = imageNetLoader.generator('train', image_data_generator=gen)
 valid = imageNetLoader.generator('valid', image_data_generator=gen)
 # test = imageNetLoader.generator('valid', image_data_generator=gen)
 
@@ -82,10 +82,20 @@ def runroutine1():
     -------
 
     """
-    print("Fit VGG16 Base-line test ")
+    print("Fit VGG16 Base-line test with Images")
     model = VGG16()
     # model = ResNet50(weights=None)
     fit_model(model)
+
+
+def runroutine2():
+    """
+    Test VGG16 with Second layer structure.
+
+    Returns
+    -------
+
+    """
 
 def test_runtine1():
     model = VGG16()

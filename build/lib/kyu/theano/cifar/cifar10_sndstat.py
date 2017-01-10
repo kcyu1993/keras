@@ -15,7 +15,7 @@ from __future__ import print_function
 import os
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 os.environ['KERAS_BACKEND'] = 'theano'
 # os.environ['KERAS_BACKEND'] = 'tensorflow'
 
@@ -23,7 +23,8 @@ import logging
 import sys
 
 from kyu.utils.example_engine import ExampleEngine
-from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_vector_space
+from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR
+from kyu.models.keras_support import covariance_block_vector_space
 from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.engine import Input
@@ -416,24 +417,33 @@ def run_routine14():
             title = 'cifar10_cov_o2t_wp{}_dense'
             init='glorot_normal'
         Experiments:
-            2017.1.10 : Test
+            2017.1.10 : Test all param with cov_output correspondingly
+            2017.1.10 : Test all params with mode 10, with cov_output=10
+            2017.1.10 (TODO) : Test with mode 11, obtain the baseline.
 
     2.
     Returns
     -------
 
     """
-    params = [[50], [100], [100, 50], [16, 8], [32, 16], [16, 32]]
+    params = [[], [50], [100], [100, 50], [16, 8], [32, 16], [16, 32]] # exp 1,2
+
+    mode_list = [10]    # exp 2
+    # mode_list = [1,2] # exp 1
+
+    # cov_output = None # exp 1, 3 (not important)
+    cov_output = 10     # exp 2
+
+
     nb_epoch = 200
     for param in params:
         print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
         print('Initialize with glorot_normal')
-        if len(param) > 0:
+        if cov_output is None and len(param) > 0:
             cov_output = param[-1]
         else:
             cov_output = nb_classes
-        # run_fitnet_merge(param, mode_list=[1,2,3,4,5,6,7,8,9],
-        run_fitnet_merge(param, mode_list=[1, 2],
+        run_fitnet_merge(param, mode_list=mode_list,
                          title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
                          cov_mode='o2transform', dropout=False, init='glorot_normal',
                          cov_output=cov_output)

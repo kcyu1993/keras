@@ -119,7 +119,7 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
 
     if show:
         plt.show()
-    plt_path = get_plot_path("train_test " + filename)
+    plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='summary')
     plt.savefig(plt_path)
     plt.close()
     return plt_path
