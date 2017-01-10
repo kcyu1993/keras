@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 from __future__ import print_function
+
+import gzip
+import os
+import cPickle
 import numpy as np
 import sys
 from collections import defaultdict
@@ -113,3 +117,51 @@ def ask_to_proceed_with_overwrite(filepath):
         return False
     print('[TIP] Next time specify overwrite=True!')
     return True
+
+
+
+def cpickle_load(filename):
+    """
+    Support loading from files directly.
+    Proved to be same speed, but large overhead.
+    Switch to load generator.
+    :param filename:
+    :return:
+    """
+    if os.path.exists(filename):
+        if filename.endswith(".gz"):
+            f = gzip.open(filename, 'rb')
+        else:
+            f = open(filename, 'rb')
+        # f = open(path, 'rb')
+        if sys.version_info < (3,):
+            data = cPickle.load(f)
+        else:
+            data = cPickle.load(f, encoding="bytes")
+        f.close()
+        return data  # (data
+    else:
+        print("File not found under location {}".format(filename))
+        return None
+
+
+def cpickle_save(data, output_file, ftype='gz'):
+    """
+    Save the self.label, self.image before normalization, to Pickle file
+    To the specific output directory.
+    :param output_file:
+    :param ftype
+    :return:
+    """
+
+    if ftype is 'gz' or ftype is 'gzip':
+        print("compress with gz")
+        output_file = output_file + "." + ftype
+        f = gzip.open(output_file, 'wb')
+    elif ftype is '':
+        f = open(output_file, 'wb')
+    else:
+        raise ValueError("Only support type as gz or '' ")
+    cPickle.dump(data, f, protocol=cPickle.HIGHEST_PROTOCOL)
+    f.close()
+    return output_file

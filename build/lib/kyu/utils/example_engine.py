@@ -340,10 +340,12 @@ class ExampleEngine(object):
 
     def save_history(self, history, tmp=False):
         from keras.callbacks import History
+        import numpy as np
+
         if isinstance(history, History):
             history = history.history
-        import numpy as np
         filename = "{}-{}_{}.history".format(self.title, self.model.name, np.random.randint(1e4))
+
         if tmp:
             filename = 'tmp_' + filename
         if history is None:

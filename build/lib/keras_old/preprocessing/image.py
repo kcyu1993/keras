@@ -43,6 +43,43 @@ def crop(x, center_x, center_y, ratio=.23, channel_index=0):
         raise ValueError("Only support channel as 0 or 2")
 
 
+
+def crop_img(img, x, y, ratio=.23, target_size=None):
+    ratio = max(0, ratio)
+    ratio = min(ratio, 1)
+    r_x = [max(0, x - ratio / 2), min(1, x + ratio / 2)]
+    r_y = [max(0, y - ratio / 2), min(1, y + ratio / 2)]
+    w, h = img.size
+    img = img.crop((int(r_x[0] * w), int(r_y[0] * h), int(r_x[1] * w), int(r_y[1] * h)))
+
+    if target_size:
+        img = img.resize((target_size[1], target_size[0]))
+    return img
+
+
+def random_crop_img(img, target_size):
+    """
+    Random crop the image to target-size.
+
+    Parameters
+    ----------
+    img
+    target_size
+
+    Returns
+    -------
+
+    """
+    w,h = img.size
+    if not(w >= target_size[0] and h >= target_size[1]):
+        return img
+    cor_x = np.random.randint(0, w - target_size[0])
+    cor_y = np.random.randint(0, h - target_size[1])
+    img = img.crop((cor_x, cor_y, cor_x + target_size[0], cor_y + target_size[1]))
+    return img
+
+
+
 def random_rotation(x, rg, row_index=1, col_index=2, channel_index=0,
                     fill_mode='nearest', cval=0.):
     theta = np.pi / 180 * np.random.uniform(-rg, rg)
@@ -204,41 +241,6 @@ def load_img(path, grayscale=False, target_size=None):
         img = img.convert('RGB')
     if target_size:
         img = img.resize((target_size[1], target_size[0]))
-    return img
-
-
-def crop_img(img, x, y, ratio=.23, target_size=None):
-    ratio = max(0, ratio)
-    ratio = min(ratio, 1)
-    r_x = [max(0, x - ratio / 2), min(1, x + ratio / 2)]
-    r_y = [max(0, y - ratio / 2), min(1, y + ratio / 2)]
-    w, h = img.size
-    img = img.crop((int(r_x[0] * w), int(r_y[0] * h), int(r_x[1] * w), int(r_y[1] * h)))
-
-    if target_size:
-        img = img.resize((target_size[1], target_size[0]))
-    return img
-
-
-def random_crop_img(img, target_size):
-    """
-    Random crop the image to target-size.
-
-    Parameters
-    ----------
-    img
-    target_size
-
-    Returns
-    -------
-
-    """
-    w,h = img.size
-    if not(w >= target_size[0] and h >= target_size[1]):
-        return img
-    cor_x = np.random.randint(0, w - target_size[0])
-    cor_y = np.random.randint(0, h - target_size[1])
-    img = img.crop((cor_x, cor_y, cor_x + target_size[0], cor_y + target_size[1]))
     return img
 
 

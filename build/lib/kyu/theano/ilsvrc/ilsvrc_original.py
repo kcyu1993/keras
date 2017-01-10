@@ -8,16 +8,16 @@ Use backend Tensorflow
 
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['KERAS_BACKEND'] = 'theano'
-# os.environ['KERAS_BACKEND'] = 'tensorflow'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['KERAS_BACKEND'] = 'theano'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 import sys
 from kyu.utils.example_engine import ExampleEngine
 from keras.optimizers import SGD
 import keras.backend as K
 
-from kyu.datasets.imagenet import ImageNetLoader
+from kyu.datasets.imagenet import ImageNetLoader, preprocess_image_for_imagenet
 from keras.preprocessing.image import ImageDataGeneratorAdvanced, ImageDataGenerator
 
 from keras.applications.vgg16 import VGG16
@@ -42,9 +42,11 @@ SAVE_LOG = False
 imageNetLoader = ImageNetLoader(IMAGENET_PATH)
 gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                  horizontal_flip=True,
-                                 channelwise_std_normalization=True)
+                                 preprocessing_function=preprocess_image_for_imagenet
+                                 # channelwise_std_normalization=True
+                                 )
 
-train = imageNetLoader.generator('train', image_data_generator=gen)
+train = imageNetLoader.generator('valid', image_data_generator=gen)
 valid = imageNetLoader.generator('valid', image_data_generator=gen)
 # test = imageNetLoader.generator('valid', image_data_generator=gen)
 
@@ -80,8 +82,8 @@ def runroutine1():
     -------
 
     """
-    print("Fit VGG16 without any weights init")
-    model = VGG16(weights=None)
+    print("Fit VGG16 Base-line test ")
+    model = VGG16()
     # model = ResNet50(weights=None)
     fit_model(model)
 

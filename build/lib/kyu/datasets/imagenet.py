@@ -7,6 +7,7 @@ from random import shuffle
 from keras.preprocessing.image import ImageDataGenerator, \
     Iterator, load_img, img_to_array, array_to_img, crop_img, random_crop_img, ImageDataGeneratorAdvanced
 import keras.backend as K
+from keras.applications.imagenet_utils import preprocess_input
 import numpy as np
 import glob
 import logging
@@ -18,6 +19,43 @@ from scipy.misc import imresize
 
 IMAGENET_VALID_GROUNDTRUTH_FILE = 'ILSVRC2014_clsloc_validation_ground_truth.txt'
 IMAGENET_VALID_BLACKLIST_FILE = 'ILSVRC2014_clsloc_validation_blacklist.txt'
+
+
+def preprocess_image_for_imagenet(img):
+    """
+     preprocessing_function: function that will be implied on each input.
+
+            The function will run before any other modification on it.
+            The function should take one argument: one image (Numpy tensor with rank 3),
+            and should output a Numpy tensor with the same shape.
+
+    Parameters
+    ----------
+    img : ndarray with rank 3
+
+    Returns
+    -------
+    img : ndarray with same shape
+    """
+
+    dim_ordering = K.image_dim_ordering()
+    assert dim_ordering in {'tf', 'th'}
+    x = img
+    if dim_ordering == 'th':
+        # 'RGB'->'BGR'
+        x = x[::-1, :, :]
+        # Zero-center by mean pixel
+        x[0, :, :] -= 103.939
+        x[1, :, :] -= 116.779
+        x[2, :, :] -= 123.68
+    else:
+        # 'RGB'->'BGR'
+        x = x[:, :, ::-1]
+        # Zero-center by mean pixel
+        x[:, :, 0] -= 103.939
+        x[:, :, 1] -= 116.779
+        x[:, :, 2] -= 123.68
+    return x
 
 
 # class ImageDataGeneratorAdvanced(ImageDataGenerator):
@@ -241,6 +279,8 @@ class ImageIterator(Iterator):
             # Random crop
             # img = random_crop_img(img, target_size=self.target_size)
             x = img_to_array(img, dim_ordering=self.dim_ordering)
+
+            # x = preprocess_input(x, dim_ordering=self.dim_ordering)
             if self.imageOpAdv:
                 x = self.image_data_generator.advancedoperation(x)
             else:
@@ -278,6 +318,7 @@ class ImageIterator(Iterator):
                 batch_y[i, label] = 1.
         else:
             return batch_x
+        batch_x = preprocess_input(batch_x, dim_ordering=self.dim_ordering)
         return batch_x, batch_y
 
     def get_image_path(self, img_file):
@@ -316,8 +357,10 @@ class ImageNetLoader(object):
 
 
     """
-    def __init__(self, dirpath, metadata_path=None, mode='CLS-LOC', data_folder='Data', info_folder='ImageSets',
-                 train='train', valid='val', test='test', dim_ordering='default'):
+    def __init__(self, dirpath='/home/kyu/.keras/datasets/ILSVRC2015', metadata_path=None, mode='CLS-LOC', data_folder='Data', info_folder='ImageSets',
+                 train='train', valid='val', test='test',
+                 config_fname='imagenet_keras_pipeline_list.h5',
+                 dim_ordering='default'):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
         self.dim_ordering = dim_ordering
@@ -358,29 +401,58 @@ class ImageNetLoader(object):
         self.valid_groundtruth_dict = dict(zip(range(len(valid_groundtruth_list)), valid_groundtruth_list))
 
         ######################
-        # Read the txt file
+        # Assert the loading logic
         ######################
-        train_txt = open(os.path.join(self.info_folder, 'train_cls.txt'), 'r')
-        valid_txt = open(os.path.join(self.info_folder, 'val.txt'), 'r')
-        test_txt = open(os.path.join(self.info_folder, 'test.txt'), 'r')
 
-        print("Loading images list from given txt file ")
-        print("from train_cls.txt ...")
-        train_all = train_txt.readlines()
+        load_txt = False
+        load_train, load_valid, load_test = False, False, False
 
-        """ Small sample settings"""
-        # shuffle(train_all)
-        # train_all = train_all[:100000]
+        try:
+            import h5py
+            fdata = h5py.File(os.path.join(self.info_folder, config_fname), 'r')
+            try:
+                self.train_list = fdata['train_list']
+            except KeyError as e:
+                print (str(e))
+                load_train = True
+            try:
+                self.valid_list = fdata['valid_list']
+            except KeyError as e:
+                print (str(e))
+                load_valid = True
+            try:
+                self.test_list = fdata['test_list']
+            except KeyError as e:
+                print (str(e))
+                load_test = True
+        except (ImportError, IOError) as e:
+            print(str(e))
+            load_txt = True
 
-        self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all])
-        # self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all[:10000]])
+        if load_txt:
+            print("Loading images list from given txt file ")
+            load_train = True
+            load_valid = True
+            load_test = True
 
-        print("from valid.txt ...")
-        self.valid_list = np.asanyarray([self.decode(l, mode='valid') for l in valid_txt.readlines()])
+        if load_train:
+            train_txt = open(os.path.join(self.info_folder, 'train_cls.txt'), 'r')
+            print("from train_cls.txt ...")
+            train_all = train_txt.readlines()
 
-        print('from test.txt ...')
-        self.test_list = np.asanyarray([self.decode(l, mode='test') for l in test_txt.readlines()])
-
+            """ Small sample settings"""
+            # shuffle(train_all)
+            # train_all = train_all[:100000]
+            self.train_list = np.asanyarray([self.decode(l, mode='train', prefix='train') for l in train_all])
+            # self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all[:10000]])
+        if load_valid:
+            valid_txt = open(os.path.join(self.info_folder, 'val_cls.txt'), 'r')
+            print("from valid.txt ...")
+            self.valid_list = np.asanyarray([self.decode(l, mode='train', prefix='val') for l in valid_txt.readlines()])
+        if load_test:
+            test_txt = open(os.path.join(self.info_folder, 'test.txt'), 'r')
+            print('from test.txt ...')
+            self.test_list = np.asanyarray([self.decode(l, mode='test') for l in test_txt.readlines()])
 
     def generator(self, mode='valid', batch_size=32, target_size=(224,224),
                   image_data_generator=None, **kwargs):
@@ -397,7 +469,11 @@ class ImageNetLoader(object):
             cate_list = self.test_list[:, 3]
         else:
             raise ValueError
-
+        # Transform the list type.
+        # if isinstance(flist, np.ndarray):
+        #     flist = flist.tolist()
+        # if isinstance(cate_list, np.ndarray):
+        #     cate_list = cate_list.tolist()
         generator = ImageIterator(flist, cate_list, self.nb_class,
                                   image_data_generator=image_data_generator,
                                   batch_size=batch_size, target_size=target_size,
@@ -405,7 +481,7 @@ class ImageNetLoader(object):
         return generator
 
 
-    def decode(self, str_input, mode='train'):
+    def decode(self, str_input, mode='train', prefix=None):
         """
         Decode the corresponding parameters
 
@@ -437,7 +513,8 @@ class ImageNetLoader(object):
 
         # if not os.path.exists(abs_path):
         #     raise IOError('File not found ' + abs_path)
-
+        if prefix:
+            name = prefix
         abs_path = os.path.join(self.data_folder, name, path + '.JPEG')
         if synset_id == -1:
             nnid = 0
@@ -492,5 +569,5 @@ if __name__ == '__main__':
     # train = imageNetLoader.generator('train', image_data_generator=gen)
     # valid = imageNetLoader.generator('valid', image_data_generator=gen)
     # # test = imageNetLoader.generator('valid', image_data_generator=gen)
-
+    # HHA
     save_list_to_h5df()

@@ -15,9 +15,9 @@ from __future__ import print_function
 import os
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
-# os.environ['KERAS_BACKEND'] = 'theano'
-os.environ['KERAS_BACKEND'] = 'tensorflow'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['KERAS_BACKEND'] = 'theano'
+# os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 import logging
 import sys
@@ -384,21 +384,60 @@ def run_routine13():
     # params = [[50], [100], [100,50], [16, 8]]
     # params = [[100,100,100], [50,50,50],[25,25,25]]
     # params = [[25,25,25]]
-    # params = [[100,50], [50,25], [100,75], [100,75,50,25]]
-    params = [[64,32,16],[100,50,25]]
+    params = [[100,50], [50,25], [100,75]]
+    # params = [[64,32,16],[100,50,25]]
     # params = [[], [100], [32, 16], [16, 32]]
     nb_epoch = 200
     # cov_outputs = [10]
-    cov_outputs = [50]
+    cov_outputs = [10]
     for cov_output in cov_outputs:
         for param in params:
             print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
             print('Initialize with glorot_normal')
-            run_fitnet_merge(param, mode_list=[4,5,6,7,8,9],
-            # run_fitnet_merge(param, mode_list=[1,2],
+            # run_fitnet_merge(param, mode_list=[1,2,3,4,5,6,7,8,9],
+            run_fitnet_merge(param, mode_list=[1,2],
                              title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
                              cov_mode='o2transform', dropout=False, init='glorot_normal',
                              cov_output=cov_output)
+
+
+def run_routine14():
+    """
+    Create for CIFAR 10 test
+    2017.1.10
+
+    Made for interesting findings verifications:
+    1.  Model information:
+            test Cov-branch: SecondStat - (O2Transform) - WP (cov_output) - Dense(10)
+                where cov_output == previous O2Transform number
+        Specifications:
+            parameters: [ [50], [100], [100,50], [16, 8], [32, 16], [16, 32]]
+            cov_output = [ 50, 100, 50, 8, 16, 32 ] for each model
+            title = 'cifar10_cov_o2t_wp{}_dense'
+            init='glorot_normal'
+        Experiments:
+            2017.1.10 : Test
+
+    2.
+    Returns
+    -------
+
+    """
+    params = [[50], [100], [100, 50], [16, 8], [32, 16], [16, 32]]
+    nb_epoch = 200
+    for param in params:
+        print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
+        print('Initialize with glorot_normal')
+        if len(param) > 0:
+            cov_output = param[-1]
+        else:
+            cov_output = nb_classes
+        # run_fitnet_merge(param, mode_list=[1,2,3,4,5,6,7,8,9],
+        run_fitnet_merge(param, mode_list=[1, 2],
+                         title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
+                         cov_mode='o2transform', dropout=False, init='glorot_normal',
+                         cov_output=cov_output)
+
 
 if __name__ == '__main__':
     nb_epoch = 200
@@ -418,4 +457,5 @@ if __name__ == '__main__':
     # plot_rescov_results()
     # run_routine12()
     # run_routine13()
-    run_routine10()
+    # run_routine10()
+    run_routine14()

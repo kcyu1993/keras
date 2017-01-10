@@ -291,9 +291,20 @@ def batch_dot(x, y, axes=None):
     return out
 
 
-def transpose(x):
-    # TODO: `keras_shape` inference.
-    return T.transpose(x)
+
+def transpose(x, axes=None):
+    """
+    Modify to support Theano transpose given axis
+    Parameters
+    ----------
+    x: tensor   tensor to be transposed
+    axes: tuple tuple of axis order information
+
+    Returns
+    -------
+    Theano.tensor
+    """
+    return T.transpose(x, axes=axes)
 
 
 def gather(reference, indices):
@@ -307,6 +318,10 @@ def gather(reference, indices):
 
 
 # ELEMENT-WISE OPERATIONS
+def multiply(a,b):
+    from theano.tensor.elemwise import Elemwise
+    from theano.scalar import mul
+    return Elemwise(scalar_op=mul)(a, b)
 
 
 def max(x, axis=None, keepdims=False):

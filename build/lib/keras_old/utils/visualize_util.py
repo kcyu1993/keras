@@ -1,5 +1,5 @@
 import os
-from .data_utils import get_plot_path
+from .data_utils import get_plot_path, get_plot_path_with_subdir
 try:
     import matplotlib
     matplotlib.use('Agg')
@@ -8,6 +8,9 @@ try:
     from matplotlib import cm as cmx
 except ImportError:
     raise RuntimeError("Cannot import matplotlib")
+
+
+
 
 
 def plot_multiple_loss_acc(tr_loss, te_loss, tr_acc, te_acc, epochs=None, show=False,
