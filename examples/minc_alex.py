@@ -23,7 +23,7 @@
 
 """
 
-from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, SecondaryStatistic, WeightedProbability
+from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, SecondaryStatistic, WeightedVectorization
 from keras.layers import Flatten, Dense, Dropout
 from keras.layers import Input
 from keras.models import Model, Sequential
@@ -165,7 +165,7 @@ def create_model_alex():
 def create_alex_snd():
     x = alexnet_top(get_model_dir(), input_shape=INPUT_SHAPE)
     x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
-    x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
+    x = WeightedVectorization(output_dim=NB_CLASS, activation='softmax')(x)
     return x, INPUT_SHAPE
 
 def create_alex_original2():

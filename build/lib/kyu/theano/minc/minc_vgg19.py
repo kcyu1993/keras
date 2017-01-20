@@ -30,7 +30,7 @@ from keras.applications.resnet50 import ResNet50MINC, ResCovNet50MINC
 from keras.applications.vgg19 import VGG19, VGG19_bottom
 from keras.datasets.minc import Minc2500, MincOriginal
 from keras.layers import O2Transform
-from keras.layers import SecondaryStatistic, WeightedProbability
+from keras.layers import SecondaryStatistic, WeightedVectorization
 from keras.models import Model
 from keras.utils.data_utils import *
 from keras.utils.logger import Logger
@@ -74,7 +74,7 @@ def create_ResNet50(second=False, parametric=True):
         x = SecondaryStatistic()(x)
         if parametric:
             x = O2Transform(output_dim=100, activation='relu')(x)
-        x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
+        x = WeightedVectorization(output_dim=NB_CLASS, activation='softmax')(x)
         model = Model(img_input, x)
         model.name = 'ResNet_second'
     return model
@@ -82,7 +82,7 @@ def create_ResNet50(second=False, parametric=True):
 def create_VGG_snd():
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
     x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
-    x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
+    x = WeightedVectorization(output_dim=NB_CLASS, activation='softmax')(x)
     model = Model(img_input, x)
     return model
 
@@ -201,7 +201,7 @@ def run_minc_snd_VGG_generator(load=False, save=True, verbose=1):
     # After max pooling here
     x = SecondaryStatistic()(x)
     x = O2Transform(output_dim=1000)(x)
-    x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
+    x = WeightedVectorization(output_dim=NB_CLASS, activation='softmax')(x)
 
     model = Model(input=img_input,
                   output=[x])

@@ -15,7 +15,7 @@ from __future__ import print_function
 import os
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['KERAS_BACKEND'] = 'theano'
 # os.environ['KERAS_BACKEND'] = 'tensorflow'
 
@@ -31,13 +31,13 @@ from keras.engine import Input
 from keras.engine import Model
 from keras.engine import merge
 from keras.layers import Convolution2D, MaxPooling2D, O2Transform
-from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
+from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedVectorization
 from keras.models import Sequential
 from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
-from kyu.models.cifar import model_original, model_snd, cifar_fitnet_v1, cifar_fitnet_v3
+from kyu.models.cifar import model_original, model_snd, cifar_fitnet_v1, cifar_fitnet_v3, cifar_fitnet_v5
 
 import keras.backend as K
 
@@ -108,7 +108,7 @@ def resnet50_snd(parametric=False):
     if parametric:
         x = O2Transform(output_dim=100, activation='relu')(x)
         x = O2Transform(output_dim=10, activation='relu')(x)
-    x = WeightedProbability(output_dim=nb_classes, activation='softmax')(x)
+    x = WeightedVectorization(output_dim=nb_classes, activation='softmax')(x)
     model = Model(img_input, x, name='ResNet50CIFAR_snd')
     return model
 
@@ -147,7 +147,9 @@ def run_resnet_merge(parametrics=[], verbose=1, start=0, stop=3):
 def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, cov_mode='o2transform',
                      mode_list=None, epsilon=0, title='cifar', dropout=True, cov_output=None,
                      init='glorot_uniform',
-                     dense_after_covariance=True):
+                     cov_mode_input=3,
+                     dense_after_covariance=True,
+                     cifar_version=3):
     """
     Run Fit-net merge layer testing. All testing cases could be passed throught this interface.
     With all environment settings.
@@ -182,10 +184,20 @@ def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, cov_mode='o2tra
         # if mode in [3,5,7]:
         #     print('skip cov_mode {}'.format(mode))
         #     continue
-        model = cifar_fitnet_v3(parametrics=parametrics, epsilon=epsilon, mode=mode,
-                                nb_classes=nb_classes, dropout=dropout, init=init,
-                                cov_mode=cov_mode, cov_branch_output=cov_output,
-                                dense_after_covariance=dense_after_covariance)
+        if cifar_version == 3:
+            model = cifar_fitnet_v3(parametrics=parametrics, epsilon=epsilon, mode=mode,
+                                    nb_classes=nb_classes, dropout=dropout, init=init,
+                                    cov_mode=cov_mode, cov_branch_output=cov_output,
+                                    cov_block_mode=cov_mode_input,
+                                    dense_after_covariance=dense_after_covariance)
+        elif cifar_version == 5:
+            model = cifar_fitnet_v5(parametrics=parametrics, epsilon=epsilon, mode=mode,
+                                    nb_classes=nb_classes, dropout=dropout, init=init,
+                                    cov_mode=cov_mode, cov_branch_output=cov_output,
+                                    dense_after_covariance=dense_after_covariance)
+        else:
+            print('cifar version not supported ' + str(cifar_version))
+            return
         fit_model(model, load=False, save=True, verbose=verbose, title=title)
 
 
@@ -383,20 +395,22 @@ def run_routine13():
 
     """
     # params = [[50], [100], [100,50], [16, 8]]
-    # params = [[100,100,100], [50,50,50],[25,25,25]]
-    # params = [[25,25,25]]
-    params = [[100,50], [50,25], [100,75]]
-    # params = [[64,32,16],[100,50,25]]
+    # params = [[100,100,100], [50,50,50],[25,25,25]]   # Exp 2
+    # params = [[25,25,25]]                             # Exp 2
+    # params = [[100,50], [50,25], [100,75]]
+    # params = [[64,32,16],[100,50,25]]                 # Exp 2
     # params = [[], [100], [32, 16], [16, 32]]
+    ### Systematic experiments
+    params = [[], [50], [100], [100,50], [16, 8], [32, 16], [16, 32]]   # exp 3
     nb_epoch = 200
     # cov_outputs = [10]
-    cov_outputs = [10]
+    cov_outputs = [50]
     for cov_output in cov_outputs:
         for param in params:
             print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
             print('Initialize with glorot_normal')
             # run_fitnet_merge(param, mode_list=[1,2,3,4,5,6,7,8,9],
-            run_fitnet_merge(param, mode_list=[1,2],
+            run_fitnet_merge(param, mode_list=[1,2,3],
                              title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
                              cov_mode='o2transform', dropout=False, init='glorot_normal',
                              cov_output=cov_output)
@@ -419,35 +433,84 @@ def run_routine14():
         Experiments:
             2017.1.10 : Test all param with cov_output correspondingly
             2017.1.10 : Test all params with mode 10, with cov_output=10
-            2017.1.10 (TODO) : Test with mode 11, obtain the baseline.
-
+            2017.1.10 : Test with mode 11, obtain the baseline.
+            2017.1.17 : Test Cov-input from different block.
+                            100,50 0.1 percentage improve, test with all settings
+            2017.1.17 : Test complete 3 Cov-branch with average wp
     2.
     Returns
     -------
 
     """
-    params = [[], [50], [100], [100, 50], [16, 8], [32, 16], [16, 32]] # exp 1,2
-
-    mode_list = [10]    # exp 2
-    # mode_list = [1,2] # exp 1
-
-    # cov_output = None # exp 1, 3 (not important)
-    cov_output = 10     # exp 2
-
-
     nb_epoch = 200
+
+    # params = [[100, 50], [50], [100],  [16, 8], [32, 16], [16, 32]] # exp 1,2,5
+    # params = [[]] # exp 3
+    params = [[100,50]] # exp 6
+    # params = [[50], [100],  [16, 8], [32, 16], [16, 32]] # exp 4 [100,50] tested
+
+    # mode_list = [1,2]   # exp 1
+    # mode_list = [10]    # exp 2
+    # mode_list = [11]    # exp 3
+    # mode_list = [2]     # exp 4
+    # mode_list = [13]    # exp 5
+    mode_list = [2]       # exp 6
+
+    # cov_output = None   # exp 1, 3, 4 (not important)
+    # cov_output = 10     # exp 2, 5
+    cov_output = 50     # exp 6
+
+    # cov_mode_input = 3  # exp 1,2,3
+    # cov_mode_input = 1  # exp 4, 5(not important)
+    cov_mode_input = 2  # exp 6 compare 1,2,3 block with 100-50
+
     for param in params:
-        print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
+        print("Run routine 14 nb epoch {} param mode {} mode list {}".format(nb_epoch, param, mode_list))
         print('Initialize with glorot_normal')
         if cov_output is None and len(param) > 0:
             cov_output = param[-1]
         else:
             cov_output = nb_classes
         run_fitnet_merge(param, mode_list=mode_list,
-                         title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
+                         title='cifar10_cov_o2t_wp{}_dense_nodropout_block_{}'.format(
+                             str(cov_output), str(cov_mode_input)),
+                         cov_mode_input=cov_mode_input,
                          cov_mode='o2transform', dropout=False, init='glorot_normal',
                          cov_output=cov_output)
 
+def run_routine15():
+    """
+    Create for new ideas:
+        Experiment 1: 2016.1.19
+            Veryfication of new idea. Separate Convolution blocks for 1st and 2nd order information.
+            Right after the input.
+
+
+    Returns
+    -------
+
+    """
+    nb_epoch = 200
+    exp = 1
+    if exp == 1:
+        params = [[100, 50], [128, 64], [512,256], [100,100], [64,64], [128,64,32]] # exp 1
+        mode_list = [1]
+        cov_outputs = [100, 50, 10]
+    else:
+        return
+
+    for param in params:
+        for mode in mode_list:
+            for cov_output in cov_outputs:
+                print("Run routine 15 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
+                run_fitnet_merge(param, mode_list=[mode],
+                                 title='cifar10_cov_o2t_wp{}_two_branch'.format(
+                                     str(cov_output)
+                                 ),
+                                 cov_mode_input=3,
+                                 cifar_version=5,
+                                 cov_mode='o2transform',dropout=False, init='glorot_normal',
+                                 cov_output=cov_output)
 
 if __name__ == '__main__':
     nb_epoch = 200
@@ -468,4 +531,5 @@ if __name__ == '__main__':
     # run_routine12()
     # run_routine13()
     # run_routine10()
-    run_routine14()
+    # run_routine14()
+    run_routine15()

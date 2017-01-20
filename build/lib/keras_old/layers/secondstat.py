@@ -423,7 +423,7 @@ class O2Transform(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class WeightedProbability(Layer):
+class WeightedVectorization(Layer):
     ''' Probability weighted vector layer for secondary image statistics
     neural networks. It is simple at this time, just v_c.T * Cov * v_c, with
     basic activitation function such as ReLU, softmax, thus the
@@ -444,7 +444,7 @@ class WeightedProbability(Layer):
         self.bias = bias
         self.initial_weights = weights
 
-        super(WeightedProbability, self).__init__(**kwargs)
+        super(WeightedVectorization, self).__init__(**kwargs)
 
     def build(self, input_shape):
         """
@@ -508,5 +508,5 @@ class WeightedProbability(Layer):
                   # 'b_constraint': self.b_constraint.get_config() if self.b_constraint else None,
                   'bias': self.bias,
                   'input_dim': self.input_dim}
-        base_config = super(WeightedProbability, self).get_config()
+        base_config = super(WeightedVectorization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

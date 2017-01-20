@@ -1,4 +1,4 @@
-from keras.layers import SecondaryStatistic, O2Transform, WeightedProbability, Flatten, Dense
+from keras.layers import SecondaryStatistic, O2Transform, WeightedVectorization, Flatten, Dense
 
 
 def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu'):
@@ -12,7 +12,7 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
     x = SecondaryStatistic(name=cov_name_base, eps=epsilon)(input_tensor)
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
-    x = WeightedProbability(nb_class, activation=activation, name=wp_name_base)(x)
+    x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     return x
 
 

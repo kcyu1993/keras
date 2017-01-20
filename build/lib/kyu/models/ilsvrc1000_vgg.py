@@ -16,6 +16,8 @@ Second-layer structure:
 
 """
 import warnings
+from keras.engine import merge
+
 from keras.utils.layer_utils import convert_all_kernels_in_model
 
 from keras.applications.vgg16 import TH_WEIGHTS_PATH, TF_WEIGHTS_PATH
@@ -36,7 +38,8 @@ def VGG16_with_second(parametrics=[], mode=0,
                       cov_mode='dense', cov_branch_output=None,
                       dense_after_covariance=True,
                       weights='imagenet',
-                      input_tensor=None, input_shape=None):
+                      input_tensor=None, input_shape=None,
+                      trainable=True):
     '''Instantiate the VGG16 architecture,
     optionally loading weights pre-trained
     on ImageNet. Note that when using TensorFlow,
@@ -100,33 +103,42 @@ def VGG16_with_second(parametrics=[], mode=0,
         else:
             img_input = input_tensor
 
+    if cov_branch_output is None:
+        cov_branch_output = nb_classes
+
     # Block 1
     x = Convolution2D(64, 3, 3, activation='relu', border_mode='same', name='block1_conv1')(img_input)
     x = Convolution2D(64, 3, 3, activation='relu', border_mode='same', name='block1_conv2')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
 
+    block_1 = x
+
     # Block 2
     x = Convolution2D(128, 3, 3, activation='relu', border_mode='same', name='block2_conv1')(x)
     x = Convolution2D(128, 3, 3, activation='relu', border_mode='same', name='block2_conv2')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
+    block_2 = x
 
     # Block 3
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same', name='block3_conv1')(x)
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same', name='block3_conv2')(x)
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same', name='block3_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
+    block_3 = x
 
     # Block 4
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block4_conv1')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block4_conv2')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block4_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
+    block_4 = x
 
     # Block 5
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block5_conv1')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block5_conv2')(x)
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same', name='block5_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
+    block_5 = x
 
     if mode == 0:
         # VGG baseline model
@@ -135,7 +147,19 @@ def VGG16_with_second(parametrics=[], mode=0,
         x = Dense(4096, activation='relu', name='fc2')(x)
         x = Dense(1000, activation='softmax', name='predictions')(x)
     elif mode == 1:
-        x = covariance_block(x, cov_branch_output, nb_class=nb_classes, stage=6, block='a', parametric=parametrics)
+        x = covariance_block(x, cov_branch_output, stage=6, block='a', parametric=parametrics)
+        x = Dense(1000, activation='softmax', name='n_predictions')(x)
+    elif mode == 2:
+        cov_branch_input = block_2
+        cov_branch = covariance_block(cov_branch_input, cov_branch_output, stage=6, block='a', parametric=parametrics)
+
+        x = Flatten(name='flatten')(x)
+        x = Dense(4096, activation='relu', name='fc1', trainable=False)(x)
+        x = Dense(4096, activation='relu', name='fc2', trainable=False)(x)
+        x = Dense(1000, activation='relu', name='predictions_ori', trainable=True)(x)
+
+        x = merge([cov_branch,x], mode='concat', name='concat')
+        x = Dense(1000, activation='softmax', name='predictions_f')(x)
 
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`.

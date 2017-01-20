@@ -112,6 +112,8 @@ class ExampleEngine(object):
             if validation is not None:
                 assert isinstance(validation, (Iterator,))
                 self.nb_te_sample = validation.nb_sample
+            else:
+                self.nb_te_sample = 0
             if test is not None:
                 assert isinstance(test, (ImageDataGenerator, Iterator))
 
@@ -163,19 +165,12 @@ class ExampleEngine(object):
         if self.early_stop:
             self.cbks.append(EarlyStopping(patience=20, verbose=1))
 
-        # self.tensorboard = tensorboard
-        # if self.tensorboard:
-        #     if K._BACKEND == 'tensorflow':
-        #         tb_path = os.path.join(getlogfiledir(), 'tensorboard', title)
-        #         print("Creating tensorboard to save to {}".format(tb_path))
-        #         self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=True))
-
         self.tensorboard = tensorboard
         if self.tensorboard:
             if K._BACKEND == 'tensorflow':
                 tb_path = '/tmp/tensorflow/' + title
                 print("Creating tensorboard to save to {}".format(tb_path))
-                self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=True))
+                self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=False))
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=False):
 
@@ -222,7 +217,9 @@ class ExampleEngine(object):
             verbose=self.verbose,
             callbacks=self.cbks)
         if self.save_weight:
+            print("weights saved to {}".format(self.weight_path))
             self.model.save_weights(self.weight_path)
+            self.model.save_weights(self.weight_path + "_" + str(self.nb_epoch))
         self.history = history
         return self.history
 
@@ -355,6 +352,7 @@ class ExampleEngine(object):
         if not os.path.exists(dir):
             os.mkdir(dir)
         filename = os.path.join(dir, filename)
+        print("Save the history to " + filename)
         filename = cpickle_save(data=history, output_file=filename)
         return filename
 

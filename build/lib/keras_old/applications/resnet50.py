@@ -16,7 +16,7 @@ from ..layers import merge, Input
 from ..layers import Dense, Activation, Flatten
 from ..layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
 from ..layers import BatchNormalization
-from ..layers import WeightedProbability, O2Transform, SecondaryStatistic
+from ..layers import WeightedVectorization, O2Transform, SecondaryStatistic
 from ..models import Model
 from .. import backend as K
 from ..utils.layer_utils import convert_all_kernels_in_model
@@ -191,7 +191,7 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
     x = SecondaryStatistic(name=cov_name_base, eps=epsilon)(input_tensor)
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
-    x = WeightedProbability(nb_class, activation=activation, name=wp_name_base)(x)
+    x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     return x
 
 

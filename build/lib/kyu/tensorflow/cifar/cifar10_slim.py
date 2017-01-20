@@ -4,7 +4,7 @@ import tensorflow as tf
 from tensorflow.python.ops import nn
 
 # Second layer
-from keras.layers.secondstat import SecondaryStatistic, WeightedProbability, O2Transform
+from keras.layers.secondstat import SecondaryStatistic, WeightedVectorization, O2Transform
 
 
 def fitnet_slim(input_tensor):
@@ -77,7 +77,7 @@ def simple_second_model(input_tensor):
     x = SecondaryStatistic(activation='relu', dim_ordering='tf')(x)
     # x = O2Transform(100, activation='relu')(x)
     # x = O2Transform(50, activation='relu')(x)
-    x = WeightedProbability(100, activation='relu')(x)
+    x = WeightedVectorization(100, activation='relu')(x)
     x = slim.fully_connected(x, 10, scope='predictions')
     # x = slim.fully_connected(x, 10, activation_fn=nn.softmax, scope='predictions')
     return x

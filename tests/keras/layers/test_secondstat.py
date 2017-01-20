@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 
 from keras.utils.test_utils import layer_test, keras_test
 from keras import backend as K
-from keras.layers import SecondaryStatistic, WeightedProbability, O2Transform
+from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform
 
 
 # def test_matrix_logrithm():

@@ -6,7 +6,7 @@ from keras.applications.vgg19 import VGG19_bottom
 from keras.engine import Input
 from keras.engine import Model
 from keras.engine import merge
-from keras.layers import O2Transform, WeightedProbability, Dense, Flatten, Activation, Convolution2D, MaxPooling2D, \
+from keras.layers import O2Transform, WeightedVectorization, Dense, Flatten, Activation, Convolution2D, MaxPooling2D, \
     Dropout
 from keras.layers import SecondaryStatistic
 
@@ -204,7 +204,7 @@ def create_ResNet50(second=False, parametric=True):
         x = SecondaryStatistic()(x)
         if parametric:
             x = O2Transform(output_dim=100, activation='relu')(x)
-        x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
+        x = WeightedVectorization(output_dim=NB_CLASS, activation='softmax')(x)
         model = Model(img_input, x)
         model.name = 'ResNet_second'
     return model
@@ -212,7 +212,7 @@ def create_ResNet50(second=False, parametric=True):
 def create_VGG_snd():
     x, weight_path, img_input = VGG19_bottom(include_top=False, weights='imagenet')
     x = SecondaryStatistic(output_dim=None, parametrized=False, init='normal')(x)
-    x = WeightedProbability(output_dim=NB_CLASS, activation='softmax')(x)
+    x = WeightedVectorization(output_dim=NB_CLASS, activation='softmax')(x)
     model = Model(img_input, x)
     return model
 

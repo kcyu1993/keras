@@ -93,9 +93,9 @@ class SecondaryStatistic(Layer):
         :param input_shape:
         :return:
         """
-        print('secondary_stat: input shape lenth', len(input_shape))
-        print('second_stat: input shape {}'.format(input_shape))
-        print('second_stat: axis filter {}'.format(self.axis_filter))
+        # print('secondary_stat: input shape lenth', len(input_shape))
+        # print('second_stat: input shape {}'.format(input_shape))
+        # print('second_stat: axis filter {}'.format(self.axis_filter))
         self.nb_samples = input_shape[0]
         self.nb_filter = input_shape[self.axis_filter]
         self.rows = input_shape[self.axis_row]
@@ -109,10 +109,10 @@ class SecondaryStatistic(Layer):
 
         # Set out_dim accordingly.
         self.out_dim = self.cov_dim
-        print('output_dim:' + str(self.out_dim))
+        # print('output_dim:' + str(self.out_dim))
 
         self.W_shape = (self.cov_dim, self.cov_dim)
-        print('second_stat: weight shape: ',self.W_shape)
+        # print('second_stat: weight shape: ',self.W_shape)
         self.W = K.eye(self.cov_dim, name='{}_W'.format(self.name))
         self.non_trainable_weights = [self.W]
 
@@ -130,7 +130,7 @@ class SecondaryStatistic(Layer):
             raise Exception("Secondary stat layer not built")
         logging.debug('Secondary_stat parameter', type(x))  # Confirm the type of x is indeed tensor4D
         cov_mat = self.calculate_pre_cov(x)
-        print('call during second {}'.format(self.eps))
+        # print('call during second {}'.format(self.eps))
         cov_mat += self.eps * self.b
         return cov_mat
 
@@ -423,7 +423,7 @@ class O2Transform(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class WeightedProbability(Layer):
+class WeightedVectorization(Layer):
     ''' Probability weighted vector layer for secondary image statistics
     neural networks. It is simple at this time, just v_c.T * Cov * v_c, with
     basic activitation function such as ReLU, softmax, thus the
@@ -440,11 +440,12 @@ class WeightedProbability(Layer):
         self.activation = activations.get(activation)
         self.input_dim = input_dim      # Squared matrix input, as property of cov matrix
         self.output_dim = output_dim    # final classified categories number
-
+        if output_dim is None:
+            raise ValueError ("Output dim must be not None")
         self.bias = bias
         self.initial_weights = weights
 
-        super(WeightedProbability, self).__init__(**kwargs)
+        super(WeightedVectorization, self).__init__(**kwargs)
 
     def build(self, input_shape):
         """
@@ -457,7 +458,8 @@ class WeightedProbability(Layer):
         assert input_shape[1] == input_shape[2]
 
         input_dim = input_shape[1]
-
+        if self.output_dim is None:
+            print("Wrong ! Should not be a None for output_dim")
         self.W = self.init((input_dim, self.output_dim), name='{}_W'.format(self.name))
 
         if self.bias:
@@ -479,7 +481,7 @@ class WeightedProbability(Layer):
         :return: final output vector with w_i^T * W * w_i as item i, and propagate to all
             samples. Output Shape (nb_samples, vector c)
         '''
-        logging.debug("prob_out: x_shape {}".format(x.shape))
+        logging.debug("prob_out: x_shape {}".format(K.shape(x)))
         # new_W = K.expand_dims(self.W, dim=1)
         output = K.sum(K.multiply(self.W, K.dot(x, self.W)), axis=1)
         if self.bias:
@@ -508,5 +510,5 @@ class WeightedProbability(Layer):
                   # 'b_constraint': self.b_constraint.get_config() if self.b_constraint else None,
                   'bias': self.bias,
                   'input_dim': self.input_dim}
-        base_config = super(WeightedProbability, self).get_config()
+        base_config = super(WeightedVectorization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

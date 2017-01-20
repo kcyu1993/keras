@@ -12,7 +12,7 @@ from __future__ import print_function
 
 import warnings
 
-from kyu.models.keras_support import covariance_block_vector_space
+from kyu.models.keras_support import covariance_block_vector_space, covariance_block_original
 from .imagenet_utils import _obtain_input_shape
 from .. import backend as K
 from ..engine.topology import get_source_inputs
@@ -552,7 +552,12 @@ def ResNet50MINC(include_top=True, weights='imagenet',
     return model
 
 
-def ResCovNet50MINC(parametrics=[], input_tensor=None, nb_class=23, mode=0):
+def ResCovNet50MINC(parametrics=[], epsilon=0., mode=0, nb_classes=23, input_shape=(3,224,224),
+                    init='glorot_normal', cov_mode='o2transform',
+                    dropout=False, cov_branch_output=None,
+                    dense_after_covariance=True,
+                    cov_block_mode=3,
+                    last_softmax=True):
     '''Instantiate the ResNet50 architecture,
     optionally loading weights pre-trained
     on ImageNet. Note that when using TensorFlow,
@@ -587,11 +592,33 @@ def ResCovNet50MINC(parametrics=[], input_tensor=None, nb_class=23, mode=0):
         A Keras model instance.
     '''
 
-    basename = 'ResCov_MINC'
+    # Function name
+    if cov_mode == 'o2transform':
+        covariance_block = covariance_block_original
+    elif cov_mode == 'dense':
+        covariance_block = covariance_block_vector_space
+    else:
+        raise ValueError('covariance cov_mode not supported')
+
+    nb_class = nb_classes
+    if cov_branch_output is None:
+        cov_branch_output = nb_class
+
+    basename = 'ResCovNet'
     if parametrics is not []:
         basename += '_para-'
         for para in parametrics:
             basename += str(para) + '_'
+    basename += 'mode_{}'.format(str(mode))
+
+    if epsilon > 0:
+        basename += '-epsilon_{}'.format(str(epsilon))
+
+    if input_shape[0] == 3:
+        # Define the channel
+        if K.image_dim_ordering() == 'tf':
+            if input_shape[0] in {1, 3}:
+                input_shape = (input_shape[1], input_shape[2], input_shape[0])
 
     # Determine proper input shape
     if K.image_dim_ordering() == 'th':
@@ -599,20 +626,13 @@ def ResCovNet50MINC(parametrics=[], input_tensor=None, nb_class=23, mode=0):
     else:
         input_shape = (224, 224, 3)
 
-    if input_tensor is None:
-        img_input = Input(shape=input_shape)
-    else:
-        if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
-        else:
-            img_input = input_tensor
-
     if K.image_dim_ordering() == 'tf':
         bn_axis = 3
     else:
         bn_axis = 1
+    input_tensor = Input(input_shape)
 
-    x = ZeroPadding2D((3, 3))(img_input)
+    x = ZeroPadding2D((3, 3))(input_tensor)
     x = Convolution2D(64, 7, 7, subsample=(2, 2), name='conv1')(x)
     x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
     x = Activation('relu')(x)
@@ -643,59 +663,71 @@ def ResCovNet50MINC(parametrics=[], input_tensor=None, nb_class=23, mode=0):
     x = AveragePooling2D((7, 7), name='avg_pool')(x)
     block3_x = x
 
-    cov_input = block3_x
+    if cov_block_mode == 3:
+        cov_input = block3_x
+    elif cov_block_mode == 2:
+        cov_input = block2_x
+    else:
+        cov_input = block1_x
+
     if mode == 0:
-        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
-        x = Flatten()(x)
-        x = merge([x, cov_branch], mode='concat', name='concat')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
-    elif mode == 1:
-        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
-        x = Flatten()(x)
-        x = Dense(nb_class, activation='relu', name='fc')(x)
-        x = merge([x, cov_branch], mode='concat', name='concat')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+        warnings.warn("Mode 0 should be replaced with ResNet50")
+        if nb_class == 1000:
+            return ResNet50(input_tensor=input_tensor)
+        else:
+            raise ValueError("Only support 1000 class nb for ResNet50")
+
+    if mode == 1:
+        cov_branch = covariance_block(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Dense(nb_class, activation='softmax', name='predictions')(cov_branch)
+
     elif mode == 2:
-        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        cov_branch = covariance_block(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
         x = merge([x, cov_branch], mode='sum', name='sum')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 3:
-        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        cov_branch = covariance_block(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
         cov_branch = Activation('softmax')(cov_branch)
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc')(x)
         x = merge([x, cov_branch], mode='sum', name='sum')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 4:
-        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        cov_branch1 = covariance_block(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 5:
-        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        cov_branch1 = covariance_block(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
         x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
     elif mode == 6:
-        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        cov_branch1 = covariance_block(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
         x = Flatten()(x)
         x = Dense(nb_class, activation='relu', name='fc')(x)
         cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='sum', name='sum')
         x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 7:
+        cov_branch = covariance_block(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
     else:
         raise ValueError("Mode not supported {}".format(mode))
 
-    model = Model(img_input, x, name=basename + "mode_" + str(mode))
+    model = Model(input_tensor, x, name=basename)
     return model
 
 

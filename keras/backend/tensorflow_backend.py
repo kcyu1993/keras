@@ -876,7 +876,7 @@ def batch_dot(x, y, axes=None):
     return out
 
 
-def transpose(x):
+def transpose(x, axes=None):
     '''Transposes a tensor and returns it.
 
     # Arguments
@@ -908,7 +908,7 @@ def transpose(x):
 
     ```
     '''
-    return tf.transpose(x)
+    return tf.transpose(x, perm=axes)
 
 
 def gather(reference, indices):
@@ -926,6 +926,21 @@ def gather(reference, indices):
 
 
 # ELEMENT-WISE OPERATIONS
+
+def multiply(a, b):
+    """
+    Matrix element-wise multiplication
+    Parameters
+    ----------
+    a
+    b
+
+    Returns
+    -------
+    tf.multiply(a,b)
+    """
+    return tf.multiply(a,b)
+
 
 def _normalize_axis(axis, ndim):
     if isinstance(axis, tuple):

@@ -26,7 +26,7 @@ from .. import backend as K
 from .imagenet_utils import decode_predictions, preprocess_input
 
 # Import new library
-from ..layers import SecondaryStatistic, WeightedProbability
+from ..layers import SecondaryStatistic, WeightedVectorization
 
 TH_WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_th_dim_ordering_th_kernels.h5'
 TF_WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels.h5'
@@ -116,7 +116,7 @@ def VGG16(include_top=True, weights='imagenet',
         # Classification block
 
         x = SecondaryStatistic(name='secondary_stats')(x)
-        x = WeightedProbability(1000, activation='softmax', name='prediction')(x)
+        x = WeightedVectorization(1000, activation='softmax', name='prediction')(x)
 
         # Disable the FC layer.
         # x = Flatten(name='flatten')(x)
