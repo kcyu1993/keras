@@ -6,10 +6,10 @@ from example_engine import ExampleEngine
 
 def plot_cifar_fitnet(folder_name, significant_model=None,
                       log_history=None, log_model_name=None,
-                      xlim=(0,200), ylim=(0, 1)):
-
+                      xlim=(0,200), ylim=(0,0.5)):
+    # Execute on local machine
     from example_engine import gethistoryfiledir
-    hist_dir = gethistoryfiledir()
+    hist_dir = '/Users/kyu/mount/epfl/Dropbox/git/keras/model_saved/history'
     hist_dir = os.path.join(hist_dir, folder_name)
     hist_list = []
     model_name_list = []
@@ -20,6 +20,8 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
             # file_list.append(filename)
             try:
                 hist_dict = ExampleEngine.load_history(os.path.join(hist_dir, filename))
+            except EOFError:
+                continue
             except IOError:
                 continue
             model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1]
@@ -64,6 +66,8 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
         #                            tr_mis, te_mis,
         #                            filename=name+'.png'
         #                            )
+
+    # Merge the repeated name. i.e. if the name is the same, use average to merge.
 
     plot_multiple_train_test(list_tr_mis, list_te_mis, model_name_list,
                              xlabel='epoch', ylabel='mis-classification',
@@ -177,5 +181,26 @@ if __name__ == '__main__':
 
 
     # plot_rescov_results()
-    plot_cifar_fitnet('Fitnet_v2_CIFAR10_non_para_cov-dense', significant_model=['cifar-fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp10_mode1', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp100_mode2', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp100_mode1', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_no_dropout_wp10_mode2', significant_model=['fitnet_v2_baseline_0'])
+
+    # plot_cifar_fitnet('Fitnet_v3_CIFAR10_wp10', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v3_CIFAR10_wp50', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp100', significant_model=['fitnet_v2_baseline_0'])
+
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_single_branch', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp100_single_branch', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v3_CIFAR10_wp50_single_branch', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_3para_single_branch', significant_model=['fitnet_v2_baseline_0'])
+
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_3para_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('Fitnet_v3_CIFAR10_wp50_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
+    plot_cifar_fitnet('Fitnet_v3_CIFAR10_no_dropout_wp10_mode13', significant_model=['fitnet_v2_baseline_0'])
+
+    # plot_cifar_fitnet('Fitnet_v3_CIFAR10_no_dropout_wp10_mode10-compare-earlier', significant_model=['cifar10_cov_o2t_wp10_dense_nodropout-fitnet_v2_para-mode_11'])
+
+
     # plot_models()

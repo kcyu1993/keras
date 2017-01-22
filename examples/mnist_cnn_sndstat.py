@@ -43,7 +43,7 @@ from keras.datasets import mnist
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation, Flatten, Input, merge
 from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import SecondaryStatistic, WeightedProbability, O2Transform
+from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform
 from keras.layers import PReLU
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
@@ -185,7 +185,7 @@ def model_without_dense():
     model.add(Dropout(0.25))
 
     model.add(SecondaryStatistic(activation='linear'))
-    model.add(WeightedProbability(10, activation='linear', init='normal'))
+    model.add(WeightedVectorization(10, activation='linear', init='normal'))
     model.add(Activation('softmax'))
     opt = optimizers.rmsprop()
 
@@ -219,7 +219,7 @@ def model_parametrized():
     model.add(SecondaryStatistic(activation='linear', parametrized=False, output_dim=10, init='normal'))
     model.add(O2Transform(activation='linear', output_dim=100))
     model.add(Activation('relu'))
-    model.add(WeightedProbability(10, activation='relu', init='normal'))
+    model.add(WeightedVectorization(10, activation='relu', init='normal'))
     model.add(Activation('softmax'))
 
     opt = optimizers.rmsprop()

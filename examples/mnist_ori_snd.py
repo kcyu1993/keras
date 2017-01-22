@@ -29,7 +29,7 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import SecondaryStatistic, WeightedProbability
+from keras.layers import SecondaryStatistic, WeightedVectorization
 from keras.utils import np_utils
 from keras import backend as K
 from keras import optimizers
@@ -107,7 +107,7 @@ model.add(Dropout(0.25))
 print('Adding secondary statistic layer ')
 model.add(SecondaryStatistic(activation='linear'))
 print("Adding WP with glorot_uniform")
-model.add(WeightedProbability(10, activation='linear', init='normal'))
+model.add(WeightedVectorization(10, activation='linear', init='normal'))
 # model.add(Flatten())
 
 # model.add(Dense(128))

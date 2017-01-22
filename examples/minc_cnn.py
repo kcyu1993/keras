@@ -35,7 +35,7 @@ from keras.datasets import minc
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import SecondaryStatistic, WeightedProbability
+from keras.layers import SecondaryStatistic, WeightedVectorization
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras import backend as K
@@ -141,7 +141,7 @@ def model_without_dense():
 
     # Start of secondary layer
     model.add(SecondaryStatistic(activation='linear'))
-    model.add(WeightedProbability(10, activation='linear', init='normal'))
+    model.add(WeightedVectorization(10, activation='linear', init='normal'))
 
     model.add(Activation('softmax'))
     # opt = optimizers.sgd(lr=0.01)
@@ -170,7 +170,7 @@ def model_parametrized():
     # Start of secondary layer
     # print('Adding secondary statistic layer ')
     model.add(SecondaryStatistic(activation='linear', parametrized=True, output_dim=10, init='normal'))
-    model.add(WeightedProbability(10, activation='linear', init='normal'))
+    model.add(WeightedVectorization(10, activation='linear', init='normal'))
 
     model.add(Activation('softmax'))
     # Define the optimizers:

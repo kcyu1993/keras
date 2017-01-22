@@ -1,9 +1,9 @@
-from keras.applications.resnet50 import covariance_block_vector_space
+from kyu.models.keras_support import covariance_block_vector_space
 from keras.engine import Input
 from keras.engine import Model
 from keras.engine import merge
 from keras.layers import Convolution2D, MaxPooling2D, O2Transform, LRN2D
-from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
+from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedVectorization
 from keras.models import Sequential
 import keras
 import tensorflow as tf

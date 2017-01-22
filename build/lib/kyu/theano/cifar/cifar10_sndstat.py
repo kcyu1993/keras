@@ -13,6 +13,8 @@ save it in a different format, load it in Python 3 and repickle it.
 
 from __future__ import print_function
 import os
+
+
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['KERAS_BACKEND'] = 'theano'
 # os.environ['KERAS_BACKEND'] = 'tensorflow'
@@ -21,19 +23,21 @@ import logging
 import sys
 
 from kyu.utils.example_engine import ExampleEngine
-from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR, covariance_block_vector_space
+from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR
+from kyu.models.keras_support import covariance_block_vector_space
 from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.engine import Input
 from keras.engine import Model
 from keras.engine import merge
 from keras.layers import Convolution2D, MaxPooling2D, O2Transform
-from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedProbability
+from keras.layers import Dense, Dropout, Activation, Flatten, SecondaryStatistic, WeightedVectorization
 from keras.models import Sequential
 from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
+from kyu.models.cifar import model_original, model_snd, cifar_fitnet_v1, cifar_fitnet_v3, cifar_fitnet_v5
 
 import keras.backend as K
 
@@ -89,266 +93,6 @@ X_test /= 255
 input_shape = X_train.shape[1:]
 
 
-def cifar_fitnet_v1(second=False, parametric=[]):
-    """
-    Implement the fit model has 205K param
-    Without any Maxout design in this version
-    Just follows the general architecture
-
-    :return: model sequential
-    """
-    basename = 'fitnet_v1'
-
-    model = Sequential()
-    model.add(Convolution2D(16, 3, 3, border_mode='valid', input_shape=input_shape))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(16, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(16, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D())
-    model.add(Dropout(0.25))
-
-    model.add(Convolution2D(32, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(32, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(32, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D())
-
-    model.add(Convolution2D(48, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(48, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(64, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    # model.add(MaxPooling2D(pool_size=(2, 2)))
-
-    if not second:
-        model.add(Flatten())
-        model.add(Dense(500))
-        model.add(Dense(nb_classes, activation='softmax'))
-        basename += "_fc"
-    else:
-        model.add(SecondaryStatistic(name='second_layer'))
-        basename += "_snd"
-        if parametric is not []:
-            basename += '_para-'
-            for para in parametric:
-                basename += str(para) + '_'
-        for ind, para in enumerate(parametric):
-            model.add(O2Transform(output_dim=para, name='O2transform_{}'.format(ind)))
-        model.add(WeightedProbability(output_dim=nb_classes))
-        model.add(Activation('softmax'))
-
-    model.name = basename
-    return model
-
-
-def cifar_fitnet_v2(parametrics=[], epsilon=0., mode=0):
-    """
-        Implement the fit model has 205K param
-        Without any Maxout design in this version
-        Just follows the general architecture
-
-    Parameters
-    ----------
-    parametrics
-    epsilon
-    mode : 0 - 7
-
-    Returns
-    -------
-    model
-    """
-    nb_class = nb_classes
-    basename = 'fitnet_v2'
-    if parametrics is not []:
-        basename += '_para-'
-        for para in parametrics:
-            basename += str(para) + '_'
-    basename += 'mode_{}'.format(str(mode))
-
-    if epsilon > 0:
-        basename += '-epsilon_{}'.format(str(epsilon))
-
-    input_tensor = Input(input_shape)
-    x = Convolution2D(16, 3, 3, border_mode='same')(input_tensor)
-    x = Activation('relu')(x)
-    x = Convolution2D(16, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = Convolution2D(16, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D()(x)
-    x = Dropout(0.25)(x)
-    block1_x = x
-
-    x = Convolution2D(32, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = Convolution2D(32, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = Convolution2D(32, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D()(x)
-    x = Dropout(0.25)(x)
-
-    block2_x = x
-    x = Convolution2D(48, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = Convolution2D(48, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = Convolution2D(64, 3, 3, border_mode='same')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D()(x)
-    x = Dropout(0.25)(x)
-    # model.add(MaxPooling2D(pool_size=(2, 2)))
-
-    block3_x = x
-
-    cov_input = block3_x
-    if mode == 0: # Original Network
-        x = Flatten()(x)
-        x = Dense(500)(x)
-        x = Dense(nb_classes)(x)
-        x = Activation('softmax')(x)
-    elif mode == 1: # Original Cov_Net
-        x = covariance_block_vector_space(x, nb_class, stage=4, block='a', epsilon=epsilon, parametric=parametrics)
-        x = Activation('softmax')(x)
-
-    elif mode == 2: # Concat balanced
-        cov_branch = covariance_block_vector_space(cov_input, nb_class,
-                                                   stage=4, epsilon=epsilon,
-                                                   block='a', parametric=parametrics)
-        x = Flatten()(x)
-        x = Dense(nb_class, activation='relu', name='fc')(x)
-        x = merge([x, cov_branch], mode='concat', name='concat')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
-
-    elif mode == 3: # Concat two softmax
-        cov_branch = covariance_block_vector_space(cov_input, nb_class, epsilon=epsilon,
-                                                   stage=4, block='a', parametric=parametrics)
-        x = Flatten()(x)
-        x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
-        cov_branch = Activation('softmax')(cov_branch)
-        x = merge([x, cov_branch], mode='concat', name='concat')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
-
-    elif mode == 4: # Concat multiple branches (balanced)
-        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, epsilon=epsilon,
-                                                    stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, epsilon=epsilon,
-                                                    stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, epsilon=epsilon,
-                                                    stage=4, block='c', parametric=parametrics)
-        x = Flatten()(x)
-        x = Dense(nb_class)(x)
-        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
-
-    elif mode == 5: # Concat multiple 'softmax' final layers
-        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, epsilon=epsilon,
-                                                    stage=2, block='a',
-                                                    parametric=parametrics, activation='softmax')
-        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, epsilon=epsilon,
-                                                    stage=3, block='b',
-                                                    parametric=parametrics, activation='softmax')
-        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, epsilon=epsilon,
-                                                    stage=4, block='c',
-                                                    parametric=parametrics, activation='softmax')
-        x = Flatten()(x)
-        x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
-        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
-
-    elif mode == 6: # Average multiple relu
-        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, epsilon=epsilon,
-                                                    stage=2, block='a', parametric=parametrics)
-        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, epsilon=epsilon,
-                                                    stage=3, block='b', parametric=parametrics)
-        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, epsilon=epsilon,
-                                                    stage=4, block='c', parametric=parametrics)
-        x = Flatten()(x)
-        x = Dense(nb_class, activation='relu', name='fc')(x)
-        cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
-        x = merge([x, cov_branch], mode='concat', name='concat')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
-    elif mode == 7: # Average multiple softmax
-        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, epsilon=epsilon,
-                                                    stage=2, block='a',
-                                                    parametric=parametrics, activation='softmax')
-        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, epsilon=epsilon,
-                                                    stage=3, block='b',
-                                                    parametric=parametrics, activation='softmax')
-        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, epsilon=epsilon,
-                                                    stage=4, block='c',
-                                                    parametric=parametrics, activation='softmax')
-        x = Flatten()(x)
-        x = Dense(nb_class, activation='softmax', name='fc_softmax')(x)
-        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='ave', name='average')
-        x = Dense(nb_class, activation='softmax', name='predictions')(x)
-    else:
-        raise ValueError("Mode not supported {}".format(mode))
-
-    model = Model(input_tensor, x, name=basename)
-    return model
-
-
-def model_original():
-    model = Sequential()
-
-    model.add(Convolution2D(32, 3, 3, border_mode='same',
-                            input_shape=X_train.shape[1:]))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(32, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-
-    model.add(Convolution2D(64, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(64, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-
-    model.add(Flatten())
-    model.add(Dense(512))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(nb_classes))
-    model.add(Activation('softmax'))
-
-    return model
-
-
-def model_snd(parametric=True):
-    model = Sequential()
-
-    model.add(Convolution2D(32, 3, 3, border_mode='same',
-                            input_shape=X_train.shape[1:]))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(32, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-
-    model.add(Convolution2D(64, 3, 3, border_mode='same'))
-    model.add(Activation('relu'))
-    model.add(Convolution2D(64, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-
-    model.add(SecondaryStatistic(activation='linear'))
-    if parametric:
-        model.add(O2Transform(activation='relu', output_dim=100))
-    model.add(WeightedProbability(10,activation='linear', init='normal'))
-    model.add(Activation('softmax'))
-
-    # let's train the model using SGD + momentum (how original).
-    return model
-
 
 def resnet50_original():
     # img_input = Input(shape=(img_channels, img_rows, img_cols))
@@ -364,7 +108,7 @@ def resnet50_snd(parametric=False):
     if parametric:
         x = O2Transform(output_dim=100, activation='relu')(x)
         x = O2Transform(output_dim=10, activation='relu')(x)
-    x = WeightedProbability(output_dim=nb_classes, activation='softmax')(x)
+    x = WeightedVectorization(output_dim=nb_classes, activation='softmax')(x)
     model = Model(img_input, x, name='ResNet50CIFAR_snd')
     return model
 
@@ -400,21 +144,64 @@ def run_resnet_merge(parametrics=[], verbose=1, start=0, stop=3):
         fit_model(model, load=False, save=True, verbose=verbose)
 
 
-def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, mode_list=None, epsilon=0, title='cifar'):
+def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, cov_mode='o2transform',
+                     mode_list=None, epsilon=0, title='cifar', dropout=True, cov_output=None,
+                     init='glorot_uniform',
+                     cov_mode_input=3,
+                     dense_after_covariance=True,
+                     cifar_version=3):
+    """
+    Run Fit-net merge layer testing. All testing cases could be passed throught this interface.
+    With all environment settings.
+
+
+    Parameters
+    ----------
+    parametrics
+    verbose
+    start
+    stop
+    cov_mode
+    mode_list
+    epsilon
+    title
+    dropout
+    cov_output
+    dense_after_covariance
+
+    Returns
+    -------
+
+    """
+    # TODO Use kwargs to pass the parameters.
+
+    # Deprecate the epsilons
+
     print('epsilon = ' + str(epsilon))
     if mode_list is None:
         mode_list = range(start=start, stop=stop)
-    from kyu.models.cifar import cifar_fitnet_v2
     for mode in mode_list:
-        if mode in [3,5,7]:
-            print('skip cov_mode {}'.format(mode))
-            continue
-        model = cifar_fitnet_v2(parametrics=parametrics, epsilon=epsilon, mode=mode, nb_classes=nb_classes)
+        # if mode in [3,5,7]:
+        #     print('skip cov_mode {}'.format(mode))
+        #     continue
+        if cifar_version == 3:
+            model = cifar_fitnet_v3(parametrics=parametrics, epsilon=epsilon, mode=mode,
+                                    nb_classes=nb_classes, dropout=dropout, init=init,
+                                    cov_mode=cov_mode, cov_branch_output=cov_output,
+                                    cov_block_mode=cov_mode_input,
+                                    dense_after_covariance=dense_after_covariance)
+        elif cifar_version == 5:
+            model = cifar_fitnet_v5(parametrics=parametrics, epsilon=epsilon, mode=mode,
+                                    nb_classes=nb_classes, dropout=dropout, init=init,
+                                    cov_mode=cov_mode, cov_branch_output=cov_output,
+                                    dense_after_covariance=dense_after_covariance)
+        else:
+            print('cifar version not supported ' + str(cifar_version))
+            return
         fit_model(model, load=False, save=True, verbose=verbose, title=title)
 
 
 def fit_model(model, load=False, save=True, verbose=1, title='cifar10'):
-
 
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
@@ -536,7 +323,8 @@ def run_routine10():
 
     """
     nb_epoch = 50
-    model = cifar_fitnet_v1(False)
+    # model = cifar_fitnet_v1(False)
+    model = cifar_fitnet_v3([], mode=0, input_shape=(32, 32, 3))
     fit_model(model, load=False, save=False, verbose=2)
 
 
@@ -565,16 +353,168 @@ def run_routine12():
     """
     nb_epoch = 200
     # param = [16, 8]
-    param = [16, 32]
-    print("Routine 12 nb_epoch {} paramatric mode {}".format(nb_epoch,param))
+    # param = [16, 32]
     # run_fitnet_merge([], 1, mode_list=[2,4,6,8])
-    # run_fitnet_merge([100], 1, mode_list=[2])
+    # run_fitnet_merge([], 1, mode_list=[0], title='cifar10-baseline-nodropout')
     # run_fitnet_merge([50], 1, mode_list=[4,2,3,1,5,6,7,8])
     # run_fitnet_merge([50,20], 1, mode_list=[4,2,3,1,5,6,7,8], title='cifar10-cov-dense')
-    run_fitnet_merge(param, 1, mode_list=[4,2,3,1,5,6,7,8], title='cifar10-cov-dense_100_nodropout')
+    for param in [[16,32], [16,8]]:
+        print("Routine 12 nb_epoch {} paramatric mode {}".format(nb_epoch,param))
+        # run_fitnet_merge(param, 1, mode_list=[2], title='cifar10-cov-o2t', cov_mode='o2transform')
+        run_fitnet_merge(param, 1, mode_list=[0], title='cifar10-baseline', cov_mode='dense')
+
     # run_fitnet_merge([100], 1, mode_list=[2])
     # run_fitnet_merge([100], 1, mode_list=[1,2])
 
+
+def run_routine13():
+    """
+    Create for CIFAR 10 test
+    2016.12.14
+
+    Made for a complete test case for the following steps:
+    1.  Model information:
+            test Cov-branch: SecondStat - (O2Transform) - WP (cov_output) - Dense(10)
+                where cov_output == 500
+        Specifications:
+            parameters: [ [], [50], [100], [100,50], [16, 8], [32, 16], [16, 32]]
+            cov_output = [500, 100, 50]
+            title = 'cifar10_cov_o2t_wp_dense'
+            init='glorot_normal'
+        Experiments:
+            2016.12.20  Mode 1 vs Mode 0 (where mode 0 is only run for cov_output - times
+            2017.1.3    3 Layer models from mode 1 to 9.
+
+        # Run 2 2016.12.15 -> Should run non-para after this
+
+        # Test 3-layer model
+
+    2.
+    Returns
+    -------
+
+    """
+    # params = [[50], [100], [100,50], [16, 8]]
+    # params = [[100,100,100], [50,50,50],[25,25,25]]   # Exp 2
+    # params = [[25,25,25]]                             # Exp 2
+    # params = [[100,50], [50,25], [100,75]]
+    # params = [[64,32,16],[100,50,25]]                 # Exp 2
+    # params = [[], [100], [32, 16], [16, 32]]
+    ### Systematic experiments
+    params = [[], [50], [100], [100,50], [16, 8], [32, 16], [16, 32]]   # exp 3
+    nb_epoch = 200
+    # cov_outputs = [10]
+    cov_outputs = [50]
+    for cov_output in cov_outputs:
+        for param in params:
+            print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
+            print('Initialize with glorot_normal')
+            # run_fitnet_merge(param, mode_list=[1,2,3,4,5,6,7,8,9],
+            run_fitnet_merge(param, mode_list=[1,2,3],
+                             title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
+                             cov_mode='o2transform', dropout=False, init='glorot_normal',
+                             cov_output=cov_output)
+
+
+def run_routine14():
+    """
+    Create for CIFAR 10 test
+    2017.1.10
+
+    Made for interesting findings verifications:
+    1.  Model information:
+            test Cov-branch: SecondStat - (O2Transform) - WP (cov_output) - Dense(10)
+                where cov_output == previous O2Transform number
+        Specifications:
+            parameters: [ [50], [100], [100,50], [16, 8], [32, 16], [16, 32]]
+            cov_output = [ 50, 100, 50, 8, 16, 32 ] for each model
+            title = 'cifar10_cov_o2t_wp{}_dense'
+            init='glorot_normal'
+        Experiments:
+            2017.1.10 : Test all param with cov_output correspondingly
+            2017.1.10 : Test all params with mode 10, with cov_output=10
+            2017.1.10 : Test with mode 11, obtain the baseline.
+            2017.1.17 : Test Cov-input from different block.
+                            100,50 0.1 percentage improve, test with all settings
+            2017.1.17 : Test complete 3 Cov-branch with average wp
+    2.
+    Returns
+    -------
+
+    """
+    nb_epoch = 200
+
+    # params = [[100, 50], [50], [100],  [16, 8], [32, 16], [16, 32]] # exp 1,2,5
+    # params = [[]] # exp 3
+    params = [[100,50]] # exp 6
+    # params = [[50], [100],  [16, 8], [32, 16], [16, 32]] # exp 4 [100,50] tested
+
+    # mode_list = [1,2]   # exp 1
+    # mode_list = [10]    # exp 2
+    # mode_list = [11]    # exp 3
+    # mode_list = [2]     # exp 4
+    # mode_list = [13]    # exp 5
+    mode_list = [2]       # exp 6
+
+    # cov_output = None   # exp 1, 3, 4 (not important)
+    # cov_output = 10     # exp 2, 5
+    cov_output = 50     # exp 6
+
+    # cov_mode_input = 3  # exp 1,2,3
+    # cov_mode_input = 1  # exp 4, 5(not important)
+    cov_mode_input = 2  # exp 6 compare 1,2,3 block with 100-50
+
+    for param in params:
+        print("Run routine 14 nb epoch {} param mode {} mode list {}".format(nb_epoch, param, mode_list))
+        print('Initialize with glorot_normal')
+        if cov_output is None and len(param) > 0:
+            cov_output = param[-1]
+        else:
+            cov_output = nb_classes
+        run_fitnet_merge(param, mode_list=mode_list,
+                         title='cifar10_cov_o2t_wp{}_dense_nodropout_block_{}'.format(
+                             str(cov_output), str(cov_mode_input)),
+                         cov_mode_input=cov_mode_input,
+                         cov_mode='o2transform', dropout=False, init='glorot_normal',
+                         cov_output=cov_output)
+
+def run_routine15():
+    """
+    Create for new ideas:
+        Experiment 1: 2016.1.19
+            Veryfication of new idea. Separate Convolution blocks for 1st and 2nd order information.
+            Right after the input.
+
+
+    Returns
+    -------
+
+    """
+    nb_epoch = 200
+    exp = 2
+    if exp == 1:
+        params = [[100, 50], [128, 64], [512,256], [100,100], [64,64], [128,64,32]] # exp 1
+        mode_list = [1]
+        cov_outputs = [100, 50, 10]
+    elif exp == 2:
+        params = [[100, 50], [128, 64], [512,256], [100,100], [64,64], [128,64,32]] # exp 1
+        mode_list = [1]
+        cov_outputs = [100, 50, 10]
+    else:
+        return
+    print("Running experiment {}".format(exp))
+    for param in params:
+        for mode in mode_list:
+            for cov_output in cov_outputs:
+                print("Run routine 15 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
+                run_fitnet_merge(param, mode_list=[mode],
+                                 title='cifar10_cov_o2t_wp{}_two_branch'.format(
+                                     str(cov_output)
+                                 ),
+                                 cov_mode_input=3,
+                                 cifar_version=5,
+                                 cov_mode='o2transform',dropout=False, init='glorot_normal',
+                                 cov_output=cov_output)
 
 if __name__ == '__main__':
     nb_epoch = 200
@@ -592,4 +532,8 @@ if __name__ == '__main__':
     # run_routine9()
     # run_routine11()
     # plot_rescov_results()
-    run_routine12()
+    # run_routine12()
+    # run_routine13()
+    # run_routine10()
+    # run_routine14()
+    run_routine15()

@@ -38,6 +38,7 @@ from __future__ import division
 from __future__ import print_function
 
 
+
 """
 Make sure it could be run [check]
 Add the keras model into such process to make it trainable in TF framework
@@ -47,19 +48,30 @@ Use this CIFAR example as general framework to feed model
 
 from datetime import datetime
 import time
-
+import os
+os.environ['KERAS_BACKEND'] = 'tensorflow'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import tensorflow as tf
+from tensorflow.models.image.cifar10 import cifar10
 
-# from tensorflow.models.image.cifar10 import cifar10
-from kyu.tensorflow.cifar.cifar10_keras import cifar_fitnet_v1, cifar_fitnet_v1_test
-# from kyu.tensorflow.cifar.cifar10_models import fitnet_inference
-import kyu.tensorflow.cifar.cifar10_models as cifar10
-from kyu.tensorflow.cifar.cifar10_slim import fitnet_slim
-from keras.objectives import categorical_crossentropy
+
+# Keras models
+import keras
 import keras.backend as K
+if K.backend() == 'tensorflow':
+    K.set_image_dim_ordering('tf')
+
+from kyu.models.cifar import cifar_fitnet_v4
+# from kyu.tensorflow.cifar.cifar10_models import fitnet_inference
+# import kyu.tensorflow.cifar.cifar10_models as cifar10
+# from keras.objectives import categorical_crossentropy
+
+
+from kyu.tensorflow.cifar.cifar10_slim import fitnet_slim, simple_slim_model, simple_second_model
+
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train1',
+tf.app.flags.DEFINE_string('train_dir', '/home/kyu/cvkyu/tensorboard/cifar10/simpleSecondModel',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 1000000,
@@ -67,6 +79,12 @@ tf.app.flags.DEFINE_integer('max_steps', 1000000,
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
+K.set_learning_phase(1)
+# inference = cifar_fitnet_v3(input_shape=(24, 24, 3), dropout=False, last_softmax=False)
+inference = simple_second_model
+# inference = simple_slim_model
+# inference = cifar10.inference
+# inference = fitnet_slim
 
 def train():
     """Train CIFAR-10 for a number of steps."""
@@ -81,29 +99,12 @@ def train():
         # inference model.
         # logits = cifar10.inference(images)
 
-        # Calculate loss.
-
-
-        # Define keras part
-        K.set_learning_phase(1)
-        # model = cifar_fitnet_v1((24, 24, 3))
-
-        #
-        model = cifar_fitnet_v1((24, 24, 3))
-        logits = model(images)
-
-        # loss = tf.reduce_mean(K.categorical_crossentropy(logits, labels, from_logits=True))
-        # test_image = tf.placeholder(tf.float32, shape=(None, 24, 24, 3))
-        # logits = cifar_fitnet_v1_test(test_image)
-
-        # logits = cifar_fitnet_v1_test(images)
-
-        # logits = cifar10.fitnet_inference(images)
-
         # Use slim to build model
-        logits = fitnet_slim(images)
+        logits = inference(images)
 
+        # Calculate loss.
         loss = cifar10.loss(logits, labels)
+
         # Build a Graph that trains the model with one batch of examples and
         # updates the model parameters.
         train_op = cifar10.train(loss, global_step)
@@ -131,12 +132,16 @@ def train():
                                   'sec/batch)')
                     print (format_str % (datetime.now(), self._step, loss_value,
                                          examples_per_sec, sec_per_batch))
+                if self._step % 5000 == 0 and self._step != 0:
+                    # Save the model
+                    pass
 
         with tf.train.MonitoredTrainingSession(
                 checkpoint_dir=FLAGS.train_dir,
                 hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
                        tf.train.NanTensorHook(loss),
                        _LoggerHook()],
+                save_checkpoint_secs=1800,
                 config=tf.ConfigProto(
                     allow_soft_placement=True,
                     log_device_placement=FLAGS.log_device_placement)) as mon_sess:
@@ -144,13 +149,86 @@ def train():
                 mon_sess.run(train_op)
 
 
+def train_keras():
+    """Train CIFAR-10 for a number of steps."""
+    with tf.Graph().as_default():
+        global_step = tf.contrib.framework.get_or_create_global_step()
+
+        # Get images and labels for CIFAR-10.
+        # images, labels = cifar10.distorted_inputs()
+        images, labels = cifar10.inputs(False)
+
+        # Build a Graph that computes the logits predictions from the
+        # inference model.
+        # logits = cifar10.inference(images)
+
+        # Calculate loss.
+
+        # Define keras part
+        print('keras version ' + keras.__version__)
+        K.set_learning_phase(1)
+        model = cifar_fitnet_v4(input_shape=(24, 24, 3), dropout=True, last_softmax=False)
+
+        logits = model(images)
+
+        # loss = tf.reduce_mean(K.categorical_crossentropy(logits, labels, from_logits=True))
+        # test_image = tf.placeholder(tf.float32, shape=(None, 24, 24, 3))
+        # logits = cifar_fitnet_v1_test(test_image)
+
+        # logits = cifar_fitnet_v1_test(images)
+
+        # logits = cifar10.fitnet_inference(images)
+
+        loss = cifar10.loss(logits, labels)
+        # Build a Graph that trains the model with one batch of examples and
+        # updates the model parameters.
+        train_op = cifar10.train(loss, global_step)
+
+        class _LoggerHook(tf.train.SessionRunHook):
+            """Logs loss and runtime."""
+
+            def begin(self):
+                self._step = -1
+
+            def before_run(self, run_context):
+                self._step += 1
+                self._start_time = time.time()
+                return tf.train.SessionRunArgs(loss)  # Asks for loss value.
+
+            def after_run(self, run_context, run_values):
+                duration = time.time() - self._start_time
+                loss_value = run_values.results
+                if self._step % 10 == 0:
+                    num_examples_per_step = FLAGS.batch_size
+                    examples_per_sec = num_examples_per_step / duration
+                    sec_per_batch = float(duration)
+
+                    format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
+                                  'sec/batch)')
+                    print(format_str % (datetime.now(), self._step, loss_value,
+                                        examples_per_sec, sec_per_batch))
+
+
+
+        with tf.train.MonitoredTrainingSession(
+                checkpoint_dir=FLAGS.train_dir,
+                hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
+                       tf.train.NanTensorHook(loss),
+                       _LoggerHook()],
+                save_checkpoint_secs=1800,  # Save the model every 1800 seconds
+                config=tf.ConfigProto(
+                    allow_soft_placement=True,
+                    log_device_placement=FLAGS.log_device_placement)) as mon_sess:
+            while not mon_sess.should_stop():
+                mon_sess.run(train_op)
+
 def main(argv=None):  # pylint: disable=unused-argument
     cifar10.maybe_download_and_extract()
     if tf.gfile.Exists(FLAGS.train_dir):
         tf.gfile.DeleteRecursively(FLAGS.train_dir)
     tf.gfile.MakeDirs(FLAGS.train_dir)
     train()
-
+    # train_keras()
 
 if __name__ == '__main__':
     tf.app.run()

@@ -32,7 +32,7 @@ def test_multiple_model():
 
 def test_plot_multi_train_test():
 
-    path = visualize_util.plot_loss_acc(
+    path = visualize_util.plot_multiple_loss_acc(
         tr[0], te[0], tr[1], te[1], range(epoch),
         xlabel='epoch', ylabel=['loss','acc'],
         linestyle=['-', '-.'],

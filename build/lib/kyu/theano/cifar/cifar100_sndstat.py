@@ -17,7 +17,7 @@ from keras.datasets import cifar100
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, Input
-from keras.layers import Convolution2D, MaxPooling2D, SecondaryStatistic, WeightedProbability
+from keras.layers import Convolution2D, MaxPooling2D, SecondaryStatistic, WeightedVectorization
 from keras.applications.resnet50 import ResNet50, ResNet50CIFAR
 from keras.optimizers import SGD
 from keras.utils import np_utils
@@ -112,7 +112,7 @@ def model_snd():
     model.add(Dropout(0.25))
 
     model.add(SecondaryStatistic(activation='linear'))
-    model.add(WeightedProbability(nb_classes, activation='linear', init='normal'))
+    model.add(WeightedVectorization(nb_classes, activation='linear', init='normal'))
     model.add(Activation('softmax'))
 
     # let's train the model using SGD + momentum (how original).
