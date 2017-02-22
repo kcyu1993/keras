@@ -15,7 +15,7 @@ from __future__ import print_function
 import os
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 os.environ['KERAS_BACKEND'] = 'theano'
 # os.environ['KERAS_BACKEND'] = 'tensorflow'
 
@@ -395,22 +395,23 @@ def run_routine13():
 
     """
     # params = [[50], [100], [100,50], [16, 8]]
-    # params = [[100,100,100], [50,50,50],[25,25,25]]   # Exp 2
+    params = [[100,100,100], [50,50,50],[25,25,25], [64,32,16],[100,50,25]]   # Exp 2
     # params = [[25,25,25]]                             # Exp 2
     # params = [[100,50], [50,25], [100,75]]
     # params = [[64,32,16],[100,50,25]]                 # Exp 2
     # params = [[], [100], [32, 16], [16, 32]]
     ### Systematic experiments
-    params = [[], [50], [100], [100,50], [16, 8], [32, 16], [16, 32]]   # exp 3
+    # params = [[], [50], [100], [100,50], [16, 8], [32, 16], [16, 32]]   # exp 3
+    # params = [[]]
     nb_epoch = 200
     # cov_outputs = [10]
-    cov_outputs = [50]
+    cov_outputs = [100]
     for cov_output in cov_outputs:
         for param in params:
             print("Run routine 13 nb epoch {} param mode {}".format(nb_epoch, param))
             print('Initialize with glorot_normal')
             # run_fitnet_merge(param, mode_list=[1,2,3,4,5,6,7,8,9],
-            run_fitnet_merge(param, mode_list=[1,2,3],
+            run_fitnet_merge(param, mode_list=[1],
                              title='cifar10_cov_o2t_wp{}_dense_nodropout'.format(str(cov_output)),
                              cov_mode='o2transform', dropout=False, init='glorot_normal',
                              cov_output=cov_output)
@@ -491,13 +492,17 @@ def run_routine15():
 
     """
     nb_epoch = 200
-    exp = 2
+    exp = 3
     if exp == 1:
         params = [[100, 50], [128, 64], [512,256], [100,100], [64,64], [128,64,32]] # exp 1
         mode_list = [1]
         cov_outputs = [100, 50, 10]
     elif exp == 2:
         params = [[100, 50], [128, 64], [512,256], [100,100], [64,64], [128,64,32]] # exp 1
+        mode_list = [1]
+        cov_outputs = [100, 50, 10]
+    elif exp == 3:
+        params = [[], [100], [50]] # exp 1
         mode_list = [1]
         cov_outputs = [100, 50, 10]
     else:
@@ -514,6 +519,29 @@ def run_routine15():
                                  cov_mode_input=3,
                                  cifar_version=5,
                                  cov_mode='o2transform',dropout=False, init='glorot_normal',
+                                 cov_output=cov_output)
+
+def print_model_structures():
+    nb_epoch = 200
+    exp = 1
+    if exp == 1:
+        params = [[]]  # exp 1
+        mode_list = [1]
+        cov_outputs = [10]
+    else:
+        return
+    print("Running experiment {}".format(exp))
+    for param in params:
+        for mode in mode_list:
+            for cov_output in cov_outputs:
+                print("Print the routine 15 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
+                run_fitnet_merge(param, mode_list=[mode],
+                                 title='cifar10_cov_o2t_wp{}_two_branch'.format(
+                                     str(cov_output)
+                                 ),
+                                 cov_mode_input=3,
+                                 cifar_version=3,
+                                 cov_mode='o2transform', dropout=False, init='glorot_normal',
                                  cov_output=cov_output)
 
 if __name__ == '__main__':
@@ -533,7 +561,8 @@ if __name__ == '__main__':
     # run_routine11()
     # plot_rescov_results()
     # run_routine12()
-    # run_routine13()
+    run_routine13()
     # run_routine10()
     # run_routine14()
-    run_routine15()
+    # run_routine15()
+    # print_model_structures()

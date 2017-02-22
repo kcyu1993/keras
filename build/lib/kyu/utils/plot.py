@@ -6,6 +6,9 @@ from example_engine import ExampleEngine
 
 def plot_cifar_fitnet(folder_name, significant_model=None,
                       log_history=None, log_model_name=None,
+                      printWVIndex=False,
+                      showDetails=True,
+                      showLegend=True,
                       xlim=(0,200), ylim=(0,0.5)):
     # Execute on local machine
     from example_engine import gethistoryfiledir
@@ -14,8 +17,13 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
     hist_list = []
     model_name_list = []
 
+    # filenames = sorted(os.listdir(hist_dir))
+    # new_filenames = filenames[3:]
+    # new_filenames.append(filenames[2])
+    # print(new_filenames)
     # Load history from gz file
     for filename in os.listdir(hist_dir):
+    # for filename in new_filenames:
         if filename.endswith('.gz'):
             # file_list.append(filename)
             try:
@@ -24,7 +32,14 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
                 continue
             except IOError:
                 continue
-            model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1]
+            if printWVIndex:
+                if filename.find('baseline') > 0:
+                    model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1]
+                else:
+                    model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1] + \
+                        '_' + filename.split('_')[3]
+            else:
+                model_name = filename[filename.find('-') + 1: -filename.split('_')[-1].__len__() - 1]
             model_name_list.append(model_name)
             hist_list.append(hist_dict)
 
@@ -61,6 +76,10 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
         if significant_model is not None:
             if name in significant_model:
                 sig_id.append(ind)
+
+        if showDetails:
+            print("Model {}: \t Train loss {} \t acc {}, \t Test Loss {} \t acc {}.".format(
+                name, tr_loss[-1], 1 - tr_mis[-1], te_loss[-1], 1 - te_mis[-1]))
         # if loss_acc:
         #   plot_loss_acc(hist_dict['loss'], hist_dict['val_loss'],
         #                            tr_mis, te_mis,
@@ -68,13 +87,13 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
         #                            )
 
     # Merge the repeated name. i.e. if the name is the same, use average to merge.
-
     plot_multiple_train_test(list_tr_mis, list_te_mis, model_name_list,
                              xlabel='epoch', ylabel='mis-classification',
                              filename=folder_name,
                              significant=sig_id, sig_color=('k', 'b', 'r'),
                              # xlim=[0,200], ylim=[0, 1]
-                             xlim=xlim, ylim=ylim
+                             xlim=xlim, ylim=ylim,
+                             showLegend=showLegend
                              )
 
 
@@ -197,9 +216,22 @@ if __name__ == '__main__':
 
     # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
     # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_3para_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
-    # plot_cifar_fitnet('Fitnet_v3_CIFAR10_wp50_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
-    plot_cifar_fitnet('Fitnet_v3_CIFAR10_no_dropout_wp10_mode13', significant_model=['fitnet_v2_baseline_0'])
+    plot_cifar_fitnet('FitNet-DCov Multiple Branch for WV50', significant_model=['fitnet_v2_baseline_0','fitnet_v2_baseline_1'],
+                      showLegend=False)
+    # plot_cifar_fitnet('Fitnet_v3_CIFAR10_no_dropout_wp10_mode13', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('FitNet Single Branch DCov-0', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('FitNet Single Branch DCov-1', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('FitNet Single Branch DCov-2', significant_model=['fitnet_v2_baseline_0'])
+    # plot_cifar_fitnet('FitNet Single Branch DCov-3', significant_model=['fitnet_v2_baseline_0'], printWVIndex=True)
 
+    # plot_cifar_fitnet('Comparison of Mix branch', significant_model=['fitnet_v2_baseline_0'], showLegend=True)
+    # plot_cifar_fitnet('Comparison of Dual stream', significant_model=['fitnet_v2_baseline_0','fitnet_v2_baseline_1'],
+    #                   showLegend=False, printWVIndex=True)
+    # plot_cifar_fitnet('FitNet Dual Stream DCov-2', significant_model=['fitnet_v2_baseline_0','fitnet_v2_baseline_1'],
+    #                   showLegend=False, printWVIndex=True)
+    #
+    # plot_cifar_fitnet('Comparison of different WV output dimension', significant_model=['fitnet_v2_baseline_0'],
+    #                   showDetails=True)
     # plot_cifar_fitnet('Fitnet_v3_CIFAR10_no_dropout_wp10_mode10-compare-earlier', significant_model=['cifar10_cov_o2t_wp10_dense_nodropout-fitnet_v2_para-mode_11'])
 
 

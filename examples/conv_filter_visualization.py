@@ -16,7 +16,7 @@ img_width = 128
 img_height = 128
 
 # the name of the layer we want to visualize
-# (see model definition at keras/applications/vgg16.py)
+# (see model definition at keras/applications/vgg.py)
 layer_name = 'block5_conv1'
 
 # util function to convert a tensor into a valid image

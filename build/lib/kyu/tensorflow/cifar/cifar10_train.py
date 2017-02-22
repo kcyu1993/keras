@@ -50,9 +50,11 @@ from datetime import datetime
 import time
 import os
 os.environ['KERAS_BACKEND'] = 'tensorflow'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import tensorflow as tf
-from tensorflow.models.image.cifar10 import cifar10
+# from tensorflow.python import debug as tf_debug
+
+from kyu.tensorflow.cifar import cifar10
 
 
 # Keras models
@@ -67,11 +69,11 @@ from kyu.models.cifar import cifar_fitnet_v4
 # from keras.objectives import categorical_crossentropy
 
 
-from kyu.tensorflow.cifar.cifar10_slim import fitnet_slim, simple_slim_model, simple_second_model
+from kyu.tensorflow.cifar.cifar10_slim import fitnet_slim, simple_slim_model, simple_second_model, simple_log_model
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/home/kyu/cvkyu/tensorboard/cifar10/simpleSecondModel',
+tf.app.flags.DEFINE_string('train_dir', '/home/kyu/cvkyu/tensorboard/cifar10/simpleSecondModel/DCov_Log_2',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 1000000,
@@ -79,12 +81,15 @@ tf.app.flags.DEFINE_integer('max_steps', 1000000,
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
+# tf.app.flags.DEFINE_boolean('debug', True,'debug info')
 K.set_learning_phase(1)
+
 # inference = cifar_fitnet_v3(input_shape=(24, 24, 3), dropout=False, last_softmax=False)
-inference = simple_second_model
+# inference = simple_second_model
+inference = simple_log_model
 # inference = simple_slim_model
 # inference = cifar10.inference
-# inference = fitnet_slim
+
 
 def train():
     """Train CIFAR-10 for a number of steps."""
@@ -135,7 +140,6 @@ def train():
                 if self._step % 5000 == 0 and self._step != 0:
                     # Save the model
                     pass
-
         with tf.train.MonitoredTrainingSession(
                 checkpoint_dir=FLAGS.train_dir,
                 hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
@@ -144,9 +148,20 @@ def train():
                 save_checkpoint_secs=1800,
                 config=tf.ConfigProto(
                     allow_soft_placement=True,
-                    log_device_placement=FLAGS.log_device_placement)) as mon_sess:
+                    log_device_placement=FLAGS.log_device_placement),
+
+        ) as mon_sess:
             while not mon_sess.should_stop():
                 mon_sess.run(train_op)
+        # with tf.Session(
+        #         config=tf.ConfigProto(
+        #             allow_soft_placement=True,
+        #             log_device_placement=FLAGS.log_device_placement
+        #
+        #         )) as mon_sess:
+        #     mon_sess = tf_debug.LocalCLIDebugWrapperSession(mon_sess)
+        #     mon_sess.add_tensor_filter('has_inf_or_nan', tf_debug.has_inf_or_nan)
+        #     mon_sess.run(train_op)
 
 
 def train_keras():
@@ -208,8 +223,6 @@ def train_keras():
                     print(format_str % (datetime.now(), self._step, loss_value,
                                         examples_per_sec, sec_per_batch))
 
-
-
         with tf.train.MonitoredTrainingSession(
                 checkpoint_dir=FLAGS.train_dir,
                 hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
@@ -219,8 +232,11 @@ def train_keras():
                 config=tf.ConfigProto(
                     allow_soft_placement=True,
                     log_device_placement=FLAGS.log_device_placement)) as mon_sess:
+            # mon_sess = tf_debug.LocalCLIDebugWrapperSession(mon_sess)
+            # mon_sess.add_tensor_filter('has_inf_or_nan', tf_debug.has_inf_or_nan)
             while not mon_sess.should_stop():
                 mon_sess.run(train_op)
+
 
 def main(argv=None):  # pylint: disable=unused-argument
     cifar10.maybe_download_and_extract()

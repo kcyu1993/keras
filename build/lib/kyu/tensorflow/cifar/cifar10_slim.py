@@ -4,7 +4,7 @@ import tensorflow as tf
 from tensorflow.python.ops import nn
 
 # Second layer
-from keras.layers.secondstat import SecondaryStatistic, WeightedVectorization, O2Transform
+from keras.layers.secondstat import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform
 
 
 def fitnet_slim(input_tensor):
@@ -60,6 +60,33 @@ def simple_slim_model(input_tensor):
     return x
 
 
+def simple_log_model(input_tensor):
+    x = slim.conv2d(input_tensor, 8, [3, 3], scope='conv1',
+                    biases_initializer=tf.constant_initializer(0),
+                    weights_initializer=tf.truncated_normal_initializer(stddev=0.05)
+                    )
+
+    x = slim.conv2d(x, 8, [32, 32], scope='conv2')
+    x = slim.max_pool2d(x, [2, 2], scope='pool1')
+    x = slim.dropout(x, keep_prob=0.75, scope='dropout')
+
+    x = slim.conv2d(x, 16, [3, 3], scope='conv3')
+    x = slim.conv2d(x, 16, [3, 3], scope='conv4')
+    x = slim.max_pool2d(x, [2, 2], scope='pool2')
+    x = slim.dropout(x, keep_prob=0.75, scope='dropout2')
+    with tf.name_scope('SecondStatistics'):
+        x = SecondaryStatistic(activation='relu', dim_ordering='tf')(x)
+    x = O2Transform(16, activation='relu')(x)
+    x = O2Transform(16, activation='relu')(x)
+    with tf.name_scope("LogTransform"):
+        x = LogTransform(0.001)(x)
+    with tf.name_scope("WeightedVectorization"):
+        x = WeightedVectorization(16, activation='relu')(x)
+    x = slim.flatten(x, scope='flatten')
+    x = slim.fully_connected(x, 10, scope='predictions')
+    # x = slim.fully_connected(x, 10, activation_fn=nn.softmax, scope='predictions')
+    return x
+
 def simple_second_model(input_tensor):
     x = slim.conv2d(input_tensor, 32, [3,3], scope='conv1',
                     biases_initializer=tf.constant_initializer(0),
@@ -74,10 +101,15 @@ def simple_second_model(input_tensor):
     x = slim.conv2d(x, 64, [3,3], scope='conv4')
     x = slim.max_pool2d(x, [2,2], scope='pool2')
     x = slim.dropout(x, keep_prob=0.75, scope='dropout2')
-    x = SecondaryStatistic(activation='relu', dim_ordering='tf')(x)
+    with tf.name_scope('SecondStatistics'):
+        x = SecondaryStatistic(activation='relu', dim_ordering='tf')(x)
     # x = O2Transform(100, activation='relu')(x)
     # x = O2Transform(50, activation='relu')(x)
-    x = WeightedVectorization(100, activation='relu')(x)
+    with tf.name_scope("LogTransform"):
+        x = LogTransform(0.000)(x)
+    # with tf.name_scope("WeightedVectorization"):
+    #     x = WeightedVectorization(100, activation='relu')(x)
+    x = slim.flatten(x, scope='flatten')
     x = slim.fully_connected(x, 10, scope='predictions')
     # x = slim.fully_connected(x, 10, activation_fn=nn.softmax, scope='predictions')
     return x

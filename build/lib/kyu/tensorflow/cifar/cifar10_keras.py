@@ -28,11 +28,6 @@ def cifar10_tensorflow_model():
     x = LRN2D(n=4, name='norm1')(x)
 
 
-
-
-
-
-
 def cifar_fitnet_v1_test(input_tensor, init='glorot_normal'):
     x = Convolution2D(16, 3, 3, init=init, border_mode='same')(input_tensor)
     x = Activation('relu')(x)

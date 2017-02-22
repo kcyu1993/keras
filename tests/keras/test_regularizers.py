@@ -13,6 +13,7 @@ from keras.datasets import mnist
 from keras.utils import np_utils
 from keras import regularizers
 
+
 nb_classes = 10
 batch_size = 128
 nb_epoch = 5
@@ -82,7 +83,6 @@ def test_A_reg():
         model.fit(X_train, Y_train, batch_size=batch_size,
                   nb_epoch=nb_epoch, verbose=0)
         model.evaluate(X_test[test_ids, :], Y_test[test_ids, :], verbose=0)
-
 
 if __name__ == '__main__':
     pytest.main([__file__])

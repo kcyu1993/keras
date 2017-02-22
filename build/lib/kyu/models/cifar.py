@@ -1,8 +1,8 @@
+
 from __future__ import absolute_import
 
-from keras.applications.resnet50 import covariance_block_vector_space, ResNet50CIFAR
-from kyu.models.ilsvrc1000_vgg import covariance_block_vector_space
-from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space
+import keras.backend as K
+from keras.applications.resnet50 import ResNet50CIFAR
 from keras.engine import Input
 from keras.engine import merge
 from keras.layers import LogTransform
@@ -10,42 +10,8 @@ from keras.layers import \
     SecondaryStatistic, Convolution2D, Activation, MaxPooling2D, Dropout, \
     Flatten, O2Transform, Dense, WeightedVectorization
 from keras.models import Sequential, Model
-import keras.backend as K
-
-
-def convolution_block(input_tensor, feature_maps=[], kernel=[3,3], border_mode='same', init='glorot_normal',
-                      activation='relu', last_activation=True,
-                      stage=1, basename='conv'):
-    """
-    Generate convolutional block based on some input feature maps size and kernel.
-    Parameters
-    ----------
-    input_tensor
-    feature_maps
-    kernel
-    border_mode
-    init
-    activation
-    last_activation
-    stage
-    basename
-
-    Returns
-    -------
-
-    """
-    if len(feature_maps) < 1:
-        return input_tensor
-    x = input_tensor
-    for ind, f in enumerate(feature_maps[:-1]):
-        x = Convolution2D(f, kernel[0], kernel[1], init=init, border_mode=border_mode,
-                          name=basename + '_{}_{}'.format(stage, ind))(x)
-        x = Activation(activation=activation)(x)
-    x = Convolution2D(feature_maps[-1], kernel[0], kernel[1], init=init, border_mode=border_mode,
-                      name=basename + "_{}_{}".format(stage, len(feature_maps)))(x)
-    if last_activation:
-        x = Activation(activation=activation)(x)
-    return x
+from kyu.models.fitnet import convolution_block
+from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space
 
 
 def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_shape=(3,32,32),
@@ -93,12 +59,12 @@ def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
 
     # Convolutional branch
     input_tensor = Input(input_shape)
-    conv_branch = convolution_block(input_tensor, [16,16,16], [3,3], border_mode='same', init=init,
+    conv_branch = convolution_block(input_tensor, [16, 16, 16], [3, 3], border_mode='same', init=init,
                                     stage=1, basename='conv')
     conv_branch = MaxPooling2D()(conv_branch)
     if dropout:
         conv_branch = Dropout(0.25)(conv_branch)
-    conv_branch = convolution_block(conv_branch, [32,32,32], [3,3], border_mode='same', init=init,
+    conv_branch = convolution_block(conv_branch, [32, 32, 32], [3, 3], border_mode='same', init=init,
                                     stage=2, basename='conv')
     conv_branch = MaxPooling2D()(conv_branch)
     if dropout:
@@ -116,19 +82,19 @@ def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
 
     # Covariance branch
     covariance_branch = convolution_block(input_tensor, [16, 16, 16], [3, 3], border_mode='same', init=init,
-                                    stage=1, basename='cov_conv')
+                                          stage=1, basename='cov_conv')
     covariance_branch = MaxPooling2D()(covariance_branch)
     if dropout:
         covariance_branch = Dropout(0.25)(covariance_branch)
 
     covariance_branch = convolution_block(covariance_branch, [32, 32, 32], [3, 3], border_mode='same', init=init,
-                                    stage=2, basename='cov_conv')
+                                          stage=2, basename='cov_conv')
     covariance_branch = MaxPooling2D()(covariance_branch)
     if dropout:
         covariance_branch = Dropout(0.25)(covariance_branch)
 
     covariance_branch = convolution_block(covariance_branch, [48, 48, 64], [3, 3], border_mode='same', init=init,
-                                    stage=3, basename='cov_conv')
+                                          stage=3, basename='cov_conv')
     covariance_branch = MaxPooling2D()(covariance_branch)
     if dropout:
         covariance_branch = Dropout(0.25)(covariance_branch)
