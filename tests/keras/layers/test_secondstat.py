@@ -5,8 +5,7 @@ from numpy.testing import assert_allclose
 import tensorflow as tf
 from keras.utils.test_utils import layer_test, keras_test
 from keras import backend as K
-from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform
-
+from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform, MatrixReLU
 
 # def test_matrix_logrithm():
 #     data = np.random.randn(3, 10, 10)
@@ -603,10 +602,67 @@ def gradient_svd_comparision():
     print(np.allclose(grad_input_eval, mat_grads))
 
 
+def test_matrixrelu():
+    input_shape = (4, 100, 10)
+    epsilon = 1e-4
+    data = np.random.randn(*input_shape).astype(K.floatx())
+    k_data = K.batch_dot(data, data.transpose(0, 2, 1))
+    sess = K.get_session()
+    with sess.as_default():
+        data = K.eval(k_data)
+    # print(data)
+    print(data.shape)
+    # traditional log
+    res = np.zeros(shape=(4, 100, 100))
+    from numpy.linalg import eig
+    for i in range(data.shape[0]):
+        tmp_d = data[i, :, :]
+        s, u = eig(tmp_d)
+        comp = np.zeros_like(s) + epsilon
+        s[np.where(s < epsilon)] = epsilon
+        s = np.diag(s)
+        tmp_res = np.matmul(u, np.matmul(s, u.transpose()))
+        res[i, :, :] = tmp_res
+
+    import tensorflow as tf
+    tf_input = tf.placeholder(K.floatx(), (4,100,100))
+    tf_s, tf_u = tf.self_adjoint_eig(tf_input)
+    comp = tf.zeros_like(tf_s) + epsilon
+    comp = tf.Print(comp, [comp], message='comp:')
+    tf_s = tf.Print(tf_s, [tf_s], message='tf_s:', summarize=400)
+    inner = tf.where(tf.less(tf_s, comp), comp, tf_s)
+    inner = tf.Print(inner, [inner], 'inner:')
+    inner = tf.matrix_diag(inner)
+    tf_relu = tf.batch_matmul(tf_u, tf.batch_matmul(inner, tf.transpose(tf_u, [0,2,1])))
+
+    with sess.as_default():
+
+        tf_result = tf_relu.eval({tf_input:data})
+
+    # log layer
+    from keras.layers.secondstat import LogTransform
+    a = layer_test(MatrixReLU,
+                   input_data=data,
+                   kwargs={
+                       'epsilon': epsilon,
+                   },
+                   input_shape=(4, 100, 100),
+                   input_dtype=K.floatx())
+
+    # a = tf_result
+    # print(a - res)
+    diff = np.linalg.norm(a - res)
+    print(diff)
+    assert_allclose(a, res, rtol=1e-4)
+    # assert_allclose(a, res, rtol=1e-3)
+    # assert_allclose(a, res, rtol=1e-4)
+
+
 if __name__ == '__main__':
     # test_secondstat()
     # test_encode_mean_cov()
     # test_logtransform()
     # compare_with_matlab_version()
     # gradient_svd_comparision()
-    gradient_eig_comparision()
+    # gradient_eig_comparision()
+    test_matrixrelu()

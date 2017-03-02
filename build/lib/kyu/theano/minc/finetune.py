@@ -12,6 +12,7 @@ from keras.applications import ResNet50
 from keras.layers import Dense
 from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space
 from kyu.theano.general.config import DCovConfig
+from kyu.theano.general.finetune import run_finetune
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
@@ -82,12 +83,14 @@ def model_finetune(base_model, pred_model, optimizer,
 
 
 def minc2500_finetune(model,
-                 nb_epoch_finetune=100, nb_epoch_after=0, batch_size=32,
-                 image_gen=None,
-                 title='MINC2500_finetune', early_stop=False,
-                 keyword='',
-                 optimizer=None,
-                 verbose=2):
+                      nb_epoch_finetune=100, nb_epoch_after=0, batch_size=32,
+                      image_gen=None,
+                      title='MINC2500_finetune', early_stop=False,
+                      keyword='',
+                      optimizer=None,
+                      log=True,
+                      verbose=2,
+                      lr=0.001):
 
     loader = Minc2500()
     train, test = load_minc2500(index=1, target_size=TARGET_SIZE, gen=image_gen, batch_size=batch_size)
@@ -97,7 +100,9 @@ def minc2500_finetune(model,
                  nb_epoch=nb_epoch_finetune,
                  optimizer=optimizer,
                  early_stop=early_stop,
-                 verbose=verbose)
+                 verbose=verbose,
+                 log=log,
+                 lr=lr)
     tmp_weights = get_tmp_weights_path(model.name)
     model.save_weights(tmp_weights)
     if nb_epoch_after > 0:
@@ -109,7 +114,8 @@ def minc2500_finetune(model,
                      nb_epoch=nb_epoch_after,
                      optimizer=optimizer,
                      early_stop=early_stop,
-                     verbose=verbose)
+                     verbose=verbose,
+                     lr=lr/10)
 
     return
 
@@ -151,30 +157,246 @@ def get_experiment_settings(exp=1):
         cov_branch = 'o2transform'
         early_stop = True
         # cov_regularizer = 'Fob'
-        last_config_feature_maps = [256]
+        # last_config_feature_maps = [256]
         batch_size = 32
 
     elif exp == 5:
         """ Test ResNet 50 """
-        # params = [[256, 128]]
-        params = [[1024, 512]]
+        params = [[256, 128], [256, 128, 64], [256], [128], [256, 256, 128],]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
         mode_list = [1]
         cov_outputs = [128]
         cov_mode = 'mean'
         cov_branch = 'o2transform'
         early_stop = True
         # cov_regularizer = 'Fob'
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512]
+        batch_size = 32
+    elif exp == 6:
+        """ Test Multi branch ResNet 50 """
+        # nb_branch = 4
+        nb_branch = 8
+        params = [[256, 128], [256, 128, 64],]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [128, 64]
+        cov_mode = 'mean'
+        cov_branch = 'o2transform'
+        early_stop = True
+        # cov_regularizer = 'Fob'
         last_config_feature_maps = []
         # last_config_feature_maps = [1024, 512]
-        batch_size = 4
+        batch_size = 32
     else:
         return
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
-                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size)
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp)
     return config
 
 
-def run_routine_resnet(exp=1):
+def get_aaai_experiment(exp):
+    cov_regularizer = None
+    nb_branch = 1
+    last_config_feature_maps = []
+    batch_size = 4
+    if exp == 1:
+        """ aaai paper test """
+        nb_branch = 1
+        # params = [[513, 513, 513], [256, 256, 256]]
+        # params = [[513, 513, 513, 513, 513, 513], [256, 256, 256, 256, 256]]
+        params = [[513, 257, 129], [513, 513, 513]]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [128]
+        cov_mode = 'mean'
+        cov_branch = 'aaai'
+        early_stop = False
+        # cov_regularizer = 'Fob'
+        last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512]
+        batch_size = 32
+        vectorization = 'dense'
+    else:
+        return
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, vectorization=vectorization, epsilon=1e-5)
+    return config
+
+
+def get_log_experiment(exp):
+    cov_regularizer = None
+    nb_branch = 1
+    last_config_feature_maps = []
+    batch_size = 4
+    if exp == 1:
+        """ log test """
+        nb_branch = 1
+        # params = [[513, 513, 513], [256, 256, 256]]
+        # params = [[513, 513, 513, 513, 513, 513], [256, 256, 256, 256, 256]]
+        params = [[513, 257, 129], [513, 513, 513]]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [128]
+        cov_mode = 'mean'
+        cov_branch = 'log'
+        early_stop = False
+        # cov_regularizer = 'Fob'
+        last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512]
+        batch_size = 32
+        vectorization = 'wv'
+    elif exp == 2:
+        """ aaai paper test """
+        nb_branch = 1
+        # params = [[513, 513, 513], [256, 256, 256]]
+        # params = [[513, 513, 513, 513, 513, 513], [256, 256, 256, 256, 256]]
+        params = [[256, 128, 64], [513, 257, 129, 64]]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'mean'
+        cov_branch = 'log'
+        early_stop = False
+        # cov_regularizer = 'Fob'
+        last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512]
+        batch_size = 32
+        vectorization = 'dense'
+    else:
+        return
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, vectorization=vectorization, epsilon=1e-5)
+    return config
+
+
+
+
+def get_von_settings(exp=1):
+    cov_regularizer = None
+    nb_branch = 1
+    last_config_feature_maps = []
+    batch_size = 4
+    cov_alpha = 0.01
+    if exp == 1:
+        """ Test Multi branch ResNet 50 """
+        nb_branch = 1
+        params = [[256, 128, 64],]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [128]
+        cov_mode = 'mean'
+        cov_branch = 'o2transform'
+        early_stop = False
+        # cov_regularizer = None
+        # cov_regularizer = 'vN'
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512, 256]
+        batch_size = 32
+        robust = True
+        cov_alpha = 0.75
+    elif exp == 2:
+        """ Test Multi_branch Resnet 50 with residual learning """
+        nb_branch = 4
+        params = [[257, 128, 64], ]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'mean'
+        cov_branch = 'o2transform'
+        early_stop = False
+        cov_regularizer = 'vN'
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024]
+        batch_size = 32
+        robust = False
+
+    elif exp == 3:
+        """ Test Multi branch ResNet 50 """
+        nb_branch = 1
+        params = [[256, 128, 64], ]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [128]
+        cov_mode = 'mean'
+        cov_branch = 'o2transform'
+        early_stop = False
+        cov_regularizer = None
+        # cov_regularizer = 'vN'
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512, 256]
+        batch_size = 32
+        robust = True
+        cov_alpha = 0.75
+    elif exp == 4:
+        """ Test Multi_branch Resnet 50 with residual learning """
+        nb_branch = 4
+        params = [[257, 128, 64], ]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'mean'
+        cov_branch = 'o2transform'
+        early_stop = False
+        cov_regularizer = None
+        # cov_regularizer = 'vN'
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024]
+        batch_size = 32
+        robust = True
+    else:
+        return
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, robust=robust, cov_alpha=cov_alpha)
+    return config
+
+
+def get_residual_cov_experiment(exp):
+    cov_regularizer = None
+    nb_branch = 1
+    last_config_feature_maps = []
+    batch_size = 4
+    if exp == 1:
+        """ Test Multi branch ResNet 50 """
+        nb_branch = 1
+        # params = [[513, 513, 513], [256, 256, 256]]
+        # params = [[513, 513, 513, 513, 513, 513], [256, 256, 256, 256, 256]]
+        params = [ [513, 513,], [513, 513,513, 513],[513, 513, 513, 513, 513,],[513, 513, 513, 513, 513, 513], ]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [128]
+        cov_mode = 'mean'
+        cov_branch = 'residual'
+        early_stop = True
+        # cov_regularizer = 'Fob'
+        last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512]
+        batch_size = 32
+    elif exp == 2:
+        """ Test Multi branch ResNet 50 """
+        nb_branch = 4
+        params = [[513, 513, 513], [256, 256, 256]]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [1]
+        cov_outputs = [128]
+        cov_mode = 'mean'
+        cov_branch = 'residual'
+        early_stop = True
+        # cov_regularizer = 'Fob'
+        last_config_feature_maps = []
+        # last_config_feature_maps = [1024]
+        batch_size = 32
+    else:
+        return
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp)
+    return config
+
+
+def run_routine_resnet(config, nb_epoch_finetune=50, nb_epoch_after=50):
     """
     Finetune the ResNet-DCov
 
@@ -182,51 +404,17 @@ def run_routine_resnet(exp=1):
     -------
 m
     """
-    nb_epoch_finetune = 15
-    nb_epoch_after = 50
-
-    config = get_experiment_settings(exp)
-    cov_branch = config.cov_branch
-    cov_mode = config.cov_mode
-    cov_regularizer = config.cov_regularizer
-    early_stop = config.early_stop
+    title = 'minc2500_cov'
 
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
-                                           # preprocessing_function=preprocess_image_for_imagenet
-                                           # channelwise_std_normalization=True
                                            )
 
-    print("Running experiment {}".format(exp))
-    for param in config.params:
-        for mode in config.mode_list:
-            for cov_output in config.cov_outputs:
-                print("Run routine 1 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
-                sess = K.get_session()
-                with sess.as_default():
-                    model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                        nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                        last_avg=False,
-                                        freeze_conv=True,
-                                        cov_regularizer=cov_regularizer,
-                                        last_conv_feature_maps=config.last_conv_feature_maps)
-                    minc2500_finetune(model, title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                      nb_epoch_after=0, nb_epoch_finetune=nb_epoch_finetune,
-                                      batch_size=config.batch_size, early_stop=early_stop, verbose=2, image_gen=image_gen)
-                    model.save_weights(get_tmp_weights_path(model.name))
+    run_finetune(ResNet50_o2, minc2500_finetune, input_shape, config, image_gen,
+                 nb_classes=nb_classes,
+                 nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                 title=title, verbose=(2, 2))
 
-                K.clear_session()
-                sess2 = K.get_session()
-                with sess2.as_default():
-                    model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                        nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                        last_avg=False,
-                                        freeze_conv=False,
-                                        cov_regularizer=cov_regularizer)
-                    model.load_weights(get_tmp_weights_path(model.name))
-                    minc2500_finetune(model, title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                      nb_epoch_after=0, nb_epoch_finetune=nb_epoch_after,
-                                      batch_size=4, early_stop=early_stop, verbose=2)
 
 def run_routine_vgg(exp=1):
     """
@@ -241,7 +429,6 @@ def run_routine_vgg(exp=1):
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
                                            preprocessing_function=preprocess_image_for_imagenet
-                                           # channelwise_std_normalization=True
                                            )
     config = get_experiment_settings(exp)
     cov_branch = config.cov_branch
@@ -282,18 +469,49 @@ def baseline_finetune_vgg():
                       batch_size=32, early_stop=True)
 
 
-def baseline_finetune_resnet():
-    nb_epoch_finetune = 10
+def run_residual_cov_resnet(exp):
+    """
+        Finetune the ResNet-DCov
+
+        Returns
+        -------
+    m
+        """
+    nb_epoch_finetune = 50
     nb_epoch_after = 50
 
-    model = VGG16_o1(denses=[4096,4096], nb_classes=nb_classes, input_shape=input_shape, freeze_conv=True)
-    model.name = 'baseline_vgg16'
+    config = get_residual_cov_experiment(exp)
+    title = 'minc2500_residual_cov'
+
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
-                                           preprocessing_function=preprocess_image_for_imagenet
+                                           # preprocessing_function=preprocess_image_for_imagenet
                                            # channelwise_std_normalization=True
                                            )
-    minc2500_finetune(model, image_gen=image_gen, title='minc2500_finetune_vgg16',
+
+    run_finetune(ResNet50_o2, minc2500_finetune, input_shape, config, image_gen,
+                 nb_classes=nb_classes,
+                 nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                 title=title, verbose=(2, 1))
+
+
+def baseline_finetune_resnet(exp):
+    nb_epoch_finetune = 10
+    nb_epoch_after = 50
+    if exp == 1:
+        model = ResNet50_o1(denses=[], nb_classes=nb_classes, input_shape=input_shape, freeze_conv=True)
+        model.name = 'baseline_resnet'
+    elif exp == 2:
+        last_conv_feature_maps = [1024, 512]
+        model = ResNet50_o1(denses=[], nb_classes=nb_classes, input_shape=input_shape, freeze_conv=True,
+                            last_conv_feature_maps=last_conv_feature_maps)
+        model.name = 'baseline_resnet_with_1x1'
+    else:
+        return
+    image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+                                           horizontal_flip=True,
+                                           )
+    minc2500_finetune(model, image_gen=image_gen, title='minc2500_finetune_resnet',
                       nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
                       batch_size=32, early_stop=True)
 
@@ -328,16 +546,18 @@ def test_routine_vgg(exp=1):
 
                 model = VGG16_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
                                  nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                 freeze_conv=True, cov_regularizer=cov_regularizer)
+                                 freeze_conv=True, cov_regularizer=cov_regularizer,
+                                 last_conv_feature_maps=config.last_conv_feature_maps)
 
                 minc2500_finetune(model, title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
                                   nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
                                   image_gen=image_gen,
                                   batch_size=32, early_stop=early_stop,
+                                  log=False,
                                   verbose=1)
 
 
-def test_routine_resnet(exp=1):
+def test_routine_resnet(config):
     """
     Finetune the ResNet-DCov
 
@@ -345,50 +565,36 @@ def test_routine_resnet(exp=1):
     -------
 
     """
-    nb_epoch_finetune = 1
+    nb_epoch_finetune = 2
     nb_epoch_after = 50
+    title = 'test_minc2500_cov'
 
-    config = get_experiment_settings(exp)
-    cov_branch = config.cov_branch
-    cov_mode = config.cov_mode
-    cov_regularizer = config.cov_regularizer
-    early_stop = config.early_stop
 
-    print("Running experiment {}".format(exp))
-    for param in config.params:
-        for mode in config.mode_list:
-            for cov_output in config.cov_outputs:
-                print("Run routine 1 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
-                sess = K.get_session()
-                with sess.as_default():
-                    model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                        nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                        last_avg=False,
-                                        freeze_conv=True,
-                                        cov_regularizer=cov_regularizer)
-                    minc2500_finetune(model, title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                 nb_epoch_after=0, nb_epoch_finetune=nb_epoch_finetune,
-                                 batch_size=4, early_stop=early_stop, verbose=1)
-                    model.save_weights(get_tmp_weights_path(model.name))
+    image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+                                           horizontal_flip=True,
+                                           # preprocessing_function=preprocess_image_for_imagenet
+                                           # channelwise_std_normalization=True
+                                           )
 
-                K.clear_session()
-                sess2 = K.get_session()
-                with sess2.as_default():
-                    model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                        nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                        last_avg=False,
-                                        freeze_conv=False,
-                                        cov_regularizer=cov_regularizer)
-                    model.load_weights(get_tmp_weights_path(model.name))
-                    minc2500_finetune(model, title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                      nb_epoch_after=0, nb_epoch_finetune=nb_epoch_after,
-                                      batch_size=4, early_stop=early_stop, verbose=1)
+    run_finetune(ResNet50_o2, minc2500_finetune, input_shape, config, image_gen,
+                 nb_classes=nb_classes,
+                 nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                 title=title, verbose=(2,1))
 
 
 if __name__ == '__main__':
-    run_routine_resnet(5)
-    # baseline_finetune_res()
+    config = get_von_settings(4)
+    # config = get_log_experiment(2)
+    # config = get_experiment_settings(6)
+    # config = get_aaai_experiment(1)
+    # run_routine_resnet(config)
+    # run_residual_cov_resnet(1)
+    # baseline_finetune_resnet(2)
     # run_routine_vgg(4)
     # baseline_finetune_vgg()
     # test_routine_vgg(4)
-    # test_routine_resnet(1)
+    # test_routine_resnet(6)
+    # test_routine_resnet(config)
+    run_routine_resnet(config, 10, 50)
+
+

@@ -11,14 +11,15 @@ from keras.layers import \
     Flatten, O2Transform, Dense, WeightedVectorization
 from keras.models import Sequential, Model
 from kyu.models.fitnet import convolution_block
-from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space
+from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space, covariance_block_residual
 
 
 def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_shape=(3,32,32),
                     init='glorot_normal', cov_mode='dense',
                     dropout=False, cov_branch_output=None,
                     dense_after_covariance=True,
-                    last_softmax=True):
+                    last_softmax=True,
+                    **kwargs):
     """
         Implement the fit model has 205K param
         Without any Maxout design in this version
@@ -34,6 +35,8 @@ def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         covariance_block = covariance_block_original
     elif cov_mode == 'dense':
         covariance_block = covariance_block_vector_space
+    elif cov_mode == 'resudial':
+        covariance_block = covariance_block_residual
     else:
         raise ValueError('covariance cov_mode not supported')
 
@@ -123,8 +126,10 @@ def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
 def cifar_fitnet_v4(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_shape=(3,32,32),
                     init='glorot_normal', cov_mode='dense',
                     dropout=False, cov_branch_output=None,
+                    cov_block_mode='',
                     dense_after_covariance=True,
-                    last_softmax=True):
+                    last_softmax=True,
+                    **kwargs):
     """
         Implement the fit model has 205K param
         Without any Maxout design in this version
@@ -140,6 +145,8 @@ def cifar_fitnet_v4(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         covariance_block = covariance_block_original
     elif cov_mode == 'dense':
         covariance_block = covariance_block_vector_space
+    elif cov_mode == 'residual':
+        covariance_block = covariance_block_residual
     else:
         raise ValueError('covariance cov_mode not supported')
 
@@ -147,7 +154,7 @@ def cifar_fitnet_v4(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
     if cov_branch_output is None:
         cov_branch_output = nb_class
 
-    basename = 'fitnet_v2'
+    basename = 'fitnet_v4'
     if parametrics is not []:
         basename += '_para-'
         for para in parametrics:
@@ -359,7 +366,8 @@ def cifar_fitnet_v3(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
                     dropout=False, cov_branch_output=None,
                     dense_after_covariance=True,
                     cov_block_mode=3,
-                    last_softmax=True):
+                    last_softmax=True,
+                    **kwargs):
     """
         Implement the fit model has 205K param
         Without any Maxout design in this version

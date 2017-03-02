@@ -44,6 +44,7 @@ def fit_model_v1(model, data,
                  batch_size=32,
                  nb_epoch=200,
                  data_augmentation=False,
+                 lr=0.001,
                  ):
     """
     General model fitting, given model (not compiled) and data. With some setting of parameters.
@@ -61,7 +62,7 @@ def fit_model_v1(model, data,
     -------
     None
     """
-    sgd = SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
                   metrics=['accuracy'])
@@ -91,6 +92,8 @@ def fit_model_v2(model, data,
                  optimizer=None,
                  early_stop=False,
                  finetune=False,
+                 log=True,
+                 lr=0.001,
                  ):
     """
     General model fitting, given model (not compiled) and data. With some setting of parameters.
@@ -113,13 +116,13 @@ def fit_model_v2(model, data,
             raise ValueError("fit_model_v2: Finetune must have a compiled model.")
     else:
         if optimizer is None:
-            optimizer = SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=True)
+            optimizer = SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
 
             model.compile(loss='categorical_crossentropy',
                           optimizer=optimizer,
                           metrics=['accuracy'])
 
-    save_log = True
+    save_log = log
     engine = ExampleEngine(data[0], model, data[1],
                            load_weight=load, save_weight=save, save_log=save_log,
                            lr_decay=True, early_stop=early_stop, tensorboard=True,
@@ -137,50 +140,50 @@ def fit_model_v2(model, data,
         sys.stdout = engine.stdout.close()
 
 
-def run_resnet_o2(exp, config, image_gen):
-
-    if config.mode == 'train':
-        pass
-    elif config.mode == 'finetune':
-        nb_epoch_finetune = config.nb_epoch
-        nb_epoch_after = config.nb_epoch_after
-        cov_mode = config.cov_mode
-        cov_branch = config.cov_branch
-        cov_regularizer = config.cov_regularizer
-
-        print("Running finetune for {}, experiment {}".format(config.title, exp))
-        for param in config.params:
-            for mode in config.mode_list:
-                for cov_output in config.cov_outputs:
-                    print("Run ResNet param {}, mode {}, covariance output {}".format(param, mode, cov_output))
-                sess = K.get_session()
-                with sess.as_default():
-                    model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                        nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                        last_avg=False,
-                                        freeze_conv=True,
-                                        cov_regularizer=cov_regularizer,
-                                        last_conv_feature_maps=config.last_conv_feature_maps)
-                    minc2500_finetune(model,
-                                      title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                      nb_epoch_after=0, nb_epoch_finetune=nb_epoch_finetune,
-                                      batch_size=config.batch_size, early_stop=early_stop, verbose=2,
-                                      image_gen=image_gen)
-                    model.save_weights(get_tmp_weights_path(model.name))
-
-                K.clear_session()
-                sess2 = K.get_session()
-                with sess2.as_default():
-                    model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                        nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                        last_avg=False,
-                                        freeze_conv=False,
-                                        cov_regularizer=cov_regularizer)
-                    model.load_weights(get_tmp_weights_path(model.name))
-                    minc2500_finetune(model,
-                                      title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                      nb_epoch_after=0, nb_epoch_finetune=nb_epoch_after,
-                                      batch_size=4, early_stop=early_stop, verbose=2)
+# def run_resnet_o2(exp, config, image_gen):
+#
+#     if config.mode == 'train':
+#         pass
+#     elif config.mode == 'finetune':
+#         nb_epoch_finetune = config.nb_epoch
+#         nb_epoch_after = config.nb_epoch_after
+#         cov_mode = config.cov_mode
+#         cov_branch = config.cov_branch
+#         cov_regularizer = config.cov_regularizer
+#
+#         print("Running finetune for {}, experiment {}".format(config.title, exp))
+#         for param in config.params:
+#             for mode in config.mode_list:
+#                 for cov_output in config.cov_outputs:
+#                     print("Run ResNet param {}, mode {}, covariance output {}".format(param, mode, cov_output))
+#                 sess = K.get_session()
+#                 with sess.as_default():
+#                     model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
+#                                         nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
+#                                         last_avg=False,
+#                                         freeze_conv=True,
+#                                         cov_regularizer=cov_regularizer,
+#                                         last_conv_feature_maps=config.last_conv_feature_maps)
+#                     minc2500_finetune(model,
+#                                       title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
+#                                       nb_epoch_after=0, nb_epoch_finetune=nb_epoch_finetune,
+#                                       batch_size=config.batch_size, early_stop=early_stop, verbose=2,
+#                                       image_gen=image_gen)
+#                     model.save_weights(get_tmp_weights_path(model.name))
+#
+#                 K.clear_session()
+#                 sess2 = K.get_session()
+#                 with sess2.as_default():
+#                     model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
+#                                         nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
+#                                         last_avg=False,
+#                                         freeze_conv=False,
+#                                         cov_regularizer=cov_regularizer)
+#                     model.load_weights(get_tmp_weights_path(model.name))
+#                     minc2500_finetune(model,
+#                                       title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
+#                                       nb_epoch_after=0, nb_epoch_finetune=nb_epoch_after,
+#                                       batch_size=4, early_stop=early_stop, verbose=2)
 
 
 # TODO Delay to March

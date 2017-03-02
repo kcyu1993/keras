@@ -4,7 +4,7 @@ import tensorflow as tf
 from tensorflow.python.ops import nn
 
 # Second layer
-from keras.layers.secondstat import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform
+from keras.layers.secondstat import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform, MatrixReLU
 
 
 def fitnet_slim(input_tensor):
@@ -68,20 +68,31 @@ def simple_log_model(input_tensor):
 
     x = slim.conv2d(x, 8, [32, 32], scope='conv2')
     x = slim.max_pool2d(x, [2, 2], scope='pool1')
-    x = slim.dropout(x, keep_prob=0.75, scope='dropout')
+    # x = slim.dropout(x, keep_prob=0.75, scope='dropout')
 
     x = slim.conv2d(x, 16, [3, 3], scope='conv3')
     x = slim.conv2d(x, 16, [3, 3], scope='conv4')
     x = slim.max_pool2d(x, [2, 2], scope='pool2')
-    x = slim.dropout(x, keep_prob=0.75, scope='dropout2')
+    # x = slim.dropout(x, keep_prob=0.75, scope='dropout2')
     with tf.name_scope('SecondStatistics'):
         x = SecondaryStatistic(activation='relu', dim_ordering='tf')(x)
     x = O2Transform(16, activation='relu')(x)
     x = O2Transform(16, activation='relu')(x)
+
+    # Register the gradient for SVD
+    # from kyu.tensorflow.ops.svd_gradients import gradient_eig_for_log
+    # do the log transform here.
+    # s, u = tf.self_adjoint_eig(x)
+    # inner = s + 1e-4
+    # inner = tf.log(inner)
+    # inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
+    # inner = tf.matrix_diag(inner)
+    # x = tf.batch_matmul(u, tf.batch_matmul(inner, tf.transpose(u, [0, 2, 1])))
+
     with tf.name_scope("LogTransform"):
         x = LogTransform(0.001)(x)
-    with tf.name_scope("WeightedVectorization"):
-        x = WeightedVectorization(16, activation='relu')(x)
+    # with tf.name_scope("WeightedVectorization"):
+    #     x = WeightedVectorization(16, activation='relu')(x)
     x = slim.flatten(x, scope='flatten')
     x = slim.fully_connected(x, 10, scope='predictions')
     # x = slim.fully_connected(x, 10, activation_fn=nn.softmax, scope='predictions')
@@ -103,12 +114,18 @@ def simple_second_model(input_tensor):
     x = slim.dropout(x, keep_prob=0.75, scope='dropout2')
     with tf.name_scope('SecondStatistics'):
         x = SecondaryStatistic(activation='relu', dim_ordering='tf')(x)
-    # x = O2Transform(100, activation='relu')(x)
-    # x = O2Transform(50, activation='relu')(x)
+    with tf.name_scope('O2T_1'):
+        x = O2Transform(50, activation='relu')(x)
+    with tf.name_scope("Matrix_RELU_1"):
+        x = MatrixReLU(1e-4)(x)
+    with tf.name_scope('O2T_2'):
+        x = O2Transform(50, activation='relu')(x)
+    with tf.name_scope("Matrix_RELU_2"):
+        x = MatrixReLU(1e-4)(x)
     with tf.name_scope("LogTransform"):
-        x = LogTransform(0.000)(x)
+        x = LogTransform(0.001)(x)
     # with tf.name_scope("WeightedVectorization"):
-    #     x = WeightedVectorization(100, activation='relu')(x)
+    #     x = WeightedVectorization(10, activation='relu')(x)
     x = slim.flatten(x, scope='flatten')
     x = slim.fully_connected(x, 10, scope='predictions')
     # x = slim.fully_connected(x, 10, activation_fn=nn.softmax, scope='predictions')

@@ -94,7 +94,12 @@ class DCovConfig(object):
                  nb_branch=1,
                  dropout=False,
                  last_conv_feature_maps=[],
-                 batch_size=8
+                 batch_size=8,
+                 exp=0,
+                 vectorization='wv',
+                 epsilon=0,
+                 title='',
+                 **kwargs
                  ):
         self.__dict__.update(locals())
 

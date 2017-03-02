@@ -16,8 +16,8 @@ import os
 
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-os.environ['KERAS_BACKEND'] = 'theano'
-# os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['KERAS_BACKEND'] = 'theano'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 import logging
 import sys
@@ -37,7 +37,8 @@ from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras.utils.logger import Logger
-from kyu.models.cifar import model_original, model_snd, cifar_fitnet_v1, cifar_fitnet_v3, cifar_fitnet_v5
+from kyu.models.cifar import model_original, model_snd, cifar_fitnet_v1, cifar_fitnet_v3, cifar_fitnet_v5, \
+    cifar_fitnet_v4
 
 import keras.backend as K
 
@@ -149,7 +150,8 @@ def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, cov_mode='o2tra
                      init='glorot_uniform',
                      cov_mode_input=3,
                      dense_after_covariance=True,
-                     cifar_version=3):
+                     cifar_version=3,
+                     **kwargs):
     """
     Run Fit-net merge layer testing. All testing cases could be passed throught this interface.
     With all environment settings.
@@ -190,6 +192,12 @@ def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, cov_mode='o2tra
                                     cov_mode=cov_mode, cov_branch_output=cov_output,
                                     cov_block_mode=cov_mode_input,
                                     dense_after_covariance=dense_after_covariance)
+        elif cifar_version == 4:
+            model = cifar_fitnet_v4(parametrics=parametrics, epsilon=epsilon, mode=mode,
+                                    nb_classes=nb_classes, dropout=dropout, init=init,
+                                    cov_mode=cov_mode, cov_branch_output=cov_output,
+                                    cov_block_mode=cov_mode_input,
+                                    dense_after_covariance=dense_after_covariance, **kwargs)
         elif cifar_version == 5:
             model = cifar_fitnet_v5(parametrics=parametrics, epsilon=epsilon, mode=mode,
                                     nb_classes=nb_classes, dropout=dropout, init=init,
@@ -198,10 +206,10 @@ def run_fitnet_merge(parametrics=[], verbose=1, start=0, stop=6, cov_mode='o2tra
         else:
             print('cifar version not supported ' + str(cifar_version))
             return
-        fit_model(model, load=False, save=True, verbose=verbose, title=title)
+        fit_model(model, load=False, save=True, verbose=verbose, title=title, **kwargs)
 
 
-def fit_model(model, load=False, save=True, verbose=1, title='cifar10'):
+def fit_model(model, load=False, save=True, verbose=1, title='cifar10', batch_size=32):
 
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy',
@@ -521,13 +529,51 @@ def run_routine15():
                                  cov_mode='o2transform',dropout=False, init='glorot_normal',
                                  cov_output=cov_output)
 
+
+def run_routine16():
+    """
+    Create for testing the Residual covariance learning.
+
+    Returns
+    -------
+
+    """
+    nb_epoch = 200
+    exp = 1
+    if exp == 1:
+        params = [[100, 100, 100]]
+        mode_list = [1]
+        cov_outputs = [50]
+        nb_block = 3
+        cifar_version = 4
+        cov_mode = 'residual'
+        dropout=False
+    else:
+        return
+    print("Running experiments {}".format(exp))
+    for param in params:
+        for mode in mode_list:
+            for cov_output in cov_outputs:
+                print("Run residual learning for fitnet")
+                run_fitnet_merge(param, mode_list=[mode],
+                                 title='cifar10_residual_cov_o2t_wv{}'.format(
+                                     str(cov_output)
+                                 ),
+                                 cov_mode_input=3,
+                                 cifar_version=cifar_version,
+                                 cov_mode=cov_mode, dropout=dropout, init='glorot_normal',
+                                 cov_output=cov_output,
+                                 batch_size=128)
+
+
 def print_model_structures():
     nb_epoch = 200
     exp = 1
     if exp == 1:
         params = [[]]  # exp 1
         mode_list = [1]
-        cov_outputs = [10]
+        cov_outputs = [50]
+
     else:
         return
     print("Running experiment {}".format(exp))
@@ -542,7 +588,8 @@ def print_model_structures():
                                  cov_mode_input=3,
                                  cifar_version=3,
                                  cov_mode='o2transform', dropout=False, init='glorot_normal',
-                                 cov_output=cov_output)
+                                 cov_output=cov_output,
+                                 batch_size=128)
 
 if __name__ == '__main__':
     nb_epoch = 200
@@ -561,8 +608,9 @@ if __name__ == '__main__':
     # run_routine11()
     # plot_rescov_results()
     # run_routine12()
-    run_routine13()
+    # run_routine13()
     # run_routine10()
     # run_routine14()
     # run_routine15()
     # print_model_structures()
+    run_routine16()

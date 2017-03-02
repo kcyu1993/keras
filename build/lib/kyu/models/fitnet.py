@@ -296,9 +296,10 @@ def fitnet_v2_o1(denses=[], nb_classes=10, input_shape=None, load_weights=None, 
     return model
 
 
-def fitnet_v3_o1(denses=[], nb_classes=10, input_shape=None, load_weights=None, dropout=False, init='glorot_normal'):
+def fitnet_v3_o1(denses=[], nb_classes=10, input_shape=None, load_weights=None, dropout=False, init='glorot_normal',
+                 pooling=True):
     """
-    Implement FitNet v1.
+    Implement FitNet v3.
 
     Parameters
     ----------
@@ -334,15 +335,16 @@ def fitnet_v3_o1(denses=[], nb_classes=10, input_shape=None, load_weights=None, 
     x = MaxPooling2D()(x)
     if dropout:
         x = Dropout(0.25)(x)
-    x = convolution_block(x, [48, 64, 80], [3, 3], border_mode='same', init=init,
+    x = convolution_block(x, [80, 80, 80, 80], [3, 3], border_mode='same', init=init,
                                     stage=2, basename='conv')
     x = MaxPooling2D()(x)
     if dropout:
         x = Dropout(0.25)(x)
 
-    x = convolution_block(x, [96, 96, 128], [3, 3], border_mode='same', init=init,
+    x = convolution_block(x, [128, 128, 128], [3, 3], border_mode='same', init=init,
                                     stage=3, basename='conv')
-    x = MaxPooling2D(pool_size=(8, 8))(x)
+    if pooling:
+        x = MaxPooling2D(pool_size=(8, 8))(x)
     if dropout:
         x = Dropout(0.25)(x)
 

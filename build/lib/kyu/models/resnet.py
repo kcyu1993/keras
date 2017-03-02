@@ -3,7 +3,8 @@ from __future__ import print_function
 import warnings
 
 
-from kyu.models.keras_support import covariance_block_vector_space, covariance_block_original, dcov_model_wrapper_v1
+from kyu.models.keras_support import covariance_block_vector_space, covariance_block_original, dcov_model_wrapper_v1, \
+    dcov_model_wrapper_v2
 
 import keras.backend as K
 from keras.applications.resnet50 import ResNet50,\
@@ -18,7 +19,8 @@ from keras.models import Model
 from kyu.theano.general.train import toggle_trainable_layers
 
 
-def ResNet50_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True):
+def ResNet50_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, freeze_conv=False,
+                last_conv_feature_maps=[]):
     """
     Create ResNet50 based on without_top.
 
@@ -32,10 +34,21 @@ def ResNet50_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True)
     -------
     Model
     """
-    if load_weights:
-        model = ResNet50(include_top=False, input_shape=input_shape)
+    if last_conv_feature_maps == []:
+        if load_weights:
+            model = ResNet50(include_top=False, input_shape=input_shape)
+        else:
+            model = ResNet50(include_top=False, weights=None, input_shape=input_shape)
     else:
-        model = ResNet50(include_top=False, weights=None, input_shape=input_shape)
+        if load_weights:
+            res_model = ResNet50(include_top=False, input_shape=input_shape, last_avg=False)
+        else:
+            res_model = ResNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=False)
+        x = res_model.output
+        for ind, feature_dim in enumerate(last_conv_feature_maps):
+            x = Convolution2D(feature_dim, 1, 1, activation='relu', name='1x1_conv_{}'.format(ind))(x)
+        x = AveragePooling2D((7,7), name='avg_pool')(x)
+        model = Model(res_model.input, x, name='resnet50_with_1x1')
 
     # Create Dense layers
     x = model.output
@@ -44,7 +57,8 @@ def ResNet50_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True)
         x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
     # Prediction
     x = Dense(nb_classes, activation='softmax', name='prediction')(x)
-
+    if freeze_conv:
+        toggle_trainable_layers(model, trainable=False)
     new_model = Model(model.input, x, name='resnet50_o1')
     return new_model
 
@@ -69,10 +83,11 @@ def ResNet50_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3)
                 nb_branch=1,
                 concat='concat',
                 last_conv_feature_maps=[],
+                **kwargs
                 ):
 
 
-    basename = 'ResCovNet'
+    basename = 'ResNet_o2_' + cov_branch
     if parametrics is not []:
         basename += '_para-'
         for para in parametrics:
@@ -86,14 +101,21 @@ def ResNet50_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3)
     else:
         base_model = ResNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg)
         base_model.load_weights(load_weights, by_name=True)
-
-    model = dcov_model_wrapper_v1(
-        base_model, parametrics, mode, nb_classes, basename,
-        cov_mode, cov_branch, cov_branch_output, freeze_conv,
-        cov_regularizer, nb_branch, concat, last_conv_feature_maps,
-    )
+    if nb_branch == 1:
+        model = dcov_model_wrapper_v1(
+            base_model, parametrics, mode, nb_classes, basename,
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
+    else:
+        model = dcov_model_wrapper_v2(
+            base_model, parametrics, mode, nb_classes, basename + 'nb_branch_' + str(nb_branch),
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
     return model
-
 
 
 def ResCovNet50(parametrics=[], epsilon=0., mode=0, nb_classes=23, input_shape=(3, 224, 224),
@@ -308,3 +330,4 @@ def ResCovNet50(parametrics=[], epsilon=0., mode=0, nb_classes=23, input_shape=(
 
     model = Model(input_tensor, x, name=basename)
     return model
+

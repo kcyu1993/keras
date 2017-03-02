@@ -85,8 +85,8 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
 K.set_learning_phase(1)
 
 # inference = cifar_fitnet_v3(input_shape=(24, 24, 3), dropout=False, last_softmax=False)
-# inference = simple_second_model
-inference = simple_log_model
+inference = simple_second_model
+# inference = simple_log_model
 # inference = simple_slim_model
 # inference = cifar10.inference
 

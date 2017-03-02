@@ -14,8 +14,11 @@ save it in a different format, load it in Python 3 and repickle it.
 from __future__ import print_function
 
 import os
+
+from kyu.models.fitnet import fitnet_v3_o1
+
 os.environ['KERAS_BACKEND'] = 'tensorflow'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 from keras.datasets import cifar10
 from keras.preprocessing.image import ImageDataGenerator
@@ -45,29 +48,31 @@ print(X_test.shape[0], 'test samples')
 Y_train = np_utils.to_categorical(y_train, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
 
-model = Sequential()
+model = fitnet_v3_o1([512], nb_classes, (32, 32, 3), pooling=False)
 
-model.add(Convolution2D(32, 3, 3, border_mode='same',
-                        input_shape=X_train.shape[1:]))
-model.add(Activation('relu'))
-model.add(Convolution2D(32, 3, 3))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
-
-model.add(Convolution2D(64, 3, 3, border_mode='same'))
-model.add(Activation('relu'))
-model.add(Convolution2D(64, 3, 3))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
-
-model.add(Flatten())
-model.add(Dense(512))
-model.add(Activation('relu'))
-model.add(Dropout(0.5))
-model.add(Dense(nb_classes))
-model.add(Activation('softmax'))
+# model = Sequential()
+#
+# model.add(Convolution2D(32, 3, 3, border_mode='same',
+#                         input_shape=X_train.shape[1:]))
+# model.add(Activation('relu'))
+# model.add(Convolution2D(32, 3, 3))
+# model.add(Activation('relu'))
+# model.add(MaxPooling2D(pool_size=(2, 2)))
+# model.add(Dropout(0.25))
+#
+# model.add(Convolution2D(64, 3, 3, border_mode='same'))
+# model.add(Activation('relu'))
+# model.add(Convolution2D(64, 3, 3))
+# model.add(Activation('relu'))
+# model.add(MaxPooling2D(pool_size=(2, 2)))
+# model.add(Dropout(0.25))
+#
+# model.add(Flatten())
+# model.add(Dense(512))
+# model.add(Activation('relu'))
+# model.add(Dropout(0.5))
+# model.add(Dense(nb_classes))
+# model.add(Activation('softmax'))
 
 # let's train the model using SGD + momentum (how original).
 sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
