@@ -242,6 +242,45 @@ def get_von_settings(exp=1):
     return config
 
 
+def get_constraints_settings(exp=1):
+    cov_regularizer = None
+    nb_branch = 1
+    last_config_feature_maps = []
+    batch_size = 4
+    cov_alpha = 0.01
+
+    if exp == 1:
+        """ Test Multi branch ResNet 50 """
+        nb_branch = 1
+        params = [[256, 128, 64], ]
+        # params = [[1024, 512], [1024, 512, 256], [512, 256]]
+        mode_list = [3]
+        cov_outputs = [128]
+        cov_mode = 'mean'
+        cov_branch = 'o2transform'
+        early_stop = True
+        # cov_regularizer = None
+        cov_regularizer = 'vN'
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024, 512, 256]
+        batch_size = 32
+        robust = True
+        # cov_alpha = 0.75
+    else:
+        return
+
+    if robust:
+        rb = 'robost'
+    else:
+        rb = ''
+
+    title = 'dtd_cUN_{}_{}_{}_{}'.format(cov_mode, cov_branch, rb, cov_regularizer)
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha)
+    return config
+
+
 def get_tensorboard_test_setting(exp=1):
 
     cov_regularizer = None
@@ -589,7 +628,8 @@ if __name__ == '__main__':
 
     # run_residual_cov_resnet(1)
 
-    config = get_von_settings(4)
+    # config = get_von_settings(4)
+    config = get_constraints_settings(1)
     # config = get_experiment_settings()
     print(config.title)
     # test_routine_resnet(config, verbose=(2,1), nb_epoch_after=50, nb_epoch_finetune=2)

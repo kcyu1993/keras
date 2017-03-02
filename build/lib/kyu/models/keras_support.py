@@ -9,6 +9,7 @@ from kyu.theano.general.train import toggle_trainable_layers, Model
 
 def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                               cov_mode='channel', cov_regularizer=None, vectorization='wv',
+                              o2t_constraints=None,
                               **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -20,13 +21,14 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
     x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
                            cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
     for id, param in enumerate(parametric):
-        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
+        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
     x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     return x
 
 
 def covariance_block_log(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                          cov_mode='channel', cov_regularizer=None, vectorization='wv',
+                         o2tconstraints=None,
                          **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -98,6 +100,7 @@ def covariance_block_mix(input_tensor, nb_class, stage, block, epsilon=0,
 
 def covariance_block_residual(input_tensor, nb_class, stage, block, epsilon=0,
                               parametric=[], denses=[], wv=True, wv_param=None, activation='relu',
+                              o2tconstraints=None,
                               **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -271,6 +274,16 @@ def dcov_model_wrapper_v1(
         x = Dense(nb_classes, activation='relu', name='fc')(x)
         x = merge([x, cov_branch], mode='concat', name='concat')
         x = Dense(nb_classes, activation='softmax', name='predictions')(x)
+    elif mode == 3:
+        if nb_branch == 1:
+
+            cov_branch = covariance_block(cov_input, cov_branch_output, stage=5, block='a', parametric=parametrics,
+                                          cov_mode=cov_mode, cov_regularizer=cov_regularizer,
+                                          o2t_constraints='UnitNorm',
+                                          **kwargs)
+            x = Dense(nb_classes, activation='softmax', name='predictions')(cov_branch)
+        elif nb_branch > 1:
+            pass
 
     if freeze_conv:
         toggle_trainable_layers(base_model, not freeze_conv)
@@ -368,7 +381,16 @@ def dcov_model_wrapper_v2(
             x = Dense(nb_classes, activation='relu', name='fc')(x)
             x = merge([x, cov_branch], mode='concat', name='concat')
             # x = Dense(nb_classes, activation='softmax', name='predictions')(x)
+        elif mode == 3:
+            cov_branch = covariance_block(x, cov_branch_output, stage=5, block=str(ind), parametric=parametrics,
+                                          cov_mode=cov_mode, cov_regularizer=cov_regularizer,
+                                          o2tconstraints='UnitNorm',
+                                          **kwargs)
+            x = cov_branch
         cov_outputs.append(x)
+
+
+
 
     if concat == 'concat':
         x = merge(cov_outputs, mode='concat', name='merge')
