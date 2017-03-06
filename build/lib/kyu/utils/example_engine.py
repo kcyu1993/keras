@@ -160,7 +160,8 @@ class ExampleEngine(object):
         self.lr_decay = lr_decay
         if self.lr_decay:
             self.cbks.append(ReduceLROnPlateau(min_lr=0.0001, verbose=1))
-
+        else:
+            self.cbks.append(ReduceLROnPlateau(min_lr=1e-5, factor=0.5))
         self.early_stop = early_stop
         if self.early_stop:
             self.cbks.append(EarlyStopping(patience=20, verbose=1))

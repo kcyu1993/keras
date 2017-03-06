@@ -146,7 +146,12 @@ class StiefelSGD(SGD):
         #     new_p = p + self.momentum * v - lr * new_g
         # else:
         new_p = p + v
-        new_p, _ = tf.qr(new_p, full_matrices=False)
+        p_shape = new_p.get_shape()
+        if p_shape[0]._value > p_shape[1]._value:
+            new_p, _ = tf.qr(new_p, full_matrices=False)
+        else:
+            new_p, _ = tf.qr(tf.transpose(new_p), full_matrices=False)
+            new_p = tf.transpose(new_p)
         # apply constraints
         if p in constraints:
             c = constraints[p]

@@ -8,7 +8,11 @@ import tensorflow as tf
 from keras.applications import ResNet50
 from keras.applications.resnet50 import ResCovNet50
 
-LOG_PATH_ROOT = '/home/kyu/cvkyu/tensorboard/'
+# LOG_PATH_ROOT = '/home/kyu/cvkyu/tensorboard/'
+from kyu.models.resnet import ResNet50_o2_multibranch
+
+LOG_PATH_ROOT = '/Users/kcyu/tensorboard/'
+
 
 def log_model(model, path='.log'):
     sess = tf.Session(config=tf.ConfigProto(
@@ -24,8 +28,14 @@ def log_model(model, path='.log'):
 
 if __name__ == '__main__':
 
-    model = ResCovNet50()
-    outputs = model.outputs
-    model.compile(optimizer='sgd', loss='categorical_crossentropy')
+    model = ResNet50_o2_multibranch([256, 128, 64], mode=3, nb_classes=23, cov_mode='pmean', cov_branch='o2t_no_wv',
+                                    cov_branch_output=64, concat='matrix_diag')
+    # model = ResNet50_o2_multibranch([256, 128, 64], mode=2, nb_classes=23, cov_mode='pmean', cov_branch='o2transform',
+    #                                 cov_branch_output=64, concat='concat')
 
-    log_model(model, path='test/resnet')
+    # model = ResCovNet50()
+    outputs = model.outputs
+
+    model.compile(optimizer='sgd', loss='categorical_crossentropy')
+    model.summary()
+    # log_model(model, path='test/resnet')

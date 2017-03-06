@@ -125,7 +125,7 @@ def get_residual_cov_experiment(exp):
     if exp == 1:
         """ Test Multi branch ResNet 50 """
         nb_branch = 1
-        params = [[257, 257, 257, 257, 257, 257],]
+        params = [[257, 257, 257, ], [257, 257, 257, 257, 257, 257],]
         # params = [[1024, 512], [1024, 512, 256], [512, 256]]
         mode_list = [1]
         cov_outputs = [128]
@@ -136,6 +136,7 @@ def get_residual_cov_experiment(exp):
         last_config_feature_maps = []
         last_config_feature_maps = [1024, 512, 256]
         batch_size = 32
+        robust = False
     elif exp == 2:
         """ Test Multi_branch Resnet 50 with residual learning """
         nb_branch = 2
@@ -149,11 +150,20 @@ def get_residual_cov_experiment(exp):
         last_config_feature_maps = []
         last_config_feature_maps = [1024]
         batch_size = 32
+        robust = True
+        cov_alpha = 0.75
     else:
         return
+
+    if robust:
+        rb = 'robost'
+    else:
+        rb = ''
+
+    title = 'dtd_von_{}_{}_{}_{}'.format(cov_mode, cov_branch, rb, cov_regularizer)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
-                        exp=exp)
+                        exp=exp, robust=robust, cov_alpha=cov_alpha, title=title)
     return config
 
 
@@ -294,6 +304,82 @@ def get_von_with_regroup(exp=1):
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup)
     return config
+
+
+def get_different_concat(exp=1):
+    cov_regularizer = None
+    nb_branch = 1
+    last_config_feature_maps = []
+    batch_size = 4
+    cov_alpha = 0.01
+    if exp == 1:
+        """ Test Multi_branch Resnet 50 with residual learning """
+        nb_branch = 4
+        params = [[257, 128, 64], ]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'pmean'
+        cov_branch = 'o2t_no_wv'
+        early_stop = False
+        # cov_regularizer = 'vN'
+        cov_regularizer = None
+        # last_config_feature_maps = []
+        last_config_feature_maps = []
+        batch_size = 10
+        robust = True
+        regroup = False
+        cov_alpha = 0.75
+        concat = 'matrix_diag'
+    elif exp == 2:
+        """ Test Multi_branch Resnet 50 with residual learning """
+        nb_branch = 2
+        params = [[257, 128, 64], ]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'pmean'
+        cov_branch = 'o2t_no_wv'
+        early_stop = False
+        # cov_regularizer = 'vN'
+        cov_regularizer = None
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024]
+        batch_size = 32
+        robust = True
+        regroup = False
+        cov_alpha = 0.75
+        concat = 'matrix_diag'
+    elif exp == 3:
+        """ Test Multi_branch Resnet 50 with residual learning """
+        nb_branch = 2
+        params = [[257, 128, 64], ]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'pmean'
+        cov_branch = 'o2t_no_wv'
+        early_stop = False
+        # cov_regularizer = 'vN'
+        cov_regularizer = None
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024]
+        batch_size = 32
+        robust = True
+        regroup = False
+        cov_alpha = 0.75
+        concat = 'sum'
+    else:
+        return
+
+    if robust:
+        rb = 'robost'
+    else:
+        rb = ''
+    title = 'dtd_diagcc_{}_{}_{}_{}'.format(cov_mode, cov_branch, rb, cov_regularizer)
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
+                        concat=concat)
+    return config
+
 
 def get_constraints_settings(exp=1):
     cov_regularizer = None
@@ -690,15 +776,17 @@ if __name__ == '__main__':
     # test_routine_resnet(7)
 
     # run_residual_cov_resnet(1)
-
+    config = get_different_concat(1)
+    # config = get_residual_cov_experiment(2)
     # config = get_von_settings(4)
-    config = get_von_with_regroup(1)
+    # config = get_von_with_regroup(1)
     # config.batch_size = 4
     # config = get_constraints_settings(1)
     # config = get_experiment_settings(7)
     # config = get_experiment_settings()
+    config.batch_size = 16
     print(config.title)
     # test_routine_resnet(config, verbose=(2,1), nb_epoch_after=50, nb_epoch_finetune=2)
     # run_routine_resnet(config, verbose=(2,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001), nb_epoch_finetune=10)
     run_routine_resnet(config, verbose=(1,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001),
-                       nb_epoch_finetune=1, nb_epoch_after=50)
+                       nb_epoch_finetune=4, nb_epoch_after=50)

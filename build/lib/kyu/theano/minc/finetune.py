@@ -331,7 +331,7 @@ def get_von_settings(exp=1):
         cov_alpha = 0.75
     elif exp == 4:
         """ Test Multi_branch Resnet 50 with residual learning """
-        nb_branch = 8
+        nb_branch = 4
         params = [[257, 128, 64], ]
         mode_list = [1]
         cov_outputs = [64]
@@ -340,8 +340,8 @@ def get_von_settings(exp=1):
         early_stop = False
         cov_regularizer = None
         # cov_regularizer = 'vN'
-        last_config_feature_maps = []
-        # last_config_feature_maps = [1024]
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024]
         batch_size = 32
         robust = True
         cov_alpha = 0.75
@@ -501,7 +501,8 @@ def run_routine_resnet(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_aft
 
 
 
-def run_routine_vgg(exp=1):
+def run_routine_vgg(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_after=50,
+                    stiefel_observed=None, stiefel_lr=0.01):
     """
     Finetune the ResNet-DCov
 
@@ -509,33 +510,33 @@ def run_routine_vgg(exp=1):
     -------
 
     """
-    nb_epoch_finetune = 40
-    nb_epoch_after = 50
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
                                            preprocessing_function=preprocess_image_for_imagenet
                                            )
-    config = get_experiment_settings(exp)
-    cov_branch = config.cov_branch
-    cov_mode = config.cov_mode
-    cov_regularizer = config.cov_regularizer
-    early_stop = config.early_stop
 
-    print("Running experiment {}".format(exp))
-    for param in config.params:
-        for mode in config.mode_list:
-            for cov_output in config.cov_outputs:
-                print("Run routine 1 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
-
-                model = VGG16_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                 nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                 freeze_conv=True, cov_regularizer=cov_regularizer,
-                                 last_conv_feature_maps=config.last_conv_feature_maps)
-
-                minc2500_finetune(model, title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                  nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
-                                  image_gen=image_gen,
-                                  batch_size=32, early_stop=early_stop)
+    monitor_class = (O2Transform, SecondaryStatistic)
+    # monitor_metrics = ['weight_norm',]
+    # monitor_metrics = ['output_norm',]
+    monitor_metrics = ['matrix_image',]
+    if stiefel_observed is None:
+        run_finetune(VGG16_o2, minc2500_finetune,
+                     nb_classes=nb_classes,
+                     input_shape=input_shape, config=config,
+                     nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                     image_gen=image_gen, title='minc2500_resnet50', verbose=verbose,
+                     monitor_classes=monitor_class,
+                     monitor_measures=monitor_metrics)
+    else:
+        run_finetune_with_Stiefel_layer(VGG16_o2, minc2500_finetune,
+                                        nb_classes=nb_classes,
+                                        input_shape=input_shape, config=config,
+                                        nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                                        image_gen=image_gen, title='minc2500_resnet50_stiefel', verbose=verbose,
+                                        monitor_classes=monitor_class,
+                                        monitor_measures=monitor_metrics,
+                                        observed_keywords=stiefel_observed,
+                                        lr=stiefel_lr)
 
 
 def baseline_finetune_vgg():
@@ -673,12 +674,13 @@ if __name__ == '__main__':
     # config = get_experiment_settings(6)
     # config = get_aaai_experiment(1)
 
-    # config = get_von_settings(4)
+    config = get_von_settings(4)
     # config = get_constraints_settings(1)
     # config = get_experiment_settings(7)
     # config = get_experiment_settings()
-    config = get_von_with_regroup(2)
+    # config = get_von_with_regroup(2)
     config.cov_mode = 'pmean'
+    config.batch_size = 32
     # config = get_residual_cov_experiment(2)
     print(config.title)
     # log_model_to_path(ResNet50_o2, input_shape, config, nb_classes, 'minc2500')
@@ -686,6 +688,9 @@ if __name__ == '__main__':
     # run_routine_resnet(config, verbose=(1, 2), stiefel_observed=[],
     run_routine_resnet(config, verbose=(1, 2), stiefel_observed=['o2t'],
                        stiefel_lr=(0.01, 0.001), nb_epoch_finetune=2, nb_epoch_after=50)
+
+    # run_routine_vgg(config, verbose=(1, 2), stiefel_observed=['o2t'],
+    #                 stiefel_lr=(0.01, 0.001), nb_epoch_finetune=5, nb_epoch_after=50)
 
     # run_routine_resnet(config)
 

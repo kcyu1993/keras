@@ -9,7 +9,7 @@ from keras.layers import Flatten, Dense, warnings
 
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
-from kyu.models.keras_support import covariance_block_original, dcov_model_wrapper_v1
+from kyu.models.keras_support import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
 from kyu.models.keras_support import covariance_block_vector_space
 from kyu.theano.general.train import toggle_trainable_layers
 
@@ -47,16 +47,19 @@ def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, fr
     return new_model
 
 
-def VGG16_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(3,224,224),
-                load_weights='imagenet',
-                cov_mode='channel',
-                cov_branch='o2transform',
-                cov_branch_output=None,
-                cov_block_mode=3,
-                freeze_conv=False,
-                cov_regularizer=None,
-                last_conv_feature_maps=[]
-                ):
+def VGG16_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3),
+             load_weights='imagenet',
+             cov_mode='channel',
+             cov_branch='o2transform',
+             cov_branch_output=None,
+             last_avg=False,
+             freeze_conv=False,
+             cov_regularizer=None,
+             nb_branch=1,
+             concat='concat',
+             last_conv_feature_maps=[],
+             **kwargs
+            ):
     """
 
     Parameters
@@ -91,16 +94,28 @@ def VGG16_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(3,224,224),
         for para in parametrics:
             basename += str(para) + '_'
     basename += 'mode_{}'.format(str(mode))
-    model = dcov_model_wrapper_v1(
-                base_model, parametrics, mode, nb_classes, basename,
-                cov_mode, cov_branch, cov_branch_output, freeze_conv,
-                cov_regularizer, last_conv_feature_maps=last_conv_feature_maps
-            )
 
+    if nb_branch == 1:
+        model = dcov_model_wrapper_v1(
+            base_model, parametrics, mode, nb_classes, basename,
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
+    else:
+        model = dcov_model_wrapper_v2(
+            base_model, parametrics, mode, nb_classes, basename + 'nb_branch_' + str(nb_branch),
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
     return model
 
 
 if __name__ == '__main__':
-    model = VGG16_o1([4096,4096,4096], input_shape=(224,224,3))
+    # model = VGG16_o1([4096,4096,4096], input_shape=(224,224,3))
+    model = VGG16_o2([256, 256, 128], nb_branch=2, cov_mode='pmean', freeze_conv=True,
+                     cov_branch_output=64,
+                     robust=True, mode=1, nb_classes=47)
     model.compile('sgd', 'categorical_crossentropy')
     model.summary()
