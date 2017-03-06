@@ -15,6 +15,7 @@ from keras.optimizers import SGD
 
 from config2dataset import *
 from config2model import *
+from kyu.tensorflow.ops.math import StiefelSGD
 from kyu.utils.example_engine import ExampleEnginev2, ExampleEngine
 
 import keras.backend as K
@@ -117,10 +118,16 @@ def fit_model_v2(model, data,
     else:
         if optimizer is None:
             optimizer = SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
+        elif isinstance(optimizer, StiefelSGD):
+            """ Create the new optimizer to make sure it is in the same graph. """
+            optimizer = StiefelSGD(lr, decay=optimizer.inital_decay, momentum=optimizer.init_momentum,
+                                   observed_names=optimizer.observed_names,
+                                   nesterov=optimizer.nesterov)
+            print("----- Use lr = {} for StiefelSGD ----- ".format(lr))
 
-            model.compile(loss='categorical_crossentropy',
-                          optimizer=optimizer,
-                          metrics=['accuracy'])
+        model.compile(loss='categorical_crossentropy',
+                      optimizer=optimizer,
+                      metrics=['accuracy'])
 
     save_log = log
     engine = ExampleEngine(data[0], model, data[1],

@@ -12,7 +12,7 @@ from keras.applications import ResNet50
 from keras.layers import Dense
 from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space
 from kyu.theano.general.config import DCovConfig
-from kyu.theano.general.finetune import run_finetune
+from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
@@ -242,6 +242,59 @@ def get_von_settings(exp=1):
     return config
 
 
+def get_von_with_regroup(exp=1):
+    cov_regularizer = None
+    nb_branch = 1
+    last_config_feature_maps = []
+    batch_size = 4
+    cov_alpha = 0.01
+    if exp == 1:
+        """ Test Multi_branch Resnet 50 with residual learning """
+        nb_branch = 4
+        params = [[257, 128, 64], ]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'mean'
+        cov_branch = 'o2transform'
+        early_stop = False
+        # cov_regularizer = 'vN'
+        cov_regularizer = None
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024]
+        batch_size = 10
+        robust = True
+        regroup = True
+        cov_alpha = 0.75
+    elif exp == 2:
+        """ Test Multi_branch Resnet 50 with residual learning """
+        nb_branch = 2
+        params = [[257, 128, 64], ]
+        mode_list = [1]
+        cov_outputs = [64]
+        cov_mode = 'pmean'
+        cov_branch = 'o2transform'
+        early_stop = False
+        # cov_regularizer = 'vN'
+        cov_regularizer = None
+        # last_config_feature_maps = []
+        last_config_feature_maps = [1024]
+        batch_size = 32
+        robust = True
+        regroup = False
+        cov_alpha = 0.75
+    else:
+        return
+
+    if robust:
+        rb = 'robost'
+    else:
+        rb = ''
+    title = 'dtd_regroup_{}_{}_{}_{}'.format(cov_mode, cov_branch, rb, cov_regularizer)
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup)
+    return config
+
 def get_constraints_settings(exp=1):
     cov_regularizer = None
     nb_branch = 1
@@ -380,7 +433,8 @@ def get_experiment_settings(exp=1):
         params = [[256, 128]]
         mode_list = [1]
         cov_outputs = [128]
-        cov_mode = 'mean'
+        cov_mode = 'pmean'
+        # cov_mode = 'mean'
         cov_branch = 'o2transform'
         early_stop = True
         # cov_regularizer = 'Fob'
@@ -395,7 +449,8 @@ def get_experiment_settings(exp=1):
     return config
 
 
-def run_routine_resnet(config, verbose=(2,2), nb_epoch_finetune=10, nb_epoch_after=50):
+def run_routine_resnet(config, verbose=(2,2), nb_epoch_finetune=10, nb_epoch_after=50,
+                       stiefel_observed=None, stiefel_lr=0.01):
     """
     Finetune the ResNet-DCov
 
@@ -410,14 +465,24 @@ def run_routine_resnet(config, verbose=(2,2), nb_epoch_finetune=10, nb_epoch_aft
     # monitor_metrics = ['weight_norm',]
     # monitor_metrics = ['output_norm',]
     monitor_metrics = ['matrix_image',]
-
-    run_finetune(ResNet50_o2, dtd_finetune,
-                 nb_classes=nb_classes,
-                 input_shape=input_shape, config=config,
-                 nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-                 image_gen=image_gen, title='dtd_resnet50', verbose=verbose,
-                 monitor_classes=monitor_class,
-                 monitor_measures=monitor_metrics)
+    if stiefel_observed is None:
+        run_finetune(ResNet50_o2, dtd_finetune,
+                     nb_classes=nb_classes,
+                     input_shape=input_shape, config=config,
+                     nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                     image_gen=image_gen, title='dtd_resnet50', verbose=verbose,
+                     monitor_classes=monitor_class,
+                     monitor_measures=monitor_metrics)
+    else:
+        run_finetune_with_Stiefel_layer(ResNet50_o2, dtd_finetune,
+                                        nb_classes=nb_classes,
+                                        input_shape=input_shape, config=config,
+                                        nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                                        image_gen=image_gen, title='dtd_resnet50_stiefel', verbose=verbose,
+                                        monitor_classes=monitor_class,
+                                        monitor_measures=monitor_metrics,
+                                        observed_keywords=stiefel_observed,
+                                        lr=stiefel_lr)
 
 
 def run_routine_vgg(exp=1):
@@ -473,7 +538,6 @@ def baseline_finetune_vgg():
                  batch_size=32, early_stop=True)
 
 
-
 def baseline_finetune_resnet(exp):
     nb_epoch_finetune = 10
     nb_epoch_after = 50
@@ -494,7 +558,6 @@ def baseline_finetune_resnet(exp):
     dtd_finetune(model, image_gen=image_gen, title='dtd_finetune_vgg16',
                  nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
                  batch_size=32, early_stop=True)
-
 
 
 def test_routine_vgg(exp=1):
@@ -629,8 +692,13 @@ if __name__ == '__main__':
     # run_residual_cov_resnet(1)
 
     # config = get_von_settings(4)
-    config = get_constraints_settings(1)
+    config = get_von_with_regroup(1)
+    # config.batch_size = 4
+    # config = get_constraints_settings(1)
+    # config = get_experiment_settings(7)
     # config = get_experiment_settings()
     print(config.title)
     # test_routine_resnet(config, verbose=(2,1), nb_epoch_after=50, nb_epoch_finetune=2)
-    run_routine_resnet(config, verbose=(1,1))
+    # run_routine_resnet(config, verbose=(2,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001), nb_epoch_finetune=10)
+    run_routine_resnet(config, verbose=(1,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001),
+                       nb_epoch_finetune=1, nb_epoch_after=50)

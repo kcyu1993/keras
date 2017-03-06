@@ -2,10 +2,11 @@ import warnings
 
 from keras.engine import merge
 from keras.layers import SecondaryStatistic, O2Transform, WeightedVectorization, Flatten, Dense, LogTransform, \
-    Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU
+    Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping
 
 from kyu.theano.general.train import toggle_trainable_layers, Model
 
+import tensorflow as tf
 
 def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                               cov_mode='channel', cov_regularizer=None, vectorization='wv',
@@ -17,12 +18,14 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
         cov_name_base = 'cov' + str(stage) + block + '_branch'
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
     wp_name_base = 'wp' + str(stage) + block + '_branch'
-
-    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
-                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+    with tf.name_scope(cov_name_base):
+        x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                               cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
     for id, param in enumerate(parametric):
-        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
-    x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
+        with tf.name_scope(o2t_name_base + str(id)):
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
+    with tf.name_scope(wp_name_base):
+        x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     return x
 
 
@@ -100,7 +103,7 @@ def covariance_block_mix(input_tensor, nb_class, stage, block, epsilon=0,
 
 def covariance_block_residual(input_tensor, nb_class, stage, block, epsilon=0,
                               parametric=[], denses=[], wv=True, wv_param=None, activation='relu',
-                              o2tconstraints=None,
+                              o2tconstraints=None, vectorization='wv',
                               **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -304,6 +307,7 @@ def dcov_model_wrapper_v2(
         concat='concat',
         last_conv_feature_maps=[],
         upsample_method='conv',
+        regroup=False,
         **kwargs
     ):
     """
@@ -360,6 +364,9 @@ def dcov_model_wrapper_v2(
         return outputs
 
     cov_input = SeparateConvolutionFeatures(nb_branch)(x)
+    if regroup:
+        with tf.device('/gpu:0'):
+            cov_input = Regrouping(None)(cov_input)
     cov_outputs = []
     for ind, x in enumerate(cov_input):
         if mode == 0:
@@ -384,7 +391,7 @@ def dcov_model_wrapper_v2(
         elif mode == 3:
             cov_branch = covariance_block(x, cov_branch_output, stage=5, block=str(ind), parametric=parametrics,
                                           cov_mode=cov_mode, cov_regularizer=cov_regularizer,
-                                          o2tconstraints='UnitNorm',
+                                          o2t_constraints='UnitNorm',
                                           **kwargs)
             x = cov_branch
         cov_outputs.append(x)

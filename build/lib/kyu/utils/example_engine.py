@@ -168,7 +168,7 @@ class ExampleEngine(object):
         self.tensorboard = tensorboard
         if self.tensorboard:
             if K._BACKEND == 'tensorflow':
-                tb_path = '/tmp/tensorflow/' + title
+                tb_path = '/tmp/tensorflow/' + title[:30]
                 print("Creating tensorboard to save to {}".format(tb_path))
                 self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=False))
 

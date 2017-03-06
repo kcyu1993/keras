@@ -87,7 +87,7 @@ def simple_log_model(input_tensor):
     # inner = tf.log(inner)
     # inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
     # inner = tf.matrix_diag(inner)
-    # x = tf.batch_matmul(u, tf.batch_matmul(inner, tf.transpose(u, [0, 2, 1])))
+    # x = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
 
     with tf.name_scope("LogTransform"):
         x = LogTransform(0.001)(x)

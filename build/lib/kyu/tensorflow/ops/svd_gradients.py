@@ -57,9 +57,9 @@ def gradient_eig(op, grad_s, grad_u, grad_v):
     with tf.name_scope('K'):
         K = get_eigen_K(s, square=False)
 
-    dzdx1 = 2 * K * tf.batch_matmul(u_t, grad_u) + tf.matrix_diag(grad_s, name='dzdx1')
-    dzdx1 = tf.batch_matmul(dzdx1, u_t)
-    dzdx_final = tf.batch_matmul(u, dzdx1, name='dzdx_final')
+    dzdx1 = 2 * K * tf.matmul(u_t, grad_u) + tf.matrix_diag(grad_s, name='dzdx1')
+    dzdx1 = tf.matmul(dzdx1, u_t)
+    dzdx_final = tf.matmul(u, dzdx1, name='dzdx_final')
     dzdx_final = tf.where(tf.is_nan(dzdx_final), tf.zeros_like(dzdx_final), dzdx_final)
     return dzdx_final
 
@@ -77,36 +77,36 @@ def gradient_eig_for_log(op, grad_s, grad_u, grad_v):
     # log_inner = tf.where(tf.is_nan(log_inner), tf.zeros_like(log_inner), log_inner)
     # log_inner = tf.matrix_diag(log_inner)
     # sess2 = tf.Session()
-    # dLdC = tf.batch_matmul(grad_u, tf.matrix_inverse(tf.batch_matmul(u, tf.matrix_diag(log_inner)))) / 2
+    # dLdC = tf.matmul(grad_u, tf.matrix_inverse(tf.matmul(u, tf.matrix_diag(log_inner)))) / 2
     grad_u = tf.Print(grad_u, [grad_u], summarize=10, message='grad_u')
     grad_s = tf.Print(grad_s, [grad_s], message='grad_s')
     # grad_v = tf.Print(grad_v, [grad_v], message='grad_v')
 
-    # dLdC = tf.batch_matmul(grad_u, (tf.batch_matmul(log_inner, u_t)), name='dLdC') / 2
+    # dLdC = tf.matmul(grad_u, (tf.matmul(log_inner, u_t)), name='dLdC') / 2
     # dLdC = tf.Print(dLdC, [dLdC], summarize=64*64, message='dLdC')
 
-    # tmp = tf.batch_matmul(u_t, tf.batch_matmul(dLdC, u), name='tmp')
+    # tmp = tf.matmul(u_t, tf.matmul(dLdC, u), name='tmp')
     # tmp = tf.Print(tmp, [tmp], summarize=64*64, message='tmp')
 
     # inv_diag_S = (1. / s)
     # inv_diag_S = tf.where(tf.is_inf(inv_diag_S), tf.zeros_like(inv_diag_S), inv_diag_S)
     # # inv_diag_S = tf.Print(inv_diag_S, [inv_diag_S], summarize=64, message='inv_diag_S')
     # inv_diag_S = tf.matrix_diag(inv_diag_S)
-    # grad_S = tf.batch_matmul(inv_diag_S, tmp, name='grad_S')
+    # grad_S = tf.matmul(inv_diag_S, tmp, name='grad_S')
     # grad_S = tf.Print(grad_S, [grad_S],summarize=64, message='grad_S')
 
     with tf.name_scope('K'):
         K = get_eigen_K(s, square=False)
     # K = tf.Print(K, [K], summarize=64*64, message='K')
 
-    # dzdx1 = K * tf.batch_matmul(u_t, grad_u) + tf.matrix_diag(tf.matrix_diag_part(grad_S), name='dzdx1')
-    dzdx1 = K * tf.batch_matmul(u_t, grad_u) + tf.matrix_diag(grad_s, name='dzdx1')
+    # dzdx1 = K * tf.matmul(u_t, grad_u) + tf.matrix_diag(tf.matrix_diag_part(grad_S), name='dzdx1')
+    dzdx1 = K * tf.matmul(u_t, grad_u) + tf.matrix_diag(grad_s, name='dzdx1')
     # dzdx1 = tf.Print(dzdx1, [dzdx1],  summarize=64*64, message='dzdx1')
-    dzdx1 = tf.batch_matmul(dzdx1, u_t)
+    dzdx1 = tf.matmul(dzdx1, u_t)
 
     # u = tf.Print(u, [u], summarize=64*64, message='u')
 
-    dzdx_final = tf.batch_matmul(u, dzdx1, name='dzdx_final')
+    dzdx_final = tf.matmul(u, dzdx1, name='dzdx_final')
     dzdx_final = tf.where(tf.is_nan(dzdx_final), tf.zeros_like(dzdx_final), dzdx_final)
     dzdx_final = tf.Print(dzdx_final, [dzdx_final],  summarize=10, message='dzdx_final')
     # return tf.ones_like(dzdx) / 10
@@ -128,7 +128,7 @@ def gradient_svd_for_log(op, grad_s, grad_u, grad_v):
     inner = tf.square(s) + epsilon
     inner = tf.log(inner)
     inner = tf.matrix_diag(inner)
-    tf_log = tf.batch_matmul(v, tf.batch_matmul(inner, tf.transpose(v, [0,2,1])))
+    tf_log = tf.matmul(v, tf.matmul(inner, tf.transpose(v, [0,2,1])))
 
     Parameters
     ----------
@@ -144,26 +144,26 @@ def gradient_svd_for_log(op, grad_s, grad_u, grad_v):
     s, u, v = op.outputs
     diagS = tf.matrix_diag(s)  # Check
 
-    inner = tf.batch_matmul(tf.transpose(diagS, [0, 2, 1]), diagS)
+    inner = tf.matmul(tf.transpose(diagS, [0, 2, 1]), diagS)
     inner = tf.matrix_diag_part(inner) + 1e-4
     log_inner = tf.log(inner)
     inverse_inner = 1. / inner
     # inner = tf.matrix_diag(inner)
-    test = tf.matrix_inverse(tf.batch_matmul(v, tf.matrix_diag(log_inner)))
-    dLdC = tf.batch_matmul(grad_v, test) / 2
+    test = tf.matrix_inverse(tf.matmul(v, tf.matrix_diag(log_inner)))
+    dLdC = tf.matmul(grad_v, test) / 2
 
-    grad_S = tf.batch_matmul(
+    grad_S = tf.matmul(
         2 * diagS,
-        tf.batch_matmul(
+        tf.matmul(
             tf.matrix_diag(inverse_inner),
-            tf.batch_matmul(
+            tf.matmul(
                 tf.transpose(v, [0, 2, 1]),
-                tf.batch_matmul(dLdC, v))))
+                tf.matmul(dLdC, v))))
 
     diag_grad_S = tf.matrix_diag_part(grad_S)
     K = get_eigen_K(s, True)
 
-    tmp = matrix_symmetric(K * tf.batch_matmul(tf.transpose(v, [0, 2, 1]), grad_v))
+    tmp = matrix_symmetric(K * tf.matmul(tf.transpose(v, [0, 2, 1]), grad_v))
 
     # Create the shape accordingly.
     u_shape = u.get_shape()[1].value
@@ -176,12 +176,12 @@ def gradient_svd_for_log(op, grad_s, grad_u, grad_v):
     real_grad_S = tf.matmul(tf.reshape(tf.matrix_diag(diag_grad_S), [-1, v_shape]), eye_mat)
     real_grad_S = tf.transpose(tf.reshape(real_grad_S, [-1, v_shape, u_shape]), [0, 2, 1])
 
-    tmp = 2 * tf.batch_matmul(realS, tmp)
+    tmp = 2 * tf.matmul(realS, tmp)
 
     dxdz = tmp + real_grad_S
     # return new_id
-    dxdz = tf.batch_matmul(dxdz, tf.transpose(v, [0, 2, 1]))
-    dxdz = tf.batch_matmul(u, dxdz)
+    dxdz = tf.matmul(dxdz, tf.transpose(v, [0, 2, 1]))
+    dxdz = tf.matmul(u, dxdz)
     return dxdz
 
 
@@ -221,7 +221,7 @@ def batch_matrix_log(x, epsilon):
     inner = s + epsilon
     inner = tf.log(inner)
     inner = tf.matrix_diag(inner)
-    return tf.batch_matmul(u, tf.batch_matmul(inner, tf.transpose(u, [0,2,1])))
+    return tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0,2,1])))
 
 
 if __name__ == '__main__':

@@ -1,11 +1,14 @@
 import pytest
 import numpy as np
+from keras.engine import Model
 from scipy.linalg import logm
 from numpy.testing import assert_allclose
 import tensorflow as tf
 from keras.utils.test_utils import layer_test, keras_test
 from keras import backend as K
-from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform, MatrixReLU
+from keras.engine import merge
+from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform, \
+    MatrixReLU, Convolution2D, Regrouping, SeparateConvolutionFeatures, Input, Dense
 
 # def test_matrix_logrithm():
 #     data = np.random.randn(3, 10, 10)
@@ -343,24 +346,24 @@ def gradient_svd_for_log_v2(op, grad_s, grad_u, grad_v):
     log_inner = tf.log(inner)
     inverse_inner = 1. / inner
     # inner = tf.matrix_diag(inner)
-    dLdC = tf.batch_matmul(grad_u, tf.matrix_inverse(tf.batch_matmul(u, tf.matrix_diag(log_inner)))) / 2
+    dLdC = tf.matmul(grad_u, tf.matrix_inverse(tf.matmul(u, tf.matrix_diag(log_inner)))) / 2
 
-    grad_S = tf.batch_matmul(
+    grad_S = tf.matmul(
         2 * tf.sqrt(diagS),
-        tf.batch_matmul(
+        tf.matmul(
             tf.matrix_diag(1. / inner),
-            tf.batch_matmul(
+            tf.matmul(
                 tf.transpose(u, [0, 2, 1]),
-                tf.batch_matmul(dLdC, u))))
+                tf.matmul(dLdC, u))))
     diag_grad_S = tf.matrix_diag_part(grad_S)
     K = tf.transpose(get_eigen_K(tf.sqrt(s), True), [0, 2, 1])
-    tmp = K * tf.batch_matmul(tf.transpose(u, [0, 2, 1]), grad_u)
+    tmp = K * tf.matmul(tf.transpose(u, [0, 2, 1]), grad_u)
 
     dxdz = tmp + tf.matrix_diag(diag_grad_S)
-    dxdz = tf.batch_matmul(dxdz, tf.transpose(u, [0, 2, 1]))
-    dxdz = tf.batch_matmul(u, dxdz)
-    # dxdz = tf.batch_matmul(
-    #     v, tf.batch_matmul(tf.matrix_diag(2*tf.sqrt(s)), tmp) + tf.matrix_diag(diag_grad_S),
+    dxdz = tf.matmul(dxdz, tf.transpose(u, [0, 2, 1]))
+    dxdz = tf.matmul(u, dxdz)
+    # dxdz = tf.matmul(
+    #     v, tf.matmul(tf.matrix_diag(2*tf.sqrt(s)), tmp) + tf.matrix_diag(diag_grad_S),
     #     )
     return dxdz
 
@@ -374,14 +377,14 @@ def gradient_eig_for_log(op, grad_s, grad_u, grad_v):
     inner = diagS
     log_inner = tf.log(s)
 
-    dLdC = tf.batch_matmul(grad_u, tf.matrix_inverse(tf.batch_matmul(u, tf.matrix_diag(log_inner)))) / 2
-    tmp = tf.batch_matmul(u_t, tf.batch_matmul(dLdC, u))
-    grad_S = tf.batch_matmul(tf.matrix_diag(1. / s), tmp)
+    dLdC = tf.matmul(grad_u, tf.matrix_inverse(tf.matmul(u, tf.matrix_diag(log_inner)))) / 2
+    tmp = tf.matmul(u_t, tf.matmul(dLdC, u))
+    grad_S = tf.matmul(tf.matrix_diag(1. / s), tmp)
 
     # K = tf.transpose(get_eigen_K(s, square=False), [0, 2, 1])
     K = get_eigen_K(s, square=False)
-    dzdx = K * tf.batch_matmul(u_t, grad_u) + tf.matrix_diag(tf.matrix_diag_part(grad_S))
-    dzdx = tf.batch_matmul(u, tf.batch_matmul(dzdx, u_t))
+    dzdx = K * tf.matmul(u_t, grad_u) + tf.matrix_diag(tf.matrix_diag_part(grad_S))
+    dzdx = tf.matmul(u, tf.matmul(dzdx, u_t))
     return dzdx
 
 
@@ -390,26 +393,26 @@ def gradient_svd_for_log(op, grad_s, grad_u, grad_v):
         s, u, v = op.outputs
         diagS = tf.matrix_diag(s)  # Check
 
-        inner = tf.batch_matmul(tf.transpose(diagS, [0, 2, 1]), diagS)
+        inner = tf.matmul(tf.transpose(diagS, [0, 2, 1]), diagS)
         inner = tf.matrix_diag_part(inner) + 1e-4
         log_inner = tf.log(inner)
         inverse_inner = 1. / inner
         # inner = tf.matrix_diag(inner)
-        test = tf.matrix_inverse(tf.batch_matmul(v, tf.matrix_diag(log_inner)))
-        dLdC = tf.batch_matmul(grad_v, test) / 2
+        test = tf.matrix_inverse(tf.matmul(v, tf.matrix_diag(log_inner)))
+        dLdC = tf.matmul(grad_v, test) / 2
 
-        grad_S = tf.batch_matmul(
+        grad_S = tf.matmul(
             2 * diagS,
-            tf.batch_matmul(
+            tf.matmul(
                 tf.matrix_diag(inverse_inner),
-                tf.batch_matmul(
+                tf.matmul(
                     tf.transpose(v, [0, 2, 1]),
-                    tf.batch_matmul(dLdC, v))))
+                    tf.matmul(dLdC, v))))
 
         diag_grad_S = tf.matrix_diag_part(grad_S)
         K = get_eigen_K(s, True)
 
-        tmp = matrix_symmetric(K * tf.batch_matmul(tf.transpose(v, [0, 2, 1]), grad_v))
+        tmp = matrix_symmetric(K * tf.matmul(tf.transpose(v, [0, 2, 1]), grad_v))
 
         # Create the shape accordingly.
         u_shape = u.get_shape()[1].value
@@ -422,38 +425,38 @@ def gradient_svd_for_log(op, grad_s, grad_u, grad_v):
         real_grad_S = tf.matmul(tf.reshape(tf.matrix_diag(diag_grad_S), [-1, v_shape]), eye_mat)
         real_grad_S = tf.transpose(tf.reshape(real_grad_S, [-1, v_shape, u_shape]), [0, 2, 1])
 
-        tmp = 2 * tf.batch_matmul(realS, tmp)
+        tmp = 2 * tf.matmul(realS, tmp)
 
         dxdz = tmp + real_grad_S
         # return new_id
-        dxdz = tf.batch_matmul(dxdz, tf.transpose(v, [0, 2, 1]))
-        dxdz = tf.batch_matmul(u, dxdz)
+        dxdz = tf.matmul(dxdz, tf.transpose(v, [0, 2, 1]))
+        dxdz = tf.matmul(u, dxdz)
         return dxdz
 
 
 def pesudo_gradient(s,u, v, grad_s, grad_v):
     diagS = tf.matrix_diag(s)   # Check
 
-    inner = tf.batch_matmul(tf.transpose(diagS, [0,2,1]), diagS)
+    inner = tf.matmul(tf.transpose(diagS, [0,2,1]), diagS)
     inner = tf.matrix_diag_part(inner) + 1e-4
     log_inner = tf.log(inner)
     inverse_inner = 1./ inner
     # inner = tf.matrix_diag(inner)
-    test = tf.matrix_inverse(tf.batch_matmul(v, tf.matrix_diag(log_inner)))
-    dLdC = tf.batch_matmul(grad_v, test) / 2
+    test = tf.matrix_inverse(tf.matmul(v, tf.matrix_diag(log_inner)))
+    dLdC = tf.matmul(grad_v, test) / 2
 
-    grad_S = tf.batch_matmul(
+    grad_S = tf.matmul(
         2 * diagS,
-        tf.batch_matmul(
+        tf.matmul(
             tf.matrix_diag(inverse_inner),
-            tf.batch_matmul(
+            tf.matmul(
                 tf.transpose(v, [0, 2, 1]),
-                tf.batch_matmul(dLdC, v))))
+                tf.matmul(dLdC, v))))
 
     diag_grad_S = tf.matrix_diag_part(grad_S)
     K = get_eigen_K(s, True)
 
-    tmp = matrix_symmetric(K * tf.batch_matmul(tf.transpose(v, [0, 2, 1]), grad_v))
+    tmp = matrix_symmetric(K * tf.matmul(tf.transpose(v, [0, 2, 1]), grad_v))
 
     # Create the shape accordingly.
     u_shape = u.get_shape()[1].value
@@ -466,37 +469,37 @@ def pesudo_gradient(s,u, v, grad_s, grad_v):
     real_grad_S = tf.matmul(tf.reshape(tf.matrix_diag(diag_grad_S), [-1, v_shape]), eye_mat)
     real_grad_S = tf.transpose(tf.reshape(real_grad_S, [-1, v_shape, u_shape]), [0,2,1])
 
-    tmp = 2 * tf.batch_matmul(realS, tmp)
+    tmp = 2 * tf.matmul(realS, tmp)
 
     dxdz = tmp + real_grad_S
     # return new_id
-    dxdz = tf.batch_matmul(dxdz, tf.transpose(v, [0, 2, 1]))
-    dxdz = tf.batch_matmul(u, dxdz)
-    # dxdz = tf.batch_matmul(
-    #     v, tf.batch_matmul(tf.matrix_diag(2*tf.sqrt(s)), tmp) + tf.matrix_diag(diag_grad_S),
+    dxdz = tf.matmul(dxdz, tf.transpose(v, [0, 2, 1]))
+    dxdz = tf.matmul(u, dxdz)
+    # dxdz = tf.matmul(
+    #     v, tf.matmul(tf.matrix_diag(2*tf.sqrt(s)), tmp) + tf.matrix_diag(diag_grad_S),
     #     )
     return dxdz
 
 
-    # grad_S = tf.batch_matmul(
+    # grad_S = tf.matmul(
     #     2*tf.sqrt(diagS),
-    #     tf.batch_matmul(
+    #     tf.matmul(
     #         tf.matrix_diag( 1./ inner),
-    #         tf.batch_matmul(
+    #         tf.matmul(
     #             tf.transpose(v, [0,2,1]),
-    #             tf.batch_matmul(dLdC, v))))
+    #             tf.matmul(dLdC, v))))
     # diag_grad_S = tf.matrix_diag_part(grad_S)
     # K = get_eigen_K(tf.sqrt(s))
     #
-    # tmp = K * tf.batch_matmul(tf.transpose(v, [0,2,1]), grad_v)
+    # tmp = K * tf.matmul(tf.transpose(v, [0,2,1]), grad_v)
     # tmp = matrix_symmetric(tmp)
-    # tmp = 2 * tf.batch_matmul(tf.sqrt(diagS), tmp)
+    # tmp = 2 * tf.matmul(tf.sqrt(diagS), tmp)
     # dxdz = tmp + tf.matrix_diag(diag_grad_S)
     # # return dxdz
-    # dxdz = tf.batch_matmul(dxdz, tf.transpose(v, [0,2,1]))
-    # dxdz = tf.batch_matmul(u, dxdz)
-    # # dxdz = tf.batch_matmul(
-    # #     v, tf.batch_matmul(tf.matrix_diag(2*tf.sqrt(s)), tmp) + tf.matrix_diag(diag_grad_S),
+    # dxdz = tf.matmul(dxdz, tf.transpose(v, [0,2,1]))
+    # dxdz = tf.matmul(u, dxdz)
+    # # dxdz = tf.matmul(
+    # #     v, tf.matmul(tf.matrix_diag(2*tf.sqrt(s)), tmp) + tf.matrix_diag(diag_grad_S),
     # #     )
     # return grad_S
 
@@ -518,7 +521,7 @@ def gradient_eig_comparision():
     inner = s + epsilon
     inner = tf.log(inner)
     inner = tf.matrix_diag(inner)
-    tf_log = tf.batch_matmul(u, tf.batch_matmul(inner, tf.transpose(u, [0,2,1])))
+    tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0,2,1])))
     y_grads = tf.placeholder(tf.float32, shape=(None, 3, 3))
 
     grad_s = tf.gradients(tf_log, s, grad_ys=y_grads)[0]
@@ -571,7 +574,7 @@ def gradient_svd_comparision():
     inner = tf.square(s) + epsilon
     inner = tf.log(inner)
     inner = tf.matrix_diag(inner)
-    tf_log = tf.batch_matmul(v, tf.batch_matmul(inner, tf.transpose(v, [0,2,1])))
+    tf_log = tf.matmul(v, tf.matmul(inner, tf.transpose(v, [0,2,1])))
 
     y_grads = tf.placeholder(tf.float32, shape=(None, 3, 3))
     grad_s = tf.gradients(tf_log, s, grad_ys=y_grads)[0]
@@ -633,7 +636,7 @@ def test_matrixrelu():
     inner = tf.where(tf.less(tf_s, comp), comp, tf_s)
     inner = tf.Print(inner, [inner], 'inner:')
     inner = tf.matrix_diag(inner)
-    tf_relu = tf.batch_matmul(tf_u, tf.batch_matmul(inner, tf.transpose(tf_u, [0,2,1])))
+    tf_relu = tf.matmul(tf_u, tf.matmul(inner, tf.transpose(tf_u, [0,2,1])))
 
     with sess.as_default():
 
@@ -658,6 +661,32 @@ def test_matrixrelu():
     # assert_allclose(a, res, rtol=1e-4)
 
 
+def simple_second_model():
+    # Define and create a simple Conv2D model
+    n = 8
+    input_tensor = Input(INPUT_SHAPE[1:])
+    x = Convolution2D(1024, 3,3)(input_tensor)
+    x = Convolution2D(2048, 3,3)(x)
+
+    list_covs = SeparateConvolutionFeatures(n)(x)
+    list_covs = Regrouping(None)(list_covs)
+    list_outputs = []
+    for cov in list_covs:
+        cov = SecondaryStatistic()(cov)
+        cov = O2Transform(100)(cov)
+        cov = O2Transform(100)(cov)
+        list_outputs.append(WeightedVectorization(10)(cov))
+
+    x = merge(list_outputs, mode='concat')
+    x = Dense(10)(x)
+
+    model = Model(input_tensor, x)
+
+    model.compile(optimizer='sgd', loss='categorical_crossentropy')
+    model.summary()
+    return model
+
+
 if __name__ == '__main__':
     # test_secondstat()
     # test_encode_mean_cov()
@@ -665,4 +694,5 @@ if __name__ == '__main__':
     # compare_with_matlab_version()
     # gradient_svd_comparision()
     # gradient_eig_comparision()
-    test_matrixrelu()
+    # test_matrixrelu()
+    simple_second_model()

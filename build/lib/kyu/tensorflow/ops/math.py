@@ -38,7 +38,7 @@ def get_matrix_norm(x, mode='Frob', keep_dim=False):
 
     if mode == 'Frob':
         if keep_dim:
-            return tf.sqrt(tf.trace(tf.batch_matmul(x, tf.transpose(x, [0,2,1]))))
+            return tf.sqrt(tf.trace(tf.matmul(x, tf.transpose(x, [0,2,1]))))
         else:
             return tf.reduce_sum(tf.pow(x, tf.ones_like(x) * 2))
     else:
@@ -47,7 +47,7 @@ def get_matrix_norm(x, mode='Frob', keep_dim=False):
 
 class StiefelSGD(SGD):
 
-    def __init__(self, lr=0.01, momentum=0., decay=0.,
+    def __init__(self, lr=0.01, momentum=0.9, decay=1e-6,
                  nesterov=False,
                  observed_names=None,
                  **kwargs):
@@ -71,8 +71,11 @@ class StiefelSGD(SGD):
         self.decay = K.variable(decay)
         self.inital_decay = decay
 
+        # For configuration purpose.
+        self.init_lr = lr
+        self.init_momentum = momentum
         # Class name to the observed layer.
-        self.obversed_names = observed_names
+        self.observed_names = observed_names
 
     def get_updates(self, params, constraints, loss):
         grads = self.get_gradients(loss, params)
@@ -90,7 +93,7 @@ class StiefelSGD(SGD):
 
         for p, g, m in zip(params, grads, moments):
 
-            if StiefelSGD.find_obversved_name(p.name, self.obversed_names):
+            if StiefelSGD.find_obversved_name(p.name, self.observed_names):
                 self.stiefel_update(p, constraints, g, m, lr)
                 continue
 
@@ -131,7 +134,6 @@ class StiefelSGD(SGD):
         m = moment
         g = grad
 
-
         new_g = g - K.dot(p, matrix_sym_op(K.dot(K.transpose(p), g)))
 
         v = self.momentum * m - lr * new_g  # velocity
@@ -144,7 +146,7 @@ class StiefelSGD(SGD):
         #     new_p = p + self.momentum * v - lr * new_g
         # else:
         new_p = p + v
-        new_p, _ = tf.qr(new_p, full_matrices=True)
+        new_p, _ = tf.qr(new_p, full_matrices=False)
         # apply constraints
         if p in constraints:
             c = constraints[p]

@@ -67,8 +67,8 @@ class VonNeumannDistanceRegularizer(Regularizer):
         inner = tf.where(tf.less(s, comp), comp, s)
         # inner = tf.Print(inner, [inner], message='inner', summarize=self.dim)
         inner = tf.log(inner)
-        von = tf.batch_matmul(tf.matrix_diag(s), tf.matrix_diag(inner)) - tf.matrix_diag(s - 1)
-        von = tf.batch_matmul(u, tf.batch_matmul(von, tf.transpose(u, [0,2,1])))
+        von = tf.matmul(tf.matrix_diag(s), tf.matrix_diag(inner)) - tf.matrix_diag(s - 1)
+        von = tf.matmul(u, tf.matmul(von, tf.transpose(u, [0,2,1])))
         # von = tf.Print(von, [von], message='von')
         reg = tf.reduce_sum(self.alpha * tf.trace(von, 'vN_reg')) / self.dim
         # reg = tf.Print(reg, [reg], message='vN_reg')
