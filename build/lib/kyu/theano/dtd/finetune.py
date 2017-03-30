@@ -26,8 +26,6 @@ from kyu.models.fitnet import fitnet_v1_o1, fitnet_v1_o2
 from kyu.datasets.dtd import load_dtd
 from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Model
 
-from kyu.models.minc import minc_fitnet_v2
-
 import keras.backend as K
 from keras.preprocessing.image import ImageDataGeneratorAdvanced, ImageDataGenerator
 

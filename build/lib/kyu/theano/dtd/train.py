@@ -13,10 +13,9 @@ from kyu.datasets.imagenet import preprocess_image_for_imagenet
 
 from kyu.models.vgg import VGG16_o1
 from kyu.models.resnet import ResNet50_o1, ResCovNet50
-from kyu.models.fitnet import fitnet_v1_o1, fitnet_v1_o2
+from kyu.models.fitnet import fitnet_o1, fitnet_o2
 from kyu.datasets.dtd import load_dtd
 from kyu.theano.general.train import fit_model_v2
-from kyu.models.minc import minc_fitnet_v2
 
 import keras.backend as K
 from keras.preprocessing.image import ImageDataGeneratorAdvanced
@@ -106,12 +105,6 @@ def dtd_fitting(model, image_gen=None, batch_size=32, title='dtd',
                  verbose=verbose)
 
 
-
-def test_routine1():
-    model = minc_fitnet_v2([], nb_classes=47, input_shape=input_shape)
-    dtd_fitting(model)
-
-
 def baseline_VGG():
     model = VGG16_o1(denses=[1024], nb_classes=nb_classes, input_shape=input_shape)
     model.name = 'baseline_vgg16'
@@ -124,7 +117,7 @@ def baseline_VGG():
 
 
 def baseline_fitnet():
-    model = fitnet_v1_o1(denses=[500], nb_classes=nb_classes, input_shape=input_shape, dropout=True)
+    model = fitnet_o1(denses=[500], nb_classes=nb_classes, input_shape=input_shape, dropout=True, version=1)
     dtd_fitting(model, batch_size=32, title='dtd_fitnet_v1_o1_baseline')
 
 
@@ -191,9 +184,10 @@ def run_routine1(exp=3):
         for mode in config.mode_list:
             for cov_output in config.cov_outputs:
                 print("Run routine 1 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
-                model = fitnet_v1_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-                                     nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-                                     dropout=config.dropout)
+                model = fitnet_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
+                                  version=1,
+                                  nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
+                                  dropout=config.dropout)
 
                 dtd_fitting(model, title='dtd_cov_{}_wv{}_{}_mode{}'.format(cov_branch,
                                                                             str(cov_output), cov_mode, mode),
