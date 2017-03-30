@@ -5,7 +5,7 @@ Re implement VGG model for general usage
 from keras.engine import Model
 from keras.engine import merge
 
-from keras.layers import Flatten, Dense, warnings
+from keras.layers import Flatten, Dense, warnings, Convolution2D
 
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
@@ -14,7 +14,7 @@ from kyu.models.keras_support import covariance_block_vector_space
 from kyu.theano.general.train import toggle_trainable_layers
 
 
-def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, freeze_conv=False):
+def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, freeze_conv=False, last_conv=False):
     """
     Create VGG 16 based on without_top.
 
@@ -35,7 +35,11 @@ def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, fr
 
     # Create Dense layers
     x = model.output
+    if last_conv:
+        x = Convolution2D(1024, 1, 1)(x)
+
     x = Flatten()(x)
+
     for ind, dense in enumerate(denses):
         x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
     # Prediction
@@ -81,11 +85,11 @@ def VGG16_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3),
 
     """
     if load_weights == 'imagenet':
-        base_model = VGG16(include_top=False, input_shape=input_shape)
+        base_model = VGG16(include_top=False, input_shape=input_shape, last_avg=last_avg)
     elif load_weights is None:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape)
+        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape,last_avg=last_avg)
     else:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape)
+        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape,last_avg=last_avg)
         base_model.load_weights(load_weights, by_name=True)
 
     basename = 'VGG16_o2'
@@ -110,6 +114,17 @@ def VGG16_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3),
             **kwargs
         )
     return model
+
+
+def VGG16_o2_with_config(param, mode, cov_output, config, nb_class, input_shape, **kwargs):
+    """ API to ResNet50 o2, create by config """
+    z = config.kwargs.copy()
+    z.update(kwargs)
+    return VGG16_o2(parametrics=param, mode=mode, nb_classes=nb_class, cov_branch_output=cov_output,
+                    input_shape=input_shape, last_avg=False, freeze_conv=False,
+                    cov_regularizer=config.cov_regularizer, last_conv_feature_maps=config.last_conv_feature_maps,
+                    nb_branch=config.nb_branch, cov_mode=config.cov_mode, epsilon=config.epsilon, **z
+                    )
 
 
 if __name__ == '__main__':

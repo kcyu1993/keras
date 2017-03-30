@@ -3,6 +3,7 @@ import keras.backend as K
 from keras.callbacks import Callback
 import numpy as np
 
+
 class ReduceLROnDemand(Callback):
     '''Reduce learning rate when a metric has stopped improving.
 
@@ -39,45 +40,28 @@ class ReduceLROnDemand(Callback):
         min_lr: lower bound on the learning rate.
     '''
 
-    def __init__(self, monitor='val_loss', factor=0.1, sequence=10,
-                 verbose=0, mode='auto', epsilon=1e-4, cooldown=0, min_lr=0):
+    def __init__(self, factor=0.1, sequence=10,
+                 verbose=1, epsilon=1e-4, min_lr=0):
         super(Callback, self).__init__()
-
-        self.monitor = monitor
         if factor >= 1.0:
-            raise ValueError('ReduceLROnPlateau does not support a factor >= 1.0.')
+            raise ValueError('ReduceOnDemand does not support a factor >= 1.0.')
         self.factor = factor
         self.min_lr = min_lr
         self.epsilon = epsilon
         if isinstance(sequence, int):
             # assume the number of epoch will not exceed 10000
-            self.sequence = range(sequence, 1e4, sequence)
+            self.sequence = range(int(sequence), int(1000), int(sequence))
         elif isinstance(sequence, (list,tuple)):
             self.sequence = sequence
         else:
             raise RuntimeError("Sequence must be either a int or list/tuple")
+        print("Reduced on demand :" + str(self.sequence))
         self.verbose = verbose
-        self.cooldown = cooldown
-        self.cooldown_counter = 0  # Cooldown counter.
-        self.wait = 0
-        self.best = 0
-        self.mode = mode
+
         self.monitor_op = None
         self.reset()
 
     def reset(self):
-        if self.mode not in ['auto', 'min', 'max']:
-            warnings.warn('Learning Rate Plateau Reducing mode %s is unknown, '
-                          'fallback to auto mode.' % (self.mode), RuntimeWarning)
-            self.mode = 'auto'
-        if self.mode == 'min' or (self.mode == 'auto' and 'acc' not in self.monitor):
-            self.monitor_op = lambda a, b: np.less(a, b - self.epsilon)
-            self.best = np.Inf
-        else:
-            self.monitor_op = lambda a, b: np.greater(a, b + self.epsilon)
-            self.best = -np.Inf
-        self.cooldown_counter = 0
-        self.wait = 0
         self.lr_epsilon = self.min_lr * 1e-4
 
     def on_train_begin(self, logs={}):
@@ -85,30 +69,11 @@ class ReduceLROnDemand(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         logs['lr'] = K.get_value(self.model.optimizer.lr)
-        current = logs.get(self.monitor)
-        if current is None:
-            warnings.warn('Learning Rate Plateau Reducing requires %s available!' %
-                          self.monitor, RuntimeWarning)
-        else:
-            if self.in_cooldown():
-                self.cooldown_counter -= 1
-                self.wait = 0
-
-            if self.monitor_op(current, self.best):
-                self.best = current
-                self.wait = 0
-            elif not self.in_cooldown():
-                if self.wait >= self.patience:
-                    old_lr = float(K.get_value(self.model.optimizer.lr))
-                    if old_lr > self.min_lr + self.lr_epsilon:
-                        new_lr = old_lr * self.factor
-                        new_lr = max(new_lr, self.min_lr)
-                        K.set_value(self.model.optimizer.lr, new_lr)
-                        if self.verbose > 0:
-                            print('\nEpoch %05d: reducing learning rate to %s.' % (epoch, new_lr))
-                        self.cooldown_counter = self.cooldown
-                        self.wait = 0
-                self.wait += 1
-
-    def in_cooldown(self):
-        return self.cooldown_counter > 0
+        if epoch in self.sequence:
+            old_lr = float(K.get_value(self.model.optimizer.lr))
+            if old_lr > self.min_lr + self.lr_epsilon:
+                new_lr = old_lr * self.factor
+                new_lr = max(new_lr, self.min_lr)
+                K.set_value(self.model.optimizer.lr, new_lr)
+                if self.verbose > 0:
+                    print('\nEpoch %05d: reducing learning rate to %s.' % (epoch, new_lr))

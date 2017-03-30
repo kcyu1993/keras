@@ -9,7 +9,7 @@ from kyu.models.keras_support import covariance_block_vector_space, covariance_b
 import keras.backend as K
 from keras.applications.resnet50 import ResNet50,\
     covariance_block_original, identity_block, \
-    identity_block_original, conv_block, conv_block_original
+    identity_block_original, conv_block, conv_block_original, ResNet50CIFAR
 
 from keras.layers import BatchNormalization
 from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
@@ -18,9 +18,6 @@ from keras.layers import merge, Input
 from keras.models import Model
 from kyu.theano.general.train import toggle_trainable_layers
 import tensorflow as tf
-
-
-
 
 
 def ResNet50_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, freeze_conv=False,
@@ -67,12 +64,14 @@ def ResNet50_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True,
     return new_model
 
 
-def ResNet50_o2_with_config(param, mode, cov_output, config, **kwargs):
+def ResNet50_o2_with_config(param, mode, cov_output, config, nb_class, input_shape, **kwargs):
     """ API to ResNet50 o2, create by config """
-    return ResNet50_o2(parametrics=param, mode=mode, nb_classes=config.nb_class, cov_branch_output=cov_output,
-                       input_shape=config.input_shape, last_avg=config.last_avg, freeze_conv=config.freeze_conv,
+    z = config.kwargs.copy()
+    z.update(kwargs)
+    return ResNet50_o2(parametrics=param, mode=mode, nb_classes=nb_class, cov_branch_output=cov_output,
+                       input_shape=input_shape, last_avg=False, freeze_conv=False,
                        cov_regularizer=config.cov_regularizer, last_conv_feature_maps=config.last_conv_feature_maps,
-                       nb_branch=config.nb_branch, **kwargs
+                       nb_branch=config.nb_branch, cov_mode=config.cov_mode, epsilon=config.epsilon, **z
                        )
 
 
@@ -159,6 +158,50 @@ def ResNet50_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3)
             **kwargs
         )
     return model
+
+
+def ResNet50_cifar_o1(denses=[], nb_classes=10, input_shape=None, load_weights=True, freeze_conv=False,
+                      last_conv_feature_maps=[], batch_norm=True):
+    """
+    Create ResNet50 based on without_top.
+
+    Parameters
+    ----------
+    denses : list[int]  dense layer parameters
+    nb_classes : int    nb of classes
+    input_shape : tuple input shape
+
+    Returns
+    -------
+    Model
+    """
+    if last_conv_feature_maps == []:
+        if load_weights:
+            model = ResNet50CIFAR(include_top=False, input_shape=input_shape)
+        else:
+            model = ResNet50(include_top=False, weights=None, input_shape=input_shape)
+    else:
+        if load_weights:
+            res_model = ResNet50(include_top=False, input_shape=input_shape, last_avg=False)
+        else:
+            res_model = ResNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=False)
+        x = res_model.output
+        for ind, feature_dim in enumerate(last_conv_feature_maps):
+            x = Convolution2D(feature_dim, 1, 1, activation='relu', name='1x1_conv_{}'.format(ind))(x)
+        x = AveragePooling2D((7,7), name='avg_pool')(x)
+        model = Model(res_model.input, x, name='resnet50_with_1x1')
+
+    # Create Dense layers
+    x = model.output
+    x = Flatten()(x)
+    for ind, dense in enumerate(denses):
+        x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
+    # Prediction
+    x = Dense(nb_classes, activation='softmax', name='prediction')(x)
+    if freeze_conv:
+        toggle_trainable_layers(model, trainable=False)
+    new_model = Model(model.input, x, name='resnet50_o1')
+    return new_model
 
 
 def ResCovNet50(parametrics=[], epsilon=0., mode=0, nb_classes=23, input_shape=(3, 224, 224),

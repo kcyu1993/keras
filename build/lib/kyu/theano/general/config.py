@@ -2,6 +2,7 @@ from configobj import ConfigObj
 
 import os
 
+ROOT_CONFIG_FOLDER = '/home/kyu/.pycharm/keras/model_saved/config'
 
 def create_configObj(filename, dataset, model, runconfigs):
     """
@@ -102,6 +103,27 @@ class DCovConfig(object):
                  **kwargs
                  ):
         self.__dict__.update(locals())
+
+    def to_string(self):
+        # output_str = 'params {} \n' \
+        #              'mode_list {}\n' \
+        #              ''
+
+        pass
+
+    def to_configobj(self, folder='', comments=''):
+        config = ConfigObj()
+        config['dict'] = self.__dict__
+        config['comments'] = comments
+        from datetime import datetime
+
+        folder = os.path.join(ROOT_CONFIG_FOLDER, folder)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        config.filename = folder + '/' + self.title + datetime.now().strftime('%Y-%m-%d_%H_%M_%S') + '.config'
+        f = open(config.filename, 'w')
+        print('write config to ' + config.filename)
+        config.write(f)
 
 
 class ModelConfig(object):

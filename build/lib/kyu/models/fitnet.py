@@ -13,7 +13,7 @@ from keras.engine import Model
 from keras.engine import get_source_inputs
 from keras.engine import merge
 from keras.layers import Convolution2D, Activation, MaxPooling2D, Dropout, Flatten, Dense
-from kyu.models.keras_support import covariance_block_original
+from kyu.models.keras_support import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
 from kyu.models.keras_support import covariance_block_vector_space
 
 
@@ -158,252 +158,10 @@ def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
     return model
 
 
-def fitnet_v1_o1(denses=[], nb_classes=10, input_shape=None, load_weights=None, dropout=False, init='glorot_normal'):
-    """
-    Implement FitNet v1.
+def fitnet_v1_top(input_shape=None, load_weights=None, dropout=False,
+                  init='glorot_normal', last_avg=False):
 
-    Parameters
-    ----------
-    denses
-    nb_classes
-    input_shape
-    load_weights
-    dropout
-    init
-
-    Returns
-    -------
-
-    """
-    nb_class = nb_classes
-
-    basename = 'fitnet_v1_o1'
-    if denses is not []:
-        basename += '_dense-'
-        for para in denses:
-            basename += str(para) + '_'
-
-    if input_shape[0] == 3:
-        # Define the channel
-        if K.image_dim_ordering() == 'tf':
-            if input_shape[0] in {1, 3}:
-                input_shape = (input_shape[1], input_shape[2], input_shape[0])
-
-    # Convolutional branch
-    input_tensor = Input(input_shape)
-    x = convolution_block(input_tensor, [16, 16, 16], [3, 3], border_mode='same', init=init,
-                                    stage=1, basename='conv')
-    x = MaxPooling2D()(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-    x = convolution_block(x, [32, 32, 32], [3, 3], border_mode='same', init=init,
-                                    stage=2, basename='conv')
-    x = MaxPooling2D()(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-
-    x = convolution_block(x, [48, 48, 64], [3, 3], border_mode='same', init=init,
-                                    stage=3, basename='conv')
-    x = MaxPooling2D(pool_size=(8, 8))(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-
-    x = Flatten()(x)
-
-    for ind, dense in enumerate(denses):
-        x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
-    # Prediction
-    x = Dense(nb_classes, activation='softmax', name='prediction')(x)
-
-    # Ensure that the model takes into account
-    # any potential predecessors of `input_tensor`.
-    inputs = get_source_inputs(input_tensor)
-    # Create model.
-    model = Model(inputs, x, name=basename)
-
-    if load_weights is not None:
-        model.load_weights(load_weights, True)
-
-    return model
-
-
-def fitnet_v2_o1(denses=[], nb_classes=10, input_shape=None, load_weights=None, dropout=False, init='glorot_normal'):
-    """
-    Implement FitNet v1.
-
-    Parameters
-    ----------
-    denses
-    nb_classes
-    input_shape
-    load_weights
-    dropout
-    init
-
-    Returns
-    -------
-
-    """
-    nb_class = nb_classes
-
-    basename = 'fitnet_v1_o1'
-    if denses is not []:
-        basename += '_dense-'
-        for para in denses:
-            basename += str(para) + '_'
-
-    if input_shape[0] == 3:
-        # Define the channel
-        if K.image_dim_ordering() == 'tf':
-            if input_shape[0] in {1, 3}:
-                input_shape = (input_shape[1], input_shape[2], input_shape[0])
-
-    # Convolutional branch
-    input_tensor = Input(input_shape)
-    x = convolution_block(input_tensor, [16, 32, 32], [3, 3], border_mode='same', init=init,
-                                    stage=1, basename='conv')
-    x = MaxPooling2D()(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-    x = convolution_block(x, [48, 64, 80], [3, 3], border_mode='same', init=init,
-                                    stage=2, basename='conv')
-    x = MaxPooling2D()(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-
-    x = convolution_block(x, [96, 96, 128], [3, 3], border_mode='same', init=init,
-                                    stage=3, basename='conv')
-    x = MaxPooling2D(pool_size=(8, 8))(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-
-    x = Flatten()(x)
-
-    for ind, dense in enumerate(denses):
-        x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
-    # Prediction
-    x = Dense(nb_classes, activation='softmax', name='prediction')(x)
-
-    # Ensure that the model takes into account
-    # any potential predecessors of `input_tensor`.
-    inputs = get_source_inputs(input_tensor)
-    # Create model.
-    model = Model(inputs, x, name=basename)
-
-    if load_weights is not None:
-        model.load_weights(load_weights, True)
-
-    return model
-
-
-def fitnet_v3_o1(denses=[], nb_classes=10, input_shape=None, load_weights=None, dropout=False, init='glorot_normal',
-                 pooling=True):
-    """
-    Implement FitNet v3.
-
-    Parameters
-    ----------
-    denses
-    nb_classes
-    input_shape
-    load_weights
-    dropout
-    init
-
-    Returns
-    -------
-
-    """
-    nb_class = nb_classes
-
-    basename = 'fitnet_v3_o1'
-    if denses is not []:
-        basename += '_dense-'
-        for para in denses:
-            basename += str(para) + '_'
-
-    if input_shape[0] == 3:
-        # Define the channel
-        if K.image_dim_ordering() == 'tf':
-            if input_shape[0] in {1, 3}:
-                input_shape = (input_shape[1], input_shape[2], input_shape[0])
-
-    # Convolutional branch
-    input_tensor = Input(input_shape)
-    x = convolution_block(input_tensor, [32, 48, 64, 64], [3, 3], border_mode='same', init=init,
-                                    stage=1, basename='conv')
-    x = MaxPooling2D()(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-    x = convolution_block(x, [80, 80, 80, 80], [3, 3], border_mode='same', init=init,
-                                    stage=2, basename='conv')
-    x = MaxPooling2D()(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-
-    x = convolution_block(x, [128, 128, 128], [3, 3], border_mode='same', init=init,
-                                    stage=3, basename='conv')
-    if pooling:
-        x = MaxPooling2D(pool_size=(8, 8))(x)
-    if dropout:
-        x = Dropout(0.25)(x)
-
-    x = Flatten()(x)
-
-    for ind, dense in enumerate(denses):
-        x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
-    # Prediction
-    x = Dense(nb_classes, activation='softmax', name='prediction')(x)
-
-    # Ensure that the model takes into account
-    # any potential predecessors of `input_tensor`.
-    inputs = get_source_inputs(input_tensor)
-    # Create model.
-    model = Model(inputs, x, name=basename)
-
-    if load_weights is not None:
-        model.load_weights(load_weights, True)
-
-    return model
-
-
-def fitnet_v1_o2(parametrics=[], mode=1, cov_branch='o2transform',
-                 epsilon=0.000,
-                 cov_branch_output=None,
-                 cov_mode='channel',
-                 nb_classes=10, input_shape=None, load_weights=None, dropout=False,
-                 init='glorot_normal'):
-    """
-    Implement FitNet v1.
-
-    Parameters
-    ----------
-    denses
-    nb_classes
-    input_shape
-    load_weights
-    dropout
-    init
-
-    Returns
-    -------
-
-    """
-    if cov_branch == 'o2transform':
-        covariance_block = covariance_block_original
-    elif cov_branch == 'dense':
-        covariance_block = covariance_block_vector_space
-    else:
-        raise ValueError('covariance cov_mode not supported')
-
-    if cov_branch_output is None:
-        cov_branch_output = nb_classes
-    basename = 'fitnet_v1_o2'
-    if parametrics is not []:
-        basename += '_para-'
-        for para in parametrics:
-            basename += str(para) + '_'
-    basename += 'mode_{}'.format(str(mode))
+    basename = 'fitnet_v1_top'
 
     if input_shape[0] == 3:
         # Define the channel
@@ -426,38 +184,201 @@ def fitnet_v1_o2(parametrics=[], mode=1, cov_branch='o2transform',
 
     x = convolution_block(x, [48, 48, 64], [3, 3], border_mode='same', init=init,
                           stage=3, basename='conv')
-    x = MaxPooling2D(pool_size=(8, 8))(x)
+    x = MaxPooling2D(pool_size=(2,2))(x)
+    if last_avg:
+        x = MaxPooling2D(pool_size=(8, 8))(x)
     if dropout:
         x = Dropout(0.25)(x)
 
+    model = Model(input_tensor, x, name=basename)
+    return model
 
-    if mode == 0:
-        x = Flatten()(x)
-        for ind, dense in enumerate(parametrics):
-            x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
 
-    elif mode == 1:
-        x = covariance_block(x, cov_branch_output, stage=4, block='a', epsilon=epsilon, parametric=parametrics,
-                             cov_mode=cov_mode)
-        # if cov_branch_output != nb_classes:
+def fitnet_v2_top(input_shape=None, load_weights=None, dropout=False,
+                  init='glorot_normal', last_avg=False):
 
-    elif mode == 3:
-        """ Log transform layer """
-        from kyu.models.keras_support import covariance_block_log
-        covariance_block = covariance_block_log
-        x = covariance_block(x, cov_branch_output, stage=4, block='a', epsilon=epsilon, parametric=parametrics,
-                             cov_mode=cov_mode, vectorization='dense')
+    basename = 'fitnet_v2_top'
 
+    # Convolutional branch
+    input_tensor = Input(input_shape)
+    x = convolution_block(input_tensor, [16, 32, 32], [3, 3], border_mode='same', init=init,
+                          stage=1, basename='conv')
+    x = MaxPooling2D()(x)
+    if dropout:
+        x = Dropout(0.25)(x)
+    x = convolution_block(x, [48, 64, 80], [3, 3], border_mode='same', init=init,
+                          stage=2, basename='conv')
+    x = MaxPooling2D()(x)
+    if dropout:
+        x = Dropout(0.25)(x)
+
+    x = convolution_block(x, [96, 96, 128], [3, 3], border_mode='same', init=init,
+                          stage=3, basename='conv')
+    if last_avg:
+        x = MaxPooling2D(pool_size=(8, 8))(x)
+    if dropout:
+        x = Dropout(0.25)(x)
+
+    model = Model(input_tensor, x, name=basename)
+    return model
+
+
+def fitnet_v3_top(input_shape=None, load_weights=None, dropout=False,
+                  init='glorot_normal', last_avg=False):
+
+    basename = 'fitnet_v3_top'
+
+    if input_shape[0] == 3:
+        # Define the channel
+        if K.image_dim_ordering() == 'tf':
+            if input_shape[0] in {1, 3}:
+                input_shape = (input_shape[1], input_shape[2], input_shape[0])
+
+    # Convolutional branch
+    input_tensor = Input(input_shape)
+    x = convolution_block(input_tensor, [32, 48, 64, 64], [3, 3], border_mode='same', init=init,
+                                    stage=1, basename='conv')
+    x = MaxPooling2D()(x)
+    if dropout:
+        x = Dropout(0.25)(x)
+    x = convolution_block(x, [80, 80, 80, 80], [3, 3], border_mode='same', init=init,
+                                    stage=2, basename='conv')
+    x = MaxPooling2D()(x)
+    if dropout:
+        x = Dropout(0.25)(x)
+
+    x = convolution_block(x, [128, 128, 128], [3, 3], border_mode='same', init=init,
+                                    stage=3, basename='conv')
+    if last_avg:
+        x = MaxPooling2D(pool_size=(8, 8))(x)
+    if dropout:
+        x = Dropout(0.25)(x)
+
+    model = Model(input_tensor, x, name=basename)
+    return model
+
+
+def fitnet_wrapper_o1(
+        fn_model, basename='fitnet',
+        denses=[], nb_classes=10, input_shape=None, load_weights=None,
+        dropout=False, init='glorot_normal',
+        freeze_conv=False, last_conv_feature_maps=[]):
+    """
+    FitNet Wrapper for o1
+
+    Parameters
+    ----------
+    denses
+    nb_classes
+    input_shape
+    load_weights
+    dropout
+    init
+
+    Returns
+    -------
+
+    """
+
+    if denses is not []:
+        basename += '_dense-'
+        for para in denses:
+            basename += str(para) + '_'
+
+    base_model = fn_model(input_shape=input_shape, load_weights=load_weights,
+                          dropout=dropout,init=init)
+
+    x = base_model.output
+
+    x = Flatten()(x)
+    for ind, dense in enumerate(denses):
+        x = Dense(dense, activation='relu', name='fc' + str(ind + 1))(x)
     # Prediction
     x = Dense(nb_classes, activation='softmax', name='prediction')(x)
 
-    # Ensure that the model takes into account
-    # any potential predecessors of `input_tensor`.
-    inputs = get_source_inputs(input_tensor)
     # Create model.
-    model = Model(inputs, x, name=basename)
+    model = Model(base_model.input, x, name=basename)
 
     if load_weights is not None:
         model.load_weights(load_weights, True)
 
+    return model
+
+
+def get_fitnet_top_by_version(version):
+    if version == 1:
+        model_fn = fitnet_v1_top
+    elif version == 2:
+        model_fn = fitnet_v2_top
+    elif version == 3:
+        model_fn = fitnet_v3_top
+    else:
+        raise RuntimeError("Not supported version")
+    return model_fn
+
+
+def fitnet_o1(
+        version=1,
+        denses=[], nb_classes=10, input_shape=None,
+        load_weights=None, dropout=False, init='glorot_normal'):
+
+    model_fn = get_fitnet_top_by_version(version)
+    model = fitnet_wrapper_o1(model_fn, 'fitnet_v1', denses=denses, nb_classes=nb_classes,
+                              input_shape=input_shape, dropout=dropout, init=init,
+                              load_weights=load_weights)
+    return model
+
+
+def fitnet_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3),
+                load_weights=None,
+                cov_mode='channel',
+                cov_branch='o2transform',
+                cov_branch_output=None,
+                last_avg=False,
+                freeze_conv=False,
+                cov_regularizer=None,
+                nb_branch=1,
+                concat='concat',
+                last_conv_feature_maps=[],
+                version=1,
+               dropout=False,
+                **kwargs
+                ):
+
+
+    if cov_branch_output is None:
+        cov_branch_output = nb_classes
+    basename = 'fitnet_v{}_o2'.format(version)
+    if parametrics is not []:
+        basename += '_para-'
+        for para in parametrics:
+            basename += str(para) + '_'
+    basename += 'mode_{}'.format(str(mode))
+
+    base_model_fn = get_fitnet_top_by_version(version)
+
+    base_model = base_model_fn(input_shape=input_shape, dropout=dropout, last_avg=last_avg)
+
+    if input_shape[0] == 3:
+        # Define the channel
+        if K.image_dim_ordering() == 'tf':
+            if input_shape[0] in {1, 3}:
+                input_shape = (input_shape[1], input_shape[2], input_shape[0])
+
+    if nb_branch == 1:
+        model = dcov_model_wrapper_v1(
+            base_model, parametrics, mode, nb_classes, basename,
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
+    else:
+        model = dcov_model_wrapper_v2(
+            base_model, parametrics, mode, nb_classes, basename + 'nb_branch_' + str(nb_branch),
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
+    if load_weights:
+        model.load_weights(load_weights, by_name=True)
     return model

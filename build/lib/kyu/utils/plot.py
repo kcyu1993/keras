@@ -9,10 +9,12 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
                       printWVIndex=False,
                       showDetails=True,
                       showLegend=True,
+                      plot_name=None,
+                      legend_labels=[],
                       xlim=(0,200), ylim=(0,0.5)):
     # Execute on local machine
     from example_engine import gethistoryfiledir
-    hist_dir = '/Users/kyu/mount/epfl/Dropbox/git/keras/model_saved/history'
+    hist_dir = '/Users/kcyu/Dropbox/git/keras/model_saved/history'
     hist_dir = os.path.join(hist_dir, folder_name)
     hist_list = []
     model_name_list = []
@@ -86,10 +88,15 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
         #                            filename=name+'.png'
         #                            )
 
+    # Add the legend labels
+    if legend_labels == []:
+        legend_labels = model_name_list
+    if plot_name is None:
+        plot_name = folder_name
     # Merge the repeated name. i.e. if the name is the same, use average to merge.
-    plot_multiple_train_test(list_tr_mis, list_te_mis, model_name_list,
+    plot_multiple_train_test(list_tr_mis, list_te_mis, legend_labels,
                              xlabel='epoch', ylabel='mis-classification',
-                             filename=folder_name,
+                             filename=plot_name,
                              significant=sig_id, sig_color=('k', 'b', 'r'),
                              # xlim=[0,200], ylim=[0, 1]
                              xlim=xlim, ylim=ylim,
@@ -191,6 +198,22 @@ def plot_models():
 
 
 if __name__ == '__main__':
+    ####### Plot the CIFAR comparison between FO-CNN and SO-CNN
+    plot_cifar_fitnet('CIFAR10 Comparison of FO- and SO-FitNet', significant_model=['fitnet_v2_baseline_0'],
+                      legend_labels=['model1',
+                                     'model2'],
+                      showLegend=True)
+
+    plot_cifar_fitnet('MINC2500 Comparison of FO- and SO-VGG16', significant_model=['VGG_baseline'],
+                      legend_labels=['model1',
+                                     'model2'],
+                      ylim=(0.2, 0.8), xlim=(0,25),
+                      showLegend=True)
+
+
+    # plot_cifar_fitnet('FitNet-DCov Multiple Branch for WV50', significant_model=['fitnet_v2_baseline_0','fitnet_v2_baseline_1'],
+    #                   showLegend=False)
+
     # log_history = ['cifar10-ResCov_CIFAR_para-mode_5_0000.log',
     #                'cifar10-ResCov_CIFAR_para-100_50_mode_5_0000.log',
     #                'cifar10-resnet50-baseline.log']
@@ -215,9 +238,8 @@ if __name__ == '__main__':
     # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_3para_single_branch', significant_model=['fitnet_v2_baseline_0'])
 
     # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
+
     # plot_cifar_fitnet('Fitnet_v2_CIFAR10_wp10_3para_multiple_branch', significant_model=['fitnet_v2_baseline_0'])
-    plot_cifar_fitnet('FitNet-DCov Multiple Branch for WV50', significant_model=['fitnet_v2_baseline_0','fitnet_v2_baseline_1'],
-                      showLegend=False)
     # plot_cifar_fitnet('Fitnet_v3_CIFAR10_no_dropout_wp10_mode13', significant_model=['fitnet_v2_baseline_0'])
     # plot_cifar_fitnet('FitNet Single Branch DCov-0', significant_model=['fitnet_v2_baseline_0'])
     # plot_cifar_fitnet('FitNet Single Branch DCov-1', significant_model=['fitnet_v2_baseline_0'])
@@ -236,3 +258,4 @@ if __name__ == '__main__':
 
 
     # plot_models()
+

@@ -776,17 +776,18 @@ if __name__ == '__main__':
     # test_routine_resnet(7)
 
     # run_residual_cov_resnet(1)
-    config = get_different_concat(1)
+    # config = get_different_concat(1)
     # config = get_residual_cov_experiment(2)
     # config = get_von_settings(4)
-    # config = get_von_with_regroup(1)
+    config = get_von_with_regroup(1)
     # config.batch_size = 4
     # config = get_constraints_settings(1)
     # config = get_experiment_settings(7)
     # config = get_experiment_settings()
-    config.batch_size = 16
+    config.batch_size = 8
     print(config.title)
     # test_routine_resnet(config, verbose=(2,1), nb_epoch_after=50, nb_epoch_finetune=2)
     # run_routine_resnet(config, verbose=(2,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001), nb_epoch_finetune=10)
-    run_routine_resnet(config, verbose=(1,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001),
-                       nb_epoch_finetune=4, nb_epoch_after=50)
+    # run_routine_resnet(config, verbose=(1,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001),
+    #                    nb_epoch_finetune=4, nb_epoch_after=50)
+    run_routine_resnet(config, verbose=(1,2), nb_epoch_finetune=5, nb_epoch_after=50)

@@ -12,7 +12,7 @@ import h5py
 from keras.preprocessing.image import *
 
 
-def load_minc2500(index, target_size, gen=None, batch_size=16):
+def load_minc2500(index, target_size, gen=None, batch_size=16, save_dir=None):
     """
 
     Parameters
@@ -28,9 +28,11 @@ def load_minc2500(index, target_size, gen=None, batch_size=16):
     """
     loader = Minc2500()
     tr_iterator = loader.generator(input_file='train{}.txt'.format(index),
-                                   batch_size=batch_size, target_size=target_size, gen=gen)
+                                   batch_size=batch_size, target_size=target_size, gen=gen,
+                                   save_dir=save_dir)
     va_iterator = loader.generator(input_file='validate{}.txt'.format(index),
-                                   batch_size=batch_size,target_size=target_size, gen=gen)
+                                   batch_size=batch_size,target_size=target_size, gen=gen,
+                                   save_dir=save_dir)
 
     return tr_iterator, va_iterator
 
@@ -321,7 +323,8 @@ class Minc2500(MincLoader):
                (np.array(va_img), np.array(va_label)), \
                (np.array(te_img), np.array(te_label))
 
-    def generator(self, input_file='train1.txt', shuffle=True, batch_size=32, gen=None, target_size=(362, 362)):
+    def generator(self, input_file='train1.txt', shuffle=True, batch_size=32, gen=None, target_size=(362, 362),
+                  save_dir=None):
         """
         Generator for large input file.
         :param input_file:  File contains locations of image to be read
@@ -337,11 +340,12 @@ class Minc2500(MincLoader):
         print("generate the image with batch size {} shuffle {}".format(batch_size, shuffle))
         if input_file is None:
             iterator = DirectoryIterator(self.image_dir, gen, shuffle=shuffle, target_size=(362, 362),
-                                         batch_size=batch_size, classes=self.categories)
+                                         batch_size=batch_size, classes=self.categories, save_to_dir=save_dir)
         else:
             fpath = os.path.join(self.labels_dir, input_file)
             iterator = DirectoryIteratorWithFile(self.abs_dirpath, fpath, gen, shuffle=shuffle, target_size=target_size,
-                                                 batch_size=batch_size, classes=self.categories)
+                                                 batch_size=batch_size, classes=self.categories,
+                                                 save_to_dir=save_dir)
         # batch_x, batch_y = iterator.next()
         return iterator
 
@@ -432,13 +436,14 @@ class MincOriginal(MincLoader):
         if gen is None:
             gen = ImageDataGenerator(
                 rescale=1. / 255,
-                channelwise_std_normalization=True
+                # channelwise_std_normalization=True
             )
         input_file = os.path.join(self.abs_dirpath, input_file)
         iterator = MincOriginalIterator(self.abs_dirpath, gen, self.categories,
                                         txtfile=input_file, img_folder=self.image_dir,
                                         target_size=target_size, color_mode='rgb',
                                         batch_size=batch_size, shuffle=shuffle,
+                                        nb_per_class=4000,
                                         save_to_dir=save_dir)
         return iterator
 

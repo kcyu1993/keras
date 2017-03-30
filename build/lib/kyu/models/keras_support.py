@@ -2,7 +2,7 @@ import warnings
 
 from keras.engine import merge
 from keras.layers import SecondaryStatistic, O2Transform, WeightedVectorization, Flatten, Dense, LogTransform, \
-    Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat
+    Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, MaxPooling2D
 
 from kyu.theano.general.train import toggle_trainable_layers, Model
 
@@ -210,6 +210,32 @@ def covariance_block_no_wv(input_tensor, nb_class, stage, block, epsilon=0, para
     return x
 
 
+def covariance_block_matbp(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                           cov_mode='channel', cov_regularizer=None, vectorization='dense',
+                           o2tconstraints=None,
+                           **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    log_name_base = 'log' + str(stage) + block + '_branch'
+    dense_name_base = 'fc' + str(stage) + block + '_branch'
+
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+    for id, param in enumerate(parametric):
+        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
+    # add log layer here.
+    x = LogTransform(epsilon, name=log_name_base)(x)
+    x = Flatten()(x)
+    # if vectorization == 'dense':
+    #     x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
+    # else:
+    #     ValueError("vectorization parameter not recognized : {}".format(vectorization))
+    return x
+
+
 def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=[1,1], **kwargs):
     """
     Wrapper to decrease the dimension feed into SecondStat layers.
@@ -225,15 +251,14 @@ def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=[1,1],
 
     """
     if method == 'conv':
-        for feature_dim in last_conv_feature_maps:
-            x = Convolution2D(feature_dim, kernel[0], kernel[1], **kwargs)(x)
+        for ind, feature_dim in enumerate(last_conv_feature_maps):
+            x = Convolution2D(feature_dim, kernel[0], kernel[1], name='1x1_conv_'+str(ind), **kwargs)(x)
     elif method == 'deconv':
         for feature_dim in last_conv_feature_maps:
             x = Deconvolution2D(feature_dim, kernel[0], kernel[1] **kwargs)(x)
     else:
         raise ValueError("Upsample wrapper v1 : Error in method {}".format(method))
     return x
-
 
 
 def dcov_model_wrapper_v1(
@@ -248,6 +273,7 @@ def dcov_model_wrapper_v1(
         concat='concat',
         last_conv_feature_maps=[],
         upsample_method='conv',
+        regroup=False,
         **kwargs
     ):
     """
@@ -316,7 +342,6 @@ def dcov_model_wrapper_v1(
         elif nb_branch > 1:
             pass
 
-
     if freeze_conv:
         toggle_trainable_layers(base_model, not freeze_conv)
 
@@ -361,7 +386,7 @@ def dcov_model_wrapper_v2(
     -------
 
     """
-
+    cov_branch_mode = cov_branch
     # Function name
     covariance_block = get_cov_block(cov_branch)
 
@@ -415,19 +440,26 @@ def dcov_model_wrapper_v2(
         cov_outputs.append(x)
 
     if concat == 'concat':
-        x = merge(cov_outputs, mode='concat', name='merge')
-    elif concat == 'matrix_diag':
-        x = MatrixConcat(cov_outputs, name='Matrix_diag_concat')(cov_outputs)
-        x = WeightedVectorization(cov_branch_output*nb_branch, name='WV_big')(x)
+        if cov_branch_mode == 'o2t_no_wv':
+            x = MatrixConcat(cov_outputs, name='Matrix_diag_concat')(cov_outputs)
+            x = WeightedVectorization(cov_branch_output*nb_branch, name='WV_big')(x)
+        else:
+            x = merge(cov_outputs, mode='concat', name='merge')
     elif concat == 'sum':
         x = merge(cov_outputs, mode='sum', name='sum')
-        x = WeightedVectorization(cov_branch_output, name='wv_sum')(x)
+        if cov_branch_mode == 'o2t_no_wv':
+            x = WeightedVectorization(cov_branch_output, name='wv_sum')(x)
+    elif concat == 'ave':
+        x = merge(cov_outputs, mode='ave', name='ave')
+        if cov_branch_mode == 'o2t_no_wv':
+            x = WeightedVectorization(cov_branch_output, name='wv_sum')(x)
     else:
         raise RuntimeError("concat mode not support : " + concat)
 
     if freeze_conv:
         toggle_trainable_layers(base_model, not freeze_conv)
 
+    # x = Dense(cov_branch_output * nb_branch, activation='relu', name='Dense_b')(x)
     x = Dense(nb_classes, activation='softmax')(x)
 
     model = Model(base_model.input, x, name=basename)
@@ -492,6 +524,8 @@ def dcov_multi_out_model_wrapper(
         # Starting from block3
         block3 = upsample_wrapper_v1(block3, [1024, 512])
         block2 = upsample_wrapper_v1(block2, [512])
+        block2 = MaxPooling2D()(block2)
+        block1 = MaxPooling2D(pool_size=(4,4))(block1)
         outputs = [block1, block2, block3]
         for ind, x in enumerate(outputs):
             cov_branch = covariance_block(x, cov_branch_output, stage=5, block=str(ind), parametric=parametrics,
@@ -502,6 +536,7 @@ def dcov_multi_out_model_wrapper(
         """ Use branchs to reduce dim """
         block3 = SeparateConvolutionFeatures(4)(block3)
         block2 = SeparateConvolutionFeatures(2)(block2)
+        block1 = MaxPooling2D()(block1)
         block1 = [block1]
         outputs = [block1, block2, block3]
         for ind, outs in enumerate(outputs):
@@ -515,9 +550,14 @@ def dcov_multi_out_model_wrapper(
             if mode == 3:
                 """ Sum block covariance output """
                 if len(block_outs) > 1:
-                    cov_outputs.append(merge(block_outs, mode='sum', name='multibranch_sum_{}'.format(ind)))
+                    o = merge(block_outs, mode='sum', name='multibranch_sum_{}'.format(ind))
+                    o = WeightedVectorization(cov_branch_output)(o)
+                    cov_outputs.append(o)
                 else:
-                    cov_outputs.extend(block_outs)
+                    a = block_outs[0]
+                    if 'o2t' in a.name:
+                        a = WeightedVectorization(cov_branch_output)(a)
+                    cov_outputs.append(a)
             else:
                 cov_outputs.extend(block_outs)
 
@@ -541,6 +581,7 @@ def dcov_multi_out_model_wrapper(
     model = Model(base_model.input, x, name=basename)
     return model
 
+
 def get_cov_block(cov_branch):
     if cov_branch == 'o2transform':
         covariance_block = covariance_block_original
@@ -554,6 +595,8 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_aaai
     elif cov_branch == 'o2t_no_wv':
         covariance_block = covariance_block_no_wv
+    elif cov_branch == 'matbp':
+        covariance_block = covariance_block_matbp
     else:
         raise ValueError('covariance cov_mode not supported')
 

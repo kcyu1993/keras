@@ -46,6 +46,8 @@ def test_secondstat():
                        'activation':'linear',
                        'eps':epsilon,
                        'cov_mode':'channel',
+                       'robust':False,
+                       'normalization':'mean',
                    },
                    input_shape=input_shape,
                    input_dtype=K.floatx())
@@ -695,4 +697,5 @@ if __name__ == '__main__':
     # gradient_svd_comparision()
     # gradient_eig_comparision()
     # test_matrixrelu()
-    simple_second_model()
+    # simple_second_model()
+    test_secondstat()

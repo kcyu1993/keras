@@ -16,7 +16,7 @@ from keras.optimizers import SGD
 from config2dataset import *
 from config2model import *
 from kyu.tensorflow.ops.math import StiefelSGD
-from kyu.utils.example_engine import ExampleEnginev2, ExampleEngine
+from kyu.utils.example_engine import ExampleEngine
 
 import keras.backend as K
 
@@ -79,7 +79,8 @@ def fit_model_v1(model, data,
     engine.fit(batch_size=batch_size, nb_epoch=nb_epoch, augmentation=data_augmentation)
     score = engine.model.evaluate(data[1][0], data[1][1], verbose=0)
     # engine.plot_result('loss')
-    engine.plot_result()
+    if nb_epoch > 0:
+        engine.plot_result()
     print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
     if save_log:
         sys.stdout = engine.stdout.close()
@@ -89,12 +90,13 @@ def fit_model_v2(model, data,
                  load=False, save=True, verbose=1, title='default',
                  batch_size=32,
                  nb_epoch=200,
-                 data_augmentation=False,
+                 data_augmentation=True,
                  optimizer=None,
                  early_stop=False,
                  finetune=False,
                  log=True,
                  lr=0.001,
+                 lr_decay=True,
                  ):
     """
     General model fitting, given model (not compiled) and data. With some setting of parameters.
@@ -132,7 +134,7 @@ def fit_model_v2(model, data,
     save_log = log
     engine = ExampleEngine(data[0], model, data[1],
                            load_weight=load, save_weight=save, save_log=save_log,
-                           lr_decay=True, early_stop=early_stop, tensorboard=True,
+                           lr_decay=lr_decay, early_stop=early_stop, tensorboard=True,
                            batch_size=batch_size, nb_epoch=nb_epoch, title=title, verbose=verbose)
 
     if save_log:
@@ -141,7 +143,8 @@ def fit_model_v2(model, data,
     engine.fit(batch_size=batch_size, nb_epoch=nb_epoch, augmentation=data_augmentation, verbose=verbose)
     # score = engine.model.evaluate(data[1][0], data[1][1], verbose=0)
     # engine.plot_result('loss')
-    engine.plot_result()
+    if nb_epoch > 0:
+        engine.plot_result()
     # print('Test loss: {} \n Test accuracy: {}'.format(score[0], score[1]))
     if save_log:
         sys.stdout = engine.stdout.close()
@@ -193,26 +196,26 @@ def fit_model_v2(model, data,
 #                                       batch_size=4, early_stop=early_stop, verbose=2)
 
 
-# TODO Delay to March
-def train_with_config(modelConfig, dataConfig, runConfig):
-    """
-
-    Parameters
-    ----------
-    runConfig
-
-    Returns
-    -------
-
-    """
-    # Create data sets
-    data = config2data(dataConfig)
-
-    # Create model
-    model = config2model(modelConfig)
-
-    # Create ExampleEngine v2
-    engine = ExampleEnginev2(data, model, runConfig)
-    engine.run()
+# # TODO Delay to March
+# def train_with_config(modelConfig, dataConfig, runConfig):
+#     """
+#
+#     Parameters
+#     ----------
+#     runConfig
+#
+#     Returns
+#     -------
+#
+#     """
+#     # Create data sets
+#     data = config2data(dataConfig)
+#
+#     # Create model
+#     model = config2model(modelConfig)
+#
+#     # Create ExampleEngine v2
+#     engine = ExampleEnginev2(data, model, runConfig)
+#     engine.run()
 
 
