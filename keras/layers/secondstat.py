@@ -782,51 +782,7 @@ class LogTransform(Layer):
                 inner = tf.matrix_diag(inner)
                 tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
                 return tf_log
-                # import tensorflow as tf
-                # from tensorflow.python.framework import function
-                #
-                # def grad_batch_matrix_logs(op, grads):
-                #     inputs = op.inputs
-                #     outputs = op.outputs
-                #
-                #     for inp in inputs:
-                #         print(inp)
-                #     for output in outputs:
-                #         print(output)
-                #
-                #     for grad in grads:
-                #         print(grad)
-                #     return tf.zeros_like(op.inputs)
-                #
-                # # @function.Defun(tf.float32, tf.float32, python_grad_func=grad_batch_matrix_logs)
-                # # def batch_matrix_log(x, epsilon):
-                # @function.Defun(tf.float32, python_grad_func=grad_batch_matrix_logs)
-                # def batch_matrix_log(a):
-                #     """
-                #     Matrix log with epsilon to ensure stability.
-                #     Input must be a Symmetric matrix.
-                #
-                #     Parameters
-                #     ----------
-                #     a : tf.Tensor with [..., dim1, dim2]
-                #
-                #     epsilon
-                #
-                #     Returns
-                #     -------
-                #     log of eigen-values.
-                #
-                #     """
-                #     return tf.identity(a)
-                #     # s, u, v = tf.svd(x)
-                #     # # print(s.eval())
-                #     # inner = s + epsilon
-                #     # inner = tf.log(inner)
-                #     # inner = tf.matrix_diag(inner)
-                #     # return tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
-                #
-                # return batch_matrix_log(x)
-                # return batch_matrix_log(x, self.eps)
+
             else:
                 raise RuntimeError("Log transform layer should be built before using")
 

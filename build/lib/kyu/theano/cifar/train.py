@@ -2,6 +2,7 @@
 Cleaning and re-implemtation of CIFAR experiments, with the brand new model design
 
 """
+from keras.applications.resnet50 import ResNet50CIFAR
 from keras.layers import O2Transform, SecondaryStatistic
 
 from keras.datasets import cifar10
@@ -172,12 +173,22 @@ def run_routine_fitnet(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_aft
 def run_routine_resnet(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_after=50,
                        stiefel_observed=None, stiefel_lr=0.01,
                        lr_decay=False):
-    run_model_with_config(resnet_o1, config, title='cifar_fitnet',
+    run_model_with_config(ResNet50CIFAR, config, title='cifar_fitnet',
                           verbose=verbose, image_gen=None,
                           nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
                           stiefel_lr=stiefel_lr, stiefel_observed=stiefel_observed,
                           lr_decay=lr_decay,
                           )
+
+
+def baseline_resnet(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_after=50, batch_norm=True):
+
+    # Batch norm is disable
+    model = ResNet50CIFAR(input_shape=input_shape, nb_class=nb_classes, batch_norm=batch_norm)
+
+    cifar_train(model, nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
+                batch_size=config.batch_size, verbose=verbose[0], early_stop=False, lr_decay=False,
+                title='cifar10_resnet_v1_baseline_no_batchnorm')
 
 
 def baseline_fitnet(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_after=50):
@@ -205,4 +216,5 @@ if __name__ == '__main__':
                        # )
     # baseline_fitnet(config, verbose=(2,2), nb_epoch_finetune=0, nb_epoch_after=200)
     # run_routine_fitnet(config, nb_epoch_after=200, nb_epoch_finetune=0, lr_decay=False)
-    run_routine_resnet(config, nb_epoch_after=200, nb_epoch_finetune=0, lr_decay=True)
+    # run_routine_resnet(config, nb_epoch_after=200, nb_epoch_finetune=0, lr_decay=True)
+    baseline_resnet(config, nb_epoch_after=200, nb_epoch_finetune=0, batch_norm=False)
