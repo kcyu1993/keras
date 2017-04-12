@@ -204,6 +204,52 @@ def ResNet50_cifar_o1(denses=[], nb_classes=10, input_shape=None, load_weights=T
     return new_model
 
 
+def ResNet50_cifar_o2(parametrics=[], mode=0, nb_classes=10, input_shape=(32,32,3),
+                      load_weights='imagenet',
+                      cov_mode='channel',
+                      cov_branch='o2transform',
+                      cov_branch_output=None,
+                      last_avg=False,
+                      freeze_conv=False,
+                      cov_regularizer=None,
+                      nb_branch=1,
+                      concat='concat',
+                      last_conv_feature_maps=[],
+                      **kwargs
+                      ):
+
+
+    basename = 'ResNetCIFAR_o2_' + cov_branch
+    if parametrics is not []:
+        basename += '_para-'
+        for para in parametrics:
+            basename += str(para) + '_'
+    basename += 'mode_{}'.format(str(mode))
+
+    if load_weights == 'imagenet':
+        base_model = ResNet50CIFAR(include_top=False, input_shape=input_shape, last_avg=last_avg)
+    elif load_weights is None:
+        base_model = ResNet50CIFAR(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg)
+    else:
+        base_model = ResNet50CIFAR(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg)
+        base_model.load_weights(load_weights, by_name=True)
+    if nb_branch == 1:
+        model = dcov_model_wrapper_v1(
+            base_model, parametrics, mode, nb_classes, basename,
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
+    else:
+        model = dcov_model_wrapper_v2(
+            base_model, parametrics, mode, nb_classes, basename + 'nb_branch_' + str(nb_branch),
+            cov_mode, cov_branch, cov_branch_output, freeze_conv,
+            cov_regularizer, nb_branch, concat, last_conv_feature_maps,
+            **kwargs
+        )
+    return model
+
+
 def ResCovNet50(parametrics=[], epsilon=0., mode=0, nb_classes=23, input_shape=(3, 224, 224),
                 init='glorot_normal', cov_branch='o2transform', cov_mode='channel',
                 dropout=False, cov_branch_output=None,

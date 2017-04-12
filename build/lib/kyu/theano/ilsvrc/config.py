@@ -8,7 +8,8 @@ def get_VGG_testing_ideas(exp):
         """ Experiment 1, cross validate number of branches. """
         nb_branch = 4
         # params = [[128, 64, 32], ]
-        params = [[257, 128, 64], ]
+        # params = [[257, 128, 64], ]
+        params = [[257, 128, 128], ]
         # params = [[64, 32, 16], ]
         mode_list = [1]
         # cov_outputs = [16]
@@ -72,10 +73,11 @@ def get_VGG_testing_ideas(exp):
         rb = 'robost'
     else:
         rb = ''
+    cov_beta = 0.3
     title = 'ImageNet_VGG16_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
-                        concat=concat,
+                        concat=concat, cov_beta=cov_beta,
                         )
     return config

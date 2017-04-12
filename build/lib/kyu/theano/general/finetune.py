@@ -9,6 +9,7 @@ import tensorflow as tf
 
 from kyu.tensorflow.ops.math import get_matrix_norm, StiefelSGD
 from kyu.theano.general.visualization import log_model
+from third_party.openai.weightnorm import SGDWithWeightnorm
 
 
 def get_tmp_weights_path(name):
@@ -90,6 +91,56 @@ def create_summary_op_for_keras_model(model, layers_class, measures=['output_nor
 
     merged_summary_op = tf.summary.merge_all()
     return merged_summary_op
+
+
+def run_finetune_with_weight_norm(
+        fn_model, fn_finetune, input_shape, config,
+        image_gen=None, nb_classes=0,
+        nb_epoch_finetune=50, nb_epoch_after=50,
+        title='', verbose=(2,2),
+        monitor_measures=[],
+        monitor_classes=[],
+        observed_keywords=None,
+        lr=(0.1, 0.01),
+        lr_decay=True
+        ):
+    """
+    Wrapper to Stiefel-layer SGD updated rule
+
+    Parameters
+    ----------
+    fn_model
+    fn_finetune
+    input_shape
+    config
+    image_gen
+    nb_classes
+    nb_epoch_finetune
+    nb_epoch_after
+    title
+    verbose
+    monitor_measures
+    monitor_classes
+    observed_keywords
+    lr
+
+    Returns
+    -------
+
+    """
+    # gsgd_0 = StiefelSGD(lr[0], 0.2, 0, False, observed_names=observed_keywords)
+    # gsgd_1 = StiefelSGD(lr[1], 0.2, 0, False, observed_names=observed_keywords)
+    gsgd_0 = SGDWithWeightnorm(lr[0], 0.2, 0, False)
+    gsgd_1 = SGDWithWeightnorm(lr[0], 0.2, 0, False)
+    run_finetune(fn_model, fn_finetune, input_shape, config,
+                 image_gen=image_gen, nb_classes=nb_classes,
+                 nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                 title=title, verbose=verbose,
+                 monitor_measures=monitor_measures,
+                 monitor_classes=monitor_classes,
+                 optimizer=(gsgd_0, gsgd_1),
+                 lr_decay=lr_decay
+                 )
 
 
 def run_finetune_with_Stiefel_layer(

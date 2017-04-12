@@ -451,6 +451,8 @@ def ResCovNet50(include_top=True, weights='imagenet',
 def ResNet50CIFAR(include_top=True,
                   input_tensor=None,
                   input_shape=None,
+                  weights=None,
+                  last_avg=False,
                   nb_class=10, batch_norm=True):
     '''Instantiate the ResNet50 architecture,
     optionally loading weights pre-trained
@@ -524,11 +526,12 @@ def ResNet50CIFAR(include_top=True,
         x = AveragePooling2D((3, 3), name='avg_pool')(x)
         x = Flatten()(x)
         x = Dense(nb_class, activation='softmax', name='fc')(x)
-    else:
-        return x, img_input
+    # else:
+    #     return x, img_input
 
     model = Model(img_input, x)
-
+    if weights:
+        model.load_weights(weights, True)
     return model
 
 

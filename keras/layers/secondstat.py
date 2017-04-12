@@ -3,6 +3,8 @@ from __future__ import absolute_import
 
 import inspect
 
+from keras.layers import BatchNormalization
+
 from keras import constraints
 
 from keras.engine import Layer, InputSpec
@@ -11,6 +13,7 @@ from keras import backend as K
 from keras import activations
 from kyu.utils.cov_reg import FrobNormRegularizer, VonNeumannDistanceRegularizer, robust_estimate_eigenvalues
 import tensorflow as tf
+import numpy as np
 # TODO Remove this theano import to prevent any usage in tensorflow backend
 # Potentially check Keras backend then import relevant libraries
 
@@ -342,6 +345,17 @@ class FlattenSymmetric(Layer):
         self.input_spec = [InputSpec(ndim='3+')]
         super(FlattenSymmetric, self).__init__(**kwargs)
 
+    def build(self, input_shape):
+        # create and store the mask
+        assert input_shape[1] == input_shape[2]
+        self.upper_triangular_mask = tf.constant(
+            np.triu(
+                np.ones((input_shape[1], input_shape[2]), dtype=np.bool_),
+            0),
+            dtype=tf.bool
+            )
+        self.built = True
+
     def get_output_shape_for(self, input_shape):
         if not all(input_shape[1:]):
             raise Exception('The shape of the input to "Flatten" '
@@ -354,7 +368,8 @@ class FlattenSymmetric(Layer):
         return input_shape[0], input_shape[1]*(input_shape[1]+1)/2
 
     def call(self, x, mask=None):
-        return K.batch_flatten(x)
+        fn = lambda x : tf.boolean_mask(x, self.upper_triangular_mask)
+        return tf.map_fn(fn, x)
 
 
 class SeparateConvolutionFeatures(Layer):
@@ -809,28 +824,104 @@ class LogTransform(Layer):
             u, d, v = svd(x)
             d += self.eps
             inner = diag(T.log(d))
-            # print(inner.eval())
             res = T.dot(u, T.dot(inner, v))
-            # print("U shape {} V shape {}".format(u.eval().shape, v.eval().shape))
-            # print("D matrix {}".format(d.eval()))
-            # assert np.allclose(u.eval(), v.eval().transpose())
             return res
         else:
-            # support tensorflow implementation
-            # from tensorflow import matrix_diag
-            # d, u, v = K.svd(x)
-            # d += self.eps
-            # inner = K.log(d)
-            # inner = matrix_diag(inner)
-            # res = K.batch_dot(u, K.batch_dot(inner, v))
-            # return res
             from kyu.tensorflow.ops.svd_gradients import batch_matrix_log
-            # print("tensorflow")
             return batch_matrix_log(x, self.eps)
 
 
+class PowTransform(Layer):
+    """
+    PowTranform layer supports the input of a 3D tensor, output a corresponding 3D tensor in
+        Power Euclidean space
+
+    It implement the Matrix Logarithm with a small shift (epsilon)
+
+        # Input shape
+            3D tensor with (samples, input_dim, input_dim)
+        # Output shape
+            3D tensor with (samples, input_dim, input_dim)
+        # Arguments
+            epsilon
+
+    """
+
+    def __init__(self, alpha=0.5, epsilon=0, normalization='frob', **kwargs):
+        self.input_spec = [InputSpec(ndim='3+')]
+        self.eps = epsilon
+        self.out_dim = None
+        self.alpha = alpha
+        self.norm = normalization
+        # self.b = None
+        super(PowTransform, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        """
+                Build the model based on input shape
+                Should not set the weight vector here.
+                :param input_shape: (nb-sample, input_dim, input_dim)
+                :return:
+                """
+        assert len(input_shape) == 3
+        assert input_shape[1] == input_shape[2]
+        self.out_dim = input_shape[2]
+        # self.b = K.eye(self.out_dim, name='strange?')
+        self.built = True
+
+    def get_output_shape_for(self, input_shape):
+        if not all(input_shape[1:]):
+            raise Exception('The shape of the input to "LogTransform'
+                            'is not fully defined '
+                            '(got ' + str( input_shape[1:]) + '. ')
+        assert input_shape[1] == input_shape[2]
+        return input_shape
+
+    def get_config(self):
+        """ Get config for model save and reload """
+        config = {'epsilon':self.eps}
+        base_config = super(PowTransform, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def call(self, x, mask=None):
+        """
+        2016.12.15 Implement with the theano.scan
+
+        Returns
+        -------
+        3D tensor with same shape as input
+        """
+        if K.backend() == 'theano':
+            raise NotImplementedError("This is not implemented for theano anymore.")
+        else:
+            if self.built:
+                # return self.logm(x)
+                from kyu.tensorflow.ops.svd_gradients import gradient_eig_for_log
+                import tensorflow as tf
+                # g = tf.get_default_graph()
+
+                # s, u, v = tf.svd(x)
+                s, u = tf.self_adjoint_eig(x)
+                s = tf.abs(s)
+                inner = s + self.eps
+                # tmp_power = tf.ones_like(inner) * self.alpha
+                # inner = tf.pow(inner, tmp_power)
+                inner = tf.sqrt(inner)
+                # inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
+                if self.norm == 'l2':
+                    pass
+                elif self.norm == 'frob' or self.norm == 'Frob':
+                    inner /= tf.norm(s)
+                # inner = tf.Print(inner, [inner], message='power inner', summarize=65)
+                inner = tf.matrix_diag(inner)
+                tf_pow = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
+                return tf_pow
+            else:
+                raise RuntimeError("PowTransform layer should be built before using")
+
+
 class O2Transform(Layer):
-    ''' This layer shall stack one trainable weights out of previous input layer.
+    """ This layer shall stack one trainable weights out of previous input layer.
 
         # Input shape
             3D tensor with
@@ -848,7 +939,7 @@ class O2Transform(Layer):
             W_regularizer   regularize the weight if possible in future
             init:           initialization of function.
             activation      test activation later (could apply some non-linear activation here
-        '''
+    """
 
     def __init__(self, output_dim=None,
                  init='glorot_uniform', activation='relu', weights=None,
@@ -904,6 +995,7 @@ class O2Transform(Layer):
         #                         non_sequences=None)
         #
         com = K.dot(K.transpose(K.dot(x, self.W),[0,2,1]), self.W)
+
         # print("O2Transform shape" + com.eval().shape)
         return com
 
@@ -1009,4 +1101,101 @@ class WeightedVectorization(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class BatchNormalization_v2(BatchNormalization):
+    """
+    Support expand dimension batch-normalization
+    """
+    def __init__(self, expand_dim=True, **kwargs):
+        self.expand_dim = expand_dim
+        super(BatchNormalization_v2, self).__init__(**kwargs)
 
+    def call(self, x, mask=None):
+        if self.expand_dim and x is not None:
+            x = tf.expand_dims(x, axis=-1)
+
+        if self.mode == 0 or self.mode == 2:
+            assert self.built, 'Layer must be built before being called'
+            input_shape = K.int_shape(x)
+
+            reduction_axes = list(range(len(input_shape)))
+            del reduction_axes[self.axis]
+            broadcast_shape = [1] * len(input_shape)
+            broadcast_shape[self.axis] = input_shape[self.axis]
+
+            x_normed, mean, std = K.normalize_batch_in_training(
+                x, self.gamma, self.beta, reduction_axes,
+                epsilon=self.epsilon)
+
+            if self.mode == 0:
+                self.add_update([K.moving_average_update(self.running_mean, mean, self.momentum),
+                                 K.moving_average_update(self.running_std, std, self.momentum)], x)
+
+                if sorted(reduction_axes) == range(K.ndim(x))[:-1]:
+                    x_normed_running = K.batch_normalization(
+                        x, self.running_mean, self.running_std,
+                        self.beta, self.gamma,
+                        epsilon=self.epsilon)
+                else:
+                    # need broadcasting
+                    broadcast_running_mean = K.reshape(self.running_mean, broadcast_shape)
+                    broadcast_running_std = K.reshape(self.running_std, broadcast_shape)
+                    broadcast_beta = K.reshape(self.beta, broadcast_shape)
+                    broadcast_gamma = K.reshape(self.gamma, broadcast_shape)
+                    x_normed_running = K.batch_normalization(
+                        x, broadcast_running_mean, broadcast_running_std,
+                        broadcast_beta, broadcast_gamma,
+                        epsilon=self.epsilon)
+
+                # pick the normalized form of x corresponding to the training phase
+                x_normed = K.in_train_phase(x_normed, x_normed_running)
+
+        elif self.mode == 1:
+            # sample-wise normalization
+            m = K.mean(x, axis=-1, keepdims=True)
+            std = K.sqrt(K.var(x, axis=-1, keepdims=True) + self.epsilon)
+            x_normed = (x - m) / (std + self.epsilon)
+            x_normed = self.gamma * x_normed + self.beta
+
+        if self.expand_dim and x is not None:
+            x_normed = tf.squeeze(x_normed, squeeze_dims=-1)
+
+        return x_normed
+
+
+class ExpandDims(Layer):
+    """ define expand dimension layer """
+    def __init__(self, axis=-1):
+        self.axis = axis
+        super(ExpandDims, self).__init__()
+
+    def get_output_shape_for(self, input_shape):
+        return input_shape[0:self.axis] + (input_shape[self.axis], 1,) + input_shape[self.axis: -1]
+
+    def get_config(self):
+        config = {'axis': self.axis
+                  }
+        base_config = super(ExpandDims, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def call(self, x, mask=None):
+        return tf.expand_dims(x, axis=self.axis)
+
+
+class Squeeze(Layer):
+    """ define expand dimension layer """
+    def __init__(self, axis=-1):
+        self.axis = axis
+        super(Squeeze, self).__init__()
+
+    def get_output_shape_for(self, input_shape):
+        assert input_shape[self.axis] == 1
+        return input_shape[0:self.axis] + input_shape[self.axis: -1]
+
+    def get_config(self):
+        config = {'axis': self.axis
+                  }
+        base_config = super(Squeeze, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def call(self, x, mask=None):
+        return tf.squeeze(x, axis=self.axis)

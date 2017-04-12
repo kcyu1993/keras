@@ -504,21 +504,21 @@ def get_residual_cov_experiment(exp):
     last_config_feature_maps = []
     batch_size = 4
     if exp == 1:
-        """ Test Multi branch ResNet 50 """
+        """ Test Residual learning of covariance branch """
         nb_branch = 1
         # params = [[513, 513, 513], [256, 256, 256]]
         # params = [[513, 513, 513, 513, 513, 513], [256, 256, 256, 256, 256]]
-        params = [ [513, 513, 513, 513, 513, 513], [513, 513,], [513, 513,513, 513],[513, 513, 513, 513, 513,], ]
+        params = [[65, 65, 65, 65]]
         # params = [[1024, 512], [1024, 512, 256], [512, 256]]
         mode_list = [1]
         cov_outputs = [128]
-        cov_mode = 'mean'
+        cov_mode = 'pmean'
         cov_branch = 'residual'
         early_stop = True
         # cov_regularizer = 'Fob'
         last_config_feature_maps = []
-        last_config_feature_maps = [1024, 512]
-        batch_size = 32
+        # last_config_feature_maps = [1024, 512]
+        robust = False
     elif exp == 2:
         """ Test Multi branch ResNet 50 """
         nb_branch = 4
@@ -526,21 +526,22 @@ def get_residual_cov_experiment(exp):
         # params = [[1024, 512], [1024, 512, 256], [512, 256]]
         mode_list = [1]
         cov_outputs = [128]
-        cov_mode = 'mean'
+        cov_mode = 'pmean'
         cov_branch = 'residual'
         early_stop = True
         # cov_regularizer = 'Fob'
         last_config_feature_maps = []
         # last_config_feature_maps = [1024]
         robust = True
-        cov_alpha = 0.75
-        batch_size = 32
     else:
         return
     if robust:
         rb = 'robost'
     else:
         rb = ''
+
+    batch_size = 128
+    cov_alpha = 0.3
     title = 'cifar10_{}_{}_{}_{}'.format(cov_mode, cov_branch, rb, cov_regularizer)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
@@ -574,6 +575,117 @@ def get_resnet_batch_norm(exp):
     cov_beta = 0.7
 
     title = 'cifar10_cv_covBeta_{}_{}'.format(cov_beta, cov_branch)
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
+                        cov_beta=cov_beta)
+    return config
+
+
+def get_resnet_with_power(exp):
+    nb_branch = 1
+    if exp == 1:
+        params = [[64,128,256]]
+        # params = [[100]]
+        # params = [[90]]
+        # params = [[70]]
+        # params = [[50]]
+        # params = [[30]]
+        cov_outputs = [200]
+        cov_mode = 'pmean'
+        vectorization = 'wv'
+    elif exp == 2:
+        params = [[]]
+        # params = [[100]]
+        # params = [[90]]
+        # params = [[70]]
+        # params = [[50]]
+        # params = [[30]]
+        cov_outputs = [64]
+        cov_mode = 'pmean'
+        vectorization = 'mat_flatten'
+    else:
+        return
+    batch_size = 128
+    mode_list = [1]
+    cov_branch = 'pow_o2t'
+    early_stop = True
+    cov_regularizer = None
+    last_config_feature_maps = []
+    robust = False
+    regroup = False
+    cov_alpha = 0.2
+    # cov_beta = 0.1
+    cov_beta = 0.1
+
+    title = 'cifar10_cv_pow-o2t_{}_{}'.format(cov_beta, cov_branch)
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
+                        cov_beta=cov_beta,
+                        vectorization=vectorization)
+    return config
+
+
+def get_resnet_with_bn(exp):
+    nb_branch = 1
+    if exp == 1:
+        params = [[64,128,256]]
+        # params = [[100]]
+        # params = [[90]]
+        # params = [[70]]
+        # params = [[50]]
+        # params = [[30]]
+        cov_outputs = [200]
+        cov_mode = 'pmean'
+    else:
+        return
+    batch_size = 128
+    mode_list = [1]
+    cov_branch = 'o2t_batch_norm'
+    early_stop = True
+    cov_regularizer = None
+    last_config_feature_maps = []
+    robust = False
+    regroup = False
+    cov_alpha = 0.2
+    # cov_beta = 0.1
+    cov_beta = 0.1
+
+    title = 'cifar10_cv_BN_{}_{}'.format(cov_beta, cov_branch)
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
+                        cov_beta=cov_beta)
+    return config
+
+
+def get_resnet_experiments(exp):
+    nb_branch = 2
+    if exp == 1:
+        params = [[64, 128, 256, 512]]
+        # params = [[100]]
+        # params = [[90]]
+        # params = [[70]]
+        # params = [[50]]
+        # params = [[30]]
+        cov_outputs = [512]
+        cov_mode = 'pmean'
+    else:
+        return
+    batch_size = 128
+    mode_list = [1]
+    cov_branch = 'o2t_no_wv'
+    early_stop = True
+    cov_regularizer = None
+    last_config_feature_maps = [128]
+    robust = False
+    regroup = False
+    cov_alpha = 0.2
+    # cov_beta = 0.1
+    cov_beta = 0.1
+
+    title = 'cifar10_resnet_{}'.format(cov_branch)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,

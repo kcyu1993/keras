@@ -2,7 +2,8 @@ import warnings
 
 from keras.engine import merge
 from keras.layers import SecondaryStatistic, O2Transform, WeightedVectorization, Flatten, Dense, LogTransform, \
-    Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, MaxPooling2D
+    Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, MaxPooling2D, \
+    PowTransform, BatchNormalization, Reshape, BatchNormalization_v2, ExpandDims, Squeeze, FlattenSymmetric
 
 from kyu.theano.general.train import toggle_trainable_layers, Model
 
@@ -233,6 +234,77 @@ def covariance_block_matbp(input_tensor, nb_class, stage, block, epsilon=0, para
     #     x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
     # else:
     #     ValueError("vectorization parameter not recognized : {}".format(vectorization))
+    return x
+
+
+def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                         cov_mode='pmean', cov_regularizer=None, vectorization='mat_flatten',
+                         o2tconstraints=None,
+                         **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    pow_name_base = 'pow' + str(stage) + block + '_branch'
+    dense_name_base = 'fc' + str(stage) + block + '_branch'
+    wp_name_base = 'wp' + str(stage) + block + '_branch'
+
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+
+    # Try the power transform before and after.
+
+    for id, param in enumerate(parametric):
+        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
+    x = PowTransform(alpha=0.5, name=pow_name_base)(x)
+    if vectorization == 'wv':
+        x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
+    elif vectorization == 'dense':
+        x = Flatten()(x)
+        x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
+    elif vectorization == 'flatten':
+        x = Flatten()(x)
+    elif vectorization == 'mat_flatten':
+        x = FlattenSymmetric()(x)
+    else:
+        ValueError("vectorization parameter not recognized : {}".format(vectorization))
+    return x
+
+
+def covariance_block_batch(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                           cov_mode='pmean', cov_regularizer=None, vectorization='wv',
+                           o2tconstraints=None,
+                           **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    pow_name_base = 'pow' + str(stage) + block + '_branch'
+    dense_name_base = 'fc' + str(stage) + block + '_branch'
+    wp_name_base = 'wp' + str(stage) + block + '_branch'
+
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+
+    # Try the power transform before and after.
+
+    for id, param in enumerate(parametric):
+        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
+        x = ExpandDims()(x)
+        x = BatchNormalization_v2(axis=-1)(x)
+        x = Squeeze()(x)
+
+    if vectorization == 'wv':
+        x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
+    elif vectorization == 'dense':
+        x = Flatten()(x)
+        x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
+    elif vectorization == 'flatten':
+        x = Flatten()(x)
+    else:
+        ValueError("vectorization parameter not recognized : {}".format(vectorization))
     return x
 
 
@@ -597,6 +669,10 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_no_wv
     elif cov_branch == 'matbp':
         covariance_block = covariance_block_matbp
+    elif cov_branch == 'pow_o2t':
+        covariance_block = covariance_block_pow
+    elif cov_branch == 'o2t_batch_norm':
+        covariance_block = covariance_block_batch
     else:
         raise ValueError('covariance cov_mode not supported')
 

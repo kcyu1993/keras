@@ -131,11 +131,8 @@ class ModelConfig(object):
     Model Config Object containing all information to create a model
 
     """
-    def __init__(self, model, mode, comments, keras_config):
-        self.model = model
-        self.mode = mode
-        self.comments = comments
-        self.keras_config = keras_config
+    # @property
+    # input_shape
 
 
 class DataConfig(object):
