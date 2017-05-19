@@ -357,7 +357,8 @@ class ImageNetLoader(object):
 
 
     """
-    def __init__(self, dirpath='/home/kyu/.keras/datasets/ILSVRC2015', metadata_path=None, mode='CLS-LOC', data_folder='Data', info_folder='ImageSets',
+    def __init__(self, dirpath='/home/kyu/.keras/datasets/ILSVRC2015', metadata_path=None, mode='CLS-LOC',
+                 data_folder='Data', info_folder='ImageSets',
                  train='train', valid='val', test='test',
                  config_fname='imagenet_keras_pipeline_list.h5',
                  dim_ordering='default'):

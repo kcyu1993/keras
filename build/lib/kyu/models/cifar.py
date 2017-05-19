@@ -28,7 +28,7 @@ def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_sha
         Update 12.09.2016
         Switch between Cov-O2Transform and Cov-Dense
 
-        :return: model sequential
+        :return: model sequential 
     """
     # Function name
     if cov_mode == 'o2transform':

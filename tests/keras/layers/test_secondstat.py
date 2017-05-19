@@ -8,13 +8,27 @@ from keras.utils.test_utils import layer_test, keras_test
 from keras import backend as K
 from keras.engine import merge
 from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform, \
-    MatrixReLU, Convolution2D, Regrouping, SeparateConvolutionFeatures, Input, Dense
+    MatrixReLU, Convolution2D, Regrouping, SeparateConvolutionFeatures, Input, Dense, O2Transform_v2
 
 # def test_matrix_logrithm():
 #     data = np.random.randn(3, 10, 10)
 #     result = logm(data)
 #
 from kyu.tensorflow.ops.svd_gradients import matrix_symmetric
+
+
+def get_covariance_matrices(batch_size, nb_channel, dim, rank):
+    input_shape = (batch_size, nb_channel, dim, rank)
+    data = np.random.randn(*input_shape).astype(K.floatx())
+    mean = np.mean(data, axis=3, keepdims=True)
+    data_norm = data - mean
+    cov = np.zeros((batch_size, nb_channel, dim, dim))
+    for i in range(batch_size):
+        for j in range(nb_channel):
+            cov[i,j,:,:] = np.cov(data_norm[i,j,:,:], rowvar=True)
+            print(cov[i,j,:,:].shape)
+    cov = np.transpose(cov, [0,2,3,1])
+    return cov
 
 
 @keras_test
@@ -687,6 +701,19 @@ def simple_second_model():
     model.compile(optimizer='sgd', loss='categorical_crossentropy')
     model.summary()
     return model
+
+
+def test_o2transform_v2():
+    cov = get_covariance_matrices(2, 3, 4, 2)
+    a = layer_test(O2Transform_v2,
+                   input_data=cov,
+                   kwargs={
+                       'output_dim': 8,
+                   },
+                   input_shape=(2,3,4, 4),
+                   input_dtype=K.floatx())
+
+    print(a)
 
 
 if __name__ == '__main__':

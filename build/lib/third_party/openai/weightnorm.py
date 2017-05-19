@@ -84,6 +84,7 @@ class SGDWithWeightnorm(SGD):
                 self.updates.append(K.update(p, new_p))
         return self.updates
 
+
 # adapted from keras.optimizers.Adam
 class AdamWithWeightnorm(Adam):
     def get_updates(self, params, constraints, loss):

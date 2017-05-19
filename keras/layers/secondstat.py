@@ -1010,6 +1010,114 @@ class O2Transform(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class O2Transform_v2(Layer):
+    """ This layer shall stack one trainable weights out of previous input layer.
+
+            # Input shape
+                4D tensor with
+                (samples, input_dim, input_dim, nb_channel)
+                Note the input dim must align, i.e, must be a square matrix.
+
+            # Output shape
+                4D tensor with
+                    (samples, out_dim, out_dim, nb_channel)
+                This is just the 2D covariance matrix for all samples feed in, 
+                with multiple channel design.
+
+            # Arguments
+                out_dim         weight matrix, if none, make it align with nb filters
+                weights         initial weights.
+                W_regularizer   regularize the weight if possible in future
+                init:           initialization of function.
+                activation      test activation later (could apply some non-linear activation here
+        """
+
+    def __init__(self, output_dim=None,
+                 init='glorot_uniform', activation='relu', weights=None,
+                 W_regularizer=None, dim_ordering='default',
+                 W_constraint=None,
+                 **kwargs):
+        if dim_ordering == 'default':
+            dim_ordering = K.image_dim_ordering()
+        self.dim_ordering = dim_ordering
+
+        # Set out_dim accordingly.
+        self.out_dim = output_dim
+        self.out_channel = 1
+        # input parameter preset
+        self.nb_samples = 0
+        self.activation = activations.get(activation)
+        self.init = initializations.get(init, dim_ordering=dim_ordering)
+        self.initial_weights = weights
+        self.W_regularizer = regularizers.get(W_regularizer)
+        self.W_constraint = constraints.get(W_constraint)
+        self.input_spec = [InputSpec(ndim=3)]
+        super(O2Transform_v2, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        """
+        Build the model based on input shape
+        
+        :param input_shape: (nb-sample, input_dim, input_dim, nb_channel)
+        :return:
+        """
+        assert len(input_shape) == 4
+        assert input_shape[1] == input_shape[2]
+        self.out_channel = input_shape[3]
+        # Create the weight vector
+        self.W_shape = (input_shape[1], self.out_dim)
+        if self.initial_weights is not None:
+            self.set_weights(self.initial_weights)
+            del self.initial_weights
+        else:
+            self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
+        self.trainable_weights = [self.W]
+        self.built = True
+
+    def get_output_shape_for(self, input_shape):
+        assert len(input_shape) == 4
+        assert input_shape[1] == input_shape[2]
+        return input_shape[0], self.out_dim, self.out_dim, self.out_channel
+
+    def call(self, x, mask=None):
+        # result, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(tx, self.W)),
+        #                         outputs_info=None,
+        #                         sequences=[x],
+        #                         non_sequences=None)
+        #
+        # com = K.dot(K.transpose(K.dot(x, self.W), [0, 2, 1]), self.W)
+        batch_fn = lambda x: self.o2transform(x, self.W)
+        com = tf.map_fn(batch_fn, x)
+        # print("O2Transform shape" + com.eval().shape)
+        return com
+
+    def get_config(self):
+        config = {'init': self.init.__name__,
+                  'activation': self.activation.__name__,
+                  'dim_ordering': self.dim_ordering,
+                  'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
+                  'W_constraint': self.W_constraint.get_config() if self.W_constraint else None,
+                  }
+        base_config = super(O2Transform_v2, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def o2transform(self, x, w):
+        """
+        take a 2D matrix as well as a weight vector.
+        Parameters
+        ----------
+        x
+        w
+
+        Returns
+        -------
+    
+        """
+
+        o2t = lambda x, w: K.dot(w, K.dot(x, K.transpose(w)))
+        return tf.map_fn(o2t, [x, w])
+
+
 class WeightedVectorization(Layer):
     ''' Probability weighted vector layer for secondary image statistics
     neural networks. It is simple at this time, just v_c.T * Cov * v_c, with
