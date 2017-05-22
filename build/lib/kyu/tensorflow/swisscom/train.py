@@ -36,24 +36,26 @@ xray_loader = XrayLoader()
 gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                  horizontal_flip=True,
                                  preprocessing_function=preprocess_image_for_imagenet
-                                 # preprocessing_function=preprocess_image_for_imagenet
                                  # channelwise_std_normalization=True
                                  )
-train = xray_loader.generator('train', batch_size=BATCH_SIZE, image_data_generator=gen)
-test = xray_loader.generator('test', batch_size=BATCH_SIZE, image_data_generator=gen)
+
+train = xray_loader.generator('train', batch_size=BATCH_SIZE)
+test = xray_loader.generator('test', batch_size=BATCH_SIZE)
+# train = xray_loader.generator('train', batch_size=BATCH_SIZE, image_data_generator=gen)
+# test = xray_loader.generator('test', batch_size=BATCH_SIZE, image_data_generator=gen)
 
 
-def fit_model(model, load=False, save=True, title='imagenet', nb_epoch=10):
+def fit_model(model, load=False, save=True, title='swisscom', nb_epoch=10):
 
-    sgd = SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=False)
-    # sgd = SGDWithWeightnorm(lr=0.0001, decay=1e-6, momentum=0.9)
+    # sgd = SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=False)
+    sgd = SGDWithWeightnorm(lr=0.0001, decay=1e-6, momentum=0.9)
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
                   metrics=['accuracy'])
 
     engine = ExampleEngine(train, model, test,
                            load_weight=load, save_weight=save, save_log=SAVE_LOG,
-                           lr_decay=False, early_stop=True, tensorboard=True,
+                           lr_decay=True, early_stop=True, tensorboard=True,
                            batch_size=BATCH_SIZE, nb_epoch=nb_epoch, title=title, verbose=VERBOSE)
 
     if SAVE_LOG:
@@ -117,7 +119,7 @@ def runroutine2():
     sess = K.get_session()
     with sess.as_default():
         print("Fine tune process ")
-        model = VGG16_o2([256,128,64], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
+        model = VGG16_o2([128,64,32], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
                          cov_branch_output=64, last_avg=False, freeze_conv=True, nb_branch=2, concat='concat',
                          last_conv_feature_maps=[512])
         fit_model(model, nb_epoch=nb_finetune)
@@ -126,7 +128,7 @@ def runroutine2():
     sess2 = K.get_session()
     with sess2.as_default():
         print("Train proccess")
-        model = VGG16_o2([256,128,64], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
+        model = VGG16_o2([128,64,32], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
                          cov_branch_output=64, last_avg=False, freeze_conv=False, nb_branch=2, concat='concat',
                          last_conv_feature_maps=[512])
         model.load_weights(get_tmp_weights_path(model.name + str(random_key)))
@@ -169,7 +171,9 @@ def run_resnet():
 
 
 def test_loader():
-    train = xray_loader.generator('train', batch_size=BATCH_SIZE, save_to_dir='/home/kyu/cvkyu/plots',
+    train = xray_loader.generator('train', batch_size=BATCH_SIZE,
+                                  image_data_generator=gen,
+                                  save_to_dir='/home/kyu/cvkyu/plots',
                                   save_prefix='xray', save_format='png')
     train.next()
 
