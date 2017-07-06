@@ -14,7 +14,7 @@ from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform,
 #     data = np.random.randn(3, 10, 10)
 #     result = logm(data)
 #
-from kyu.tensorflow.ops.svd_gradients import matrix_symmetric
+from kyu.tensorflow.ops.svd_gradients import matrix_symmetric, svd_v2
 
 
 def get_covariance_matrices(batch_size, nb_channel, dim, rank):
@@ -354,6 +354,7 @@ def get_eigen_K(x, square=False):
 
 INPUT_SHAPE = (None, 10, 10, 3)
 
+
 def gradient_svd_for_log_v2(op, grad_s, grad_u, grad_v):
     s, u, v = op.outputs
     diagS = tf.matrix_diag(s)
@@ -546,8 +547,9 @@ def gradient_eig_comparision():
     grad_x = tf.gradients(tf_log, tf_input, grad_ys=y_grads)[0]
 
     grad_S = pesudo_gradient(s,u,v, grad_s, grad_u)
-
-    sess = K.get_session()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = K.get_session(config=config)
     with sess.as_default():
         result = x.eval({tf_input: data})
         cov_mat_eval = cov_mat.eval({tf_input: data})
@@ -567,7 +569,7 @@ def gradient_eig_comparision():
     assert_allclose(grad_input_eval, mat_grads, rtol=1e-4)
 
 
-def gradient_svd_comparision():
+def gradient_svd_comparision(path=''):
     """
     Testing function to compare SVD gradients.
 
@@ -575,47 +577,56 @@ def gradient_svd_comparision():
     -------
 
     """
-    epsilon = 1e-4
+    epsilon = 1e-5
+    path = '/cvlabdata1/home/kyu/git/matrix_backprop/test/test2.mat'
 
     from scipy.io import loadmat
-    data = loadmat('/tmp/test.mat')
-    data = data['x']
-    input_shape = (None, 10, 10, 3)
+    data = loadmat(path)
+    input_x = np.asanyarray(data['lower']['x'][0][0], dtype=np.float32)
+    input_x = np.transpose(input_x, [3,0,1,2])
+
+    input_shape = input_x.shape
+
+    input_grad = np.asanyarray(data['upper']['dzdx'][0][0], dtype=np.float32)
+    input_grad = np.reshape(input_grad, [input_shape[3], input_shape[3],-1])
+    input_grad = np.transpose(input_grad, [2,1,0])
+
 
     tf_input = tf.placeholder(K.floatx(), shape=input_shape, name='tf_input')
-    x = tf.reshape(tf_input, (-1, 10 * 10, 3))
+    x = tf.reshape(tf_input, (-1, input_shape[1]*input_shape[2], input_shape[3]))
     cov_mat = x
-    x /= 10 * 10
+    x /= input_shape[1] * input_shape[2]
+
     s, u, v = tf.svd(x, full_matrices=True)
+    # s,u,v = svd_v2(x, full_matrices=True)
+
     inner = tf.square(s) + epsilon
     inner = tf.log(inner)
     inner = tf.matrix_diag(inner)
     tf_log = tf.matmul(v, tf.matmul(inner, tf.transpose(v, [0,2,1])))
 
-    y_grads = tf.placeholder(tf.float32, shape=(None, 3, 3))
+    y_grads = tf.placeholder(tf.float32, shape=(None, input_shape[3], input_shape[3]))
     grad_s = tf.gradients(tf_log, s, grad_ys=y_grads)[0]
     grad_v = tf.gradients(tf_log, v, grad_ys=y_grads)[0] # not used!, so no gradient is calculated.
     # grad_u = tf.gradients(tf_log, u, grad_ys=y_grads)[0]
     grad_x = tf.gradients(tf_log, tf_input, grad_ys=y_grads)[0]
 
-    grad_S = pesudo_gradient(s,u,v, grad_s, grad_v)
-
+    grad_S = pesudo_gradient(s, u, v, grad_s, grad_v)
+    feed_dict = {tf_input:input_x, y_grads: input_grad}
     sess = K.get_session()
     with sess.as_default():
-        result = x.eval({tf_input: data})
-        cov_mat_eval = cov_mat.eval({tf_input: data})
-        grad_s_eval = grad_s.eval({tf_input:data, y_grads: np.ones((2,3,3), dtype=np.float32)})
-        grad_v_eval = grad_v.eval({tf_input:data, y_grads: np.ones((2,3,3), dtype=np.float32)})
-        grad_input_eval = grad_x.eval({tf_input:data, y_grads: np.ones((2,3,3), dtype=np.float32)})
-        grad_S_eval = grad_S.eval({tf_input:data, y_grads: np.ones((2,3,3), dtype=np.float32)})
+        result = x.eval({tf_input: input_x})
+        cov_mat_eval = cov_mat.eval({tf_input: input_x})
+        grad_s_eval = grad_s.eval(feed_dict)
+        grad_v_eval = grad_v.eval(feed_dict)
+        grad_input_eval = grad_x.eval(feed_dict)
+        grad_S_eval = grad_S.eval(feed_dict)
     # print(grad_s_eval)
     # print(grad_u_eval)
     # print(grad_input_eval)
         # check for gradients
-    print(grad_S_eval)
-    mat_grads = loadmat('/tmp/gradients.mat')
-    mat_grads = mat_grads['lower2']['dzdx']
-    mat_grads = mat_grads[0][0]
+    # print(grad_S_eval)
+    mat_grads = np.asanyarray(data['lower']['dzdx'][0][0], dtype=np.float32)
     mat_grads = np.transpose(mat_grads, [3, 0, 1, 2])
     assert_allclose(grad_input_eval, mat_grads)
     print(np.allclose(grad_input_eval, mat_grads))
@@ -721,8 +732,8 @@ if __name__ == '__main__':
     # test_encode_mean_cov()
     # test_logtransform()
     # compare_with_matlab_version()
-    # gradient_svd_comparision()
+    gradient_svd_comparision()
     # gradient_eig_comparision()
     # test_matrixrelu()
     # simple_second_model()
-    test_secondstat()
+    # test_secondstat()

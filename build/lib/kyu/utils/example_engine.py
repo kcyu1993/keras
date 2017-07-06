@@ -68,6 +68,7 @@ class ExampleEngine(object):
                  save_per_epoch=False, tensorboard=False,
                  batch_size=128, nb_epoch=100,
                  verbose=2, logfile=None, save_log=True,
+                 weight_path='',
                  title='default'):
         """
 
@@ -143,9 +144,12 @@ class ExampleEngine(object):
         self.batch_size = batch_size
 
         # Set the weights
-        self.weight_path = get_weight_path(
-            "{}-{}_{}.weights".format(self.title, model.name, self.mode),
-            'dataset')
+        if weight_path == '' or weight_path is None or weight_path =='imagenet':
+            self.weight_path = get_weight_path(
+                "{}-{}_{}.weights".format(self.title, model.name, self.mode),
+                'dataset')
+        else:
+            self.weight_path = weight_path
         logging.debug("weights path {}".format(self.weight_path))
         self.save_weight = save_weight
         self.load_weight = load_weight
@@ -153,7 +157,9 @@ class ExampleEngine(object):
         if not os.path.exists(self.weight_path):
             print("weight not found, create a new one or transfer from current weight")
             self.load_weight = False
-
+        else:
+            if self.load_weight == True:
+                print("Weight path found at {}".format(self.weight_path))
         # Keras Callback
         self.cbks = []
         if self.save_weight and self.save_per_epoch:
@@ -162,7 +168,7 @@ class ExampleEngine(object):
         self.lr_decay = lr_decay
         if self.lr_decay:
             print("Reduced LR on DEMAND ")
-            self.cbks.append(ReduceLROnDemand(min_lr=1e-6, factor=0.25, sequence=8,
+            self.cbks.append(ReduceLROnDemand(min_lr=1e-6, factor=0.5, sequence=8,
                                               verbose=2, epsilon=1e-5))
         else:
             print("Reduced LR on PLATEAU")

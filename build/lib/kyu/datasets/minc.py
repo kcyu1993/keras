@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import gzip
-from keras_old.utils.data_utils import get_file, get_file_from_dir, get_dataset_dir
-from keras_old.utils.io_utils import HDF5Matrix
+from keras.utils.data_utils import get_file, get_dataset_dir
+from keras.utils.io_utils import HDF5Matrix
 import numpy as np
 import cPickle
 import sys

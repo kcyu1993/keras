@@ -4,11 +4,13 @@ Finetune with MINC dataset
 import os
 
 from keras.layers import SecondaryStatistic, O2Transform
+from kyu.datasets.mit import MITLoader
 from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config
 from kyu.theano.minc.configs import get_experiment_settings, get_von_settings, get_residual_cov_experiment, \
     get_VGG_dimension_reduction, get_matrix_bp, get_VGG_testing_ideas, get_cov_alpha_cv, get_cov_beta_cv, \
-    get_aaai_experiment, get_ResNet_testing_ideas, get_VGG_second_order_batchnorm
+    get_aaai_experiment
+from kyu.theano.mit.configs import get_new_experiment
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
@@ -19,15 +21,13 @@ from kyu.datasets.imagenet import preprocess_image_for_imagenet
 from kyu.models.vgg import VGG16_o1, VGG16_o2, VGG16_bilinear
 from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_multibranch
 
-from kyu.datasets.minc import Minc2500, load_minc2500
-
 from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Model
 
 import keras.backend as K
 from keras.preprocessing.image import ImageDataGeneratorAdvanced
 
 # Some constants
-nb_classes = 23
+nb_classes = 67
 if K.backend() == 'tensorflow':
     input_shape = (224,224,3)
     K.set_image_dim_ordering('tf')
@@ -39,9 +39,8 @@ TARGET_SIZE = (224,224)
 RESCALE_SMALL = 270
 
 
-# RESNET_BASELINE_WEIGHTS_PATH = '/home/kyu/.keras/models/MINC2500_resnet50-baseline_resnet_1.weights'
-RESNET_BASELINE_WEIGHTS_PATH = '/home/kyu/.keras/models/baseline/minc2500_finetune_resnet-baseline_resnet_1.weights'
-VGG_BASELINE_WEIGHTS_PATH = '/home/kyu/.keras/models/baseline/minc2500_finetune_vgg16_baseline_1.weights'
+RESNET_BASELINE_WEIGHTS_PATH = '/home/kyu/.keras/models/mit_indoor_resnet50-baseline_resnet_1.weights'
+
 
 def get_tmp_weights_path(name):
     return '/tmp/{}_finetune.weights'.format(name)
@@ -76,24 +75,24 @@ def model_finetune(base_model, pred_model, optimizer,
     return new_model, base_model, pred_model
 
 
-def minc2500_finetune(model,
-                      nb_epoch_finetune=100, nb_epoch_after=0, batch_size=32,
-                      image_gen=None,
-                      title='MINC2500_finetune', early_stop=False,
-                      keyword='',
-                      optimizer=None,
-                      log=True,
-                      lr_decay=True,
-                      verbose=2,
-                      weight_path='',
-                      load=False,
-                      lr=0.001):
+def mit_indoor_finetune(model,
+                        nb_epoch_finetune=100, nb_epoch_after=0, batch_size=32,
+                        image_gen=None,
+                        title='mit_indoor_finetune', early_stop=False,
+                        keyword='',
+                        optimizer=None,
+                        log=True,
+                        lr_decay=True,
+                        weight_path='',
+                        load=False,
+                        verbose=2,
+                        lr=0.001):
+    lr_decay = True
+    loader = MITLoader(dirpath='/home/kyu/cvkyu/dataset/mit_indoor')
+    # train = loader.generator(mode='train', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
+    train = loader.generator(mode='complete', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
+    test = loader.generator(mode='test', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
 
-    # weight_path = RESNET_BASELINE_WEIGHTS_PATH
-    load = False
-
-    # loader = Minc2500()
-    train, test = load_minc2500(index=1, target_size=TARGET_SIZE, gen=image_gen, batch_size=batch_size)
     model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
     fit_model_v2(model, [train, test], batch_size=batch_size, title=title,
                  nb_epoch=nb_epoch_finetune,
@@ -101,9 +100,9 @@ def minc2500_finetune(model,
                  early_stop=early_stop,
                  verbose=verbose,
                  lr_decay=lr_decay,
-                 log=log,
                  weight_path=weight_path,
                  load=load,
+                 log=log,
                  lr=lr)
     tmp_weights = get_tmp_weights_path(model.name)
     model.save_weights(tmp_weights)
@@ -123,7 +122,7 @@ def minc2500_finetune(model,
     return
 
 
-def run_model_with_config(model, config, title='minc2500',
+def run_model_with_config(model, config, title='mit_indoor',
                           image_gen=None,
                           verbose=(2, 2), nb_epoch_finetune=15, nb_epoch_after=50,
                           stiefel_observed=None, stiefel_lr=0.01):
@@ -144,11 +143,10 @@ def run_model_with_config(model, config, title='minc2500',
     # monitor_metrics = ['weight_norm',]
     # monitor_metrics = ['output_norm',]
     monitor_metrics = ['matrix_image',]
-    finetune_model_with_config(model, minc2500_finetune, config, nb_classes, input_shape,
+    finetune_model_with_config(model, mit_indoor_finetune, config, nb_classes, input_shape,
                                title=title, image_gen=image_gen, verbose=verbose,
                                nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-                               stiefel_observed=stiefel_observed, stiefel_lr=stiefel_lr,
-                               )
+                               stiefel_observed=stiefel_observed, stiefel_lr=stiefel_lr)
 
 
 def run_routine_resnet(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_after=50,
@@ -167,24 +165,24 @@ def run_routine_resnet(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_aft
     # monitor_metrics = ['weight_norm',]
     # monitor_metrics = ['output_norm',]
     monitor_metrics = ['matrix_image',]
-    run_model_with_config(ResNet50_o2, config, title='minc2500_resnet',
+    run_model_with_config(ResNet50_o2, config, title='mit_indoor_resnet',
                           verbose=verbose, image_gen=image_gen,
                           nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
                           stiefel_lr=stiefel_lr, stiefel_observed=stiefel_observed)
     # if stiefel_observed is None:
-    #     run_finetune(ResNet50_o2, minc2500_finetune,
+    #     run_finetune(ResNet50_o2, mit_indoor_finetune,
     #                  nb_classes=nb_classes,
     #                  input_shape=input_shape, config=config,
     #                  nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-    #                  image_gen=image_gen, title='minc2500_resnet50', verbose=verbose,
+    #                  image_gen=image_gen, title='mit_indoor_resnet50', verbose=verbose,
     #                  monitor_classes=monitor_class,
     #                  monitor_measures=monitor_metrics)
     # else:
-    #     run_finetune_with_Stiefel_layer(ResNet50_o2, minc2500_finetune,
+    #     run_finetune_with_Stiefel_layer(ResNet50_o2, mit_indoor_finetune,
     #                                     nb_classes=nb_classes,
     #                                     input_shape=input_shape, config=config,
     #                                     nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-    #                                     image_gen=image_gen, title='minc2500_resnet50_stiefel', verbose=verbose,
+    #                                     image_gen=image_gen, title='mit_indoor_resnet50_stiefel', verbose=verbose,
     #                                     monitor_classes=monitor_class,
     #                                     monitor_measures=monitor_metrics,
     #                                     observed_keywords=stiefel_observed,
@@ -202,14 +200,17 @@ def run_routine_vgg(config, verbose=(2,2), nb_epoch_finetune=15, nb_epoch_after=
     """
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
-                                           preprocessing_function=preprocess_image_for_imagenet
+                                           width_shift_range=0.2,
+                                           zoom_range=[0.7,1.3],
+                                           height_shift_range=0.2,
+                                           # preprocessing_function=preprocess_image_for_imagenet
                                            )
 
     monitor_class = (O2Transform, SecondaryStatistic)
     # monitor_metrics = ['weight_norm',]
     # monitor_metrics = ['output_norm',]
     monitor_metrics = ['matrix_image',]
-    run_model_with_config(VGG16_o2, config, title='minc2500_VGG16',
+    run_model_with_config(VGG16_o2, config, title='mit_indoor_VGG16',
                           verbose=verbose, image_gen=image_gen,
                           nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
                           stiefel_lr=stiefel_lr, stiefel_observed=stiefel_observed)
@@ -228,11 +229,10 @@ def run_routine_resnet_multibranch(config, verbose=(2,2), nb_epoch_finetune=15, 
                                            horizontal_flip=True,
                                            )
 
-    run_model_with_config(ResNet50_o2_multibranch, config, title='minc2500_resnet_MB',
+    run_model_with_config(ResNet50_o2_multibranch, config, title='mit_indoor_resnet_MB',
                           verbose=verbose, image_gen=image_gen,
                           nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
                           stiefel_lr=stiefel_lr, stiefel_observed=stiefel_observed)
-
 
 
 def run_residual_cov_resnet(exp):
@@ -247,7 +247,7 @@ def run_residual_cov_resnet(exp):
     nb_epoch_after = 50
 
     config = get_residual_cov_experiment(exp)
-    title = 'minc2500_residual_cov'
+    title = 'mit_indoor_residual_cov'
 
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
@@ -255,7 +255,7 @@ def run_residual_cov_resnet(exp):
                                            # channelwise_std_normalization=True
                                            )
 
-    run_finetune(ResNet50_o2, minc2500_finetune, input_shape, config, image_gen,
+    run_finetune(ResNet50_o2, mit_indoor_finetune, input_shape, config, image_gen,
                  nb_classes=nb_classes,
                  nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
                  title=title, verbose=(2, 1))
@@ -277,7 +277,7 @@ def baseline_finetune_resnet(exp):
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
                                            )
-    minc2500_finetune(model, image_gen=image_gen, title='minc2500_finetune_resnet',
+    mit_indoor_finetune(model, image_gen=image_gen, title='mit_indoor_finetune_resnet',
                       nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
                       batch_size=32, early_stop=True)
 
@@ -286,20 +286,24 @@ def baseline_finetune_vgg(exp=1):
     nb_epoch_finetune = 10
     nb_epoch_after = 50
     if exp == 1:
-        model = VGG16_o1(denses=[4096,4096], nb_classes=nb_classes, input_shape=input_shape, freeze_conv=True, last_conv=False)
+        model = VGG16_o1(denses=[256, 256], nb_classes=nb_classes, input_shape=input_shape, freeze_conv=True,
+                         last_conv=False,
+                         )
         model.name = 'baseline_vgg16'
     elif exp == 2:
-        model = VGG16_o1(denses=[4096, 4096], nb_classes=nb_classes, input_shape=input_shape, freeze_conv=True,
+        model = VGG16_o1(denses=[256, 256], nb_classes=nb_classes, input_shape=input_shape, freeze_conv=True,
                          last_conv=True)
         model.name = 'baseline_vgg16_with_1x1'
-    image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+    image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL,
+                                           random_crop=True,
                                            horizontal_flip=True,
-                                           preprocessing_function=preprocess_image_for_imagenet
-                                           # channelwise_std_normalization=True
+                                           # width_shift_range=0.1,
+                                           # height_shift_range=0.1,
+                                           # preprocessing_function=preprocess_image_for_imagenet
                                            )
-    minc2500_finetune(model, image_gen=image_gen, title='minc2500_finetune_vgg16',
-                      nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-                      batch_size=32, early_stop=True)
+    mit_indoor_finetune(model, image_gen=image_gen, title='mit_indoor_finetune_vgg16',
+                        nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                        batch_size=32, early_stop=True)
 
 
 def baseline_finetune_bilinear(exp=1):
@@ -315,12 +319,12 @@ def baseline_finetune_bilinear(exp=1):
                                            preprocessing_function=preprocess_image_for_imagenet
                                            # channelwise_std_normalization=True
                                            )
-    weight_path = '/home/kyu/.keras/models/minc_finetune_vgg16_bilinear-baseline_vgg16_bilinear_1.weights_100'
-    minc2500_finetune(model, image_gen=image_gen, title='minc_finetune_vgg16_bilinear',
-                      nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-                      weight_path=weight_path, load=True,
-                      batch_size=32, early_stop=True, lr_decay=False,
-                      lr=0.05)
+    weight_path = '/home/kyu/.keras/models/mit_finetune_vgg16_bilinear-baseline_vgg16_bilinear_1.weights_100'
+    mit_indoor_finetune(model, image_gen=image_gen, title='mit_finetune_vgg16_bilinear',
+                        nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
+                        weight_path=weight_path, load=True,
+                        batch_size=32, early_stop=True, lr_decay=False,
+                        lr=0.05)
 
 
 def test_routine_vgg(exp=1):
@@ -356,12 +360,12 @@ def test_routine_vgg(exp=1):
                                  freeze_conv=True, cov_regularizer=cov_regularizer,
                                  last_conv_feature_maps=config.last_conv_feature_maps)
 
-                minc2500_finetune(model, title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-                                  nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
-                                  image_gen=image_gen,
-                                  batch_size=32, early_stop=early_stop,
-                                  log=False,
-                                  verbose=1)
+                mit_indoor_finetune(model, title='mit_indoor_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
+                                    nb_epoch_after=nb_epoch_after, nb_epoch_finetune=nb_epoch_finetune,
+                                    image_gen=image_gen,
+                                    batch_size=32, early_stop=early_stop,
+                                    log=False,
+                                    verbose=1)
 
 
 def test_routine_resnet(config):
@@ -374,7 +378,7 @@ def test_routine_resnet(config):
     """
     nb_epoch_finetune = 2
     nb_epoch_after = 50
-    title = 'test_minc2500_cov'
+    title = 'test_mit_indoor_cov'
 
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                            horizontal_flip=True,
@@ -382,25 +386,39 @@ def test_routine_resnet(config):
                                            # channelwise_std_normalization=True
                                            )
 
-    run_finetune(ResNet50_o2, minc2500_finetune, input_shape, config, image_gen,
+    run_finetune(ResNet50_o2, mit_indoor_finetune, input_shape, config, image_gen,
                  nb_classes=nb_classes,
                  nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
                  title=title, verbose=(2,1))
 
+def test_loader():
+    loader = MITLoader(dirpath='/home/kyu/cvkyu/dataset/mit_indoor')
+    image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+                                           horizontal_flip=True,
+                                           width_shift_range=0.1,
+                                           height_shift_range=0.1,
+                                           preprocessing_function=preprocess_image_for_imagenet
+                                           )
+    train = loader.generator('train', batch_size=16,
+                             image_data_generator=image_gen,
+                             save_to_dir='/home/kyu/cvkyu/plots',
+                             save_prefix='mit_indoor', save_format='png'
+                             )
+    train.next()
+
 
 if __name__ == '__main__':
-    # baseline_finetune_bilinear(1)
-
-    exp = 2
+    # test_loader()
+    # exp = 1
     # config = get_von_settings(4)
     # config = get_log_experiment(2)
     # config = get_experiment_settings(6)
-    # config = get_aaai_experiment(exp)
+    # config = get_aaai_experiment(2)
     # config = get_VGG_dimension_reduction(4)
 
-    config = get_VGG_second_order_batchnorm(exp)
+    # config = get_VGG_testing_ideas(exp)
     # config = get_ResNet_testing_ideas(exp)
-    # config = get_ResNet_testing_ideas(1)
+
     # config = get_von_settings(4)
     # config = get_constraints_settings(1)
     # config = get_experiment_settings(7)
@@ -410,36 +428,42 @@ if __name__ == '__main__':
 
     # config = get_cov_alpha_cv(1)
     # config = get_cov_beta_cv(1)
+    # config.batch_size = 32
+    # baseline_finetune_bilinear(1)
+    # config = get_new_experiment(6)
+    # config = get_aaai_experiment(1)
+    config = get_matrix_bp(1)
+
+    print(config.title)
 
     # config.cov_mode = 'channel'
     # config.batch_size = 16
-    config.batch_size = 64
     # config = get_residual_cov_experiment(2)
-    print(config.title)
-    # log_model_to_path(ResNet50_o2, input_shape, config, nb_classes, 'minc2500')
+    # log_model_to_path(ResNet50_o2, input_shape, config, nb_classes, 'mit_indoor')
     # run_routine_resnet(config, verbose=(1,1), nb_epoch_after=50, nb_epoch_finetune=4)
     # run_routine_resnet(config, verbose=(1, 2), stiefel_observed=[],
-    # run_routine_resnet(config, verbose=(1, 1),
-                       # stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
-                       # nb_epoch_finetune=2, nb_epoch_after=100)
-    # baseline_finetune_vgg(2)
+    # run_routine_resnet(config, verbose=(1, 1), stiefel_observed=['o2t'],
+    #                    stiefel_lr=(0.001, 0.001), nb_epoch_finetune=2, nb_epoch_after=100)
     # run_routine_resnet_multibranch(config, verbose=(1, 1), stiefel_observed=['o2t'],
     #                                stiefel_lr=(0.01, 0.001), nb_epoch_finetune=5, nb_epoch_after=50)
     # run_routine_resnet_multibranch(config, verbose=(1, 2), stiefel_observed=None,
     #                                stiefel_lr=None, nb_epoch_finetune=4, nb_epoch_after=50)
 
     # config.title = 'minc_VGG_TEST_original_exp{}'.format(exp)
-    run_routine_vgg(config, verbose=(2, 2),
-    #                 stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
-                    nb_epoch_finetune=5, nb_epoch_after=100,
-                    )
-
-    # run_routine_resnet(config, nb_epoch_after=200, nb_epoch_finetune=3)
+    run_routine_vgg(config, verbose=(2, 1),
+                    # stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
+                    nb_epoch_finetune=10, nb_epoch_after=200)
+    #
+    # run_routine_resnet(config)
 
     # run_residual_cov_resnet(1)
+    # baseline_finetune_vgg()
     # baseline_finetune_resnet(2)
     # run_routine_vgg(4)
-    # baseline_finetune_vgg()
     # test_routine_vgg(4)
     # test_routine_resnet(6)
     # test_routine_resnet(config)
+
+    """
+    run with zoom rqnge 0.5 to 1.5
+    """

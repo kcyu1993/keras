@@ -100,6 +100,10 @@ class DCovConfig(object):
                  vectorization='wv',
                  epsilon=0,
                  title='',
+                 weight_path='imagenet',
+                 load=False,
+                 pooling='max',
+                 so_mode=0,
                  **kwargs
                  ):
         self.__dict__.update(locals())

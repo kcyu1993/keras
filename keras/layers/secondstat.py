@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import inspect
 
-from keras.layers import BatchNormalization
+from keras.layers import BatchNormalization, Flatten
 
 from keras import constraints
 
@@ -63,7 +63,6 @@ def block_diagonal(matrices, dtype=tf.float32):
     blocked = tf.concat(row_blocks, -2)
     blocked.set_shape(batch_shape.concatenate((blocked_rows, blocked_cols)))
     return blocked
-
 
 
 class SecondaryStatistic(Layer):
@@ -372,6 +371,27 @@ class FlattenSymmetric(Layer):
         return tf.map_fn(fn, x)
 
 
+class TransposeFlattenSymmetric(Layer):
+    """
+    Implement the Transposed operation for FlattenSymmetric
+    """
+    def __init__(self, **kwargs):
+        self.input_spec = [InputSpec(ndim='2+')]
+        self.input_dim = None
+        self.batch_size = None
+        super(TransposeFlattenSymmetric, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        """ Input a batch-vector form """
+        self.input_dim = input_shape[1]
+        self.batch_size = input_shape[0]
+        self.built = True
+
+    def call(self, x, mask=None):
+        """ Call the to symmetric matrices. """
+
+
+
 class SeparateConvolutionFeatures(Layer):
     """
     SeparateConvolutionFeatures is a layer to separate previous convolution feature maps
@@ -627,12 +647,65 @@ class MatrixConcat(Layer):
         return [output_shape]
 
 
+class Correlation(Layer):
+    """
+    Computer correlation layer as normalization
+    
+    It implements correlation computation based on a input tensor.
+
+    by the following formula.  Corr = Cov / (std * std')
+    
+    """
+
+    def __init__(self, epsilon=1e-5, **kwargs):
+        self.input_spec = [InputSpec(ndim='3+')]
+        self.eps = epsilon
+        self.out_dim = None
+        super(Correlation, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert len(input_shape) == 3
+        assert input_shape[1] == input_shape[2]
+        self.out_dim = input_shape[1]
+        self.built = True
+
+    def call(self, x, mask=None):
+        """
+        Call the correlation matrix.
+        
+        Parameters
+        ----------
+        x
+        mask
+
+        Returns
+        -------
+
+        """
+        variance = tf.matrix_diag_part(x)
+        std = tf.expand_dims(tf.sqrt(variance), axis=2)
+        outer = tf.matmul(std, tf.transpose(std, [0,2,1]))
+        corr = tf.div(x, outer)
+        return corr
+        # inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
+
+    def get_output_shape_for(self, input_shape):
+        assert len(input_shape) == 3
+        assert input_shape[1] == input_shape[2]
+        return input_shape
+
+    def get_config(self):
+        config = {'epsilon':self.eps}
+        base_config = super(Correlation, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class MatrixReLU(Layer):
     """
-    LogTranform layer supports the input of a 3D tensor, output a corresponding 3D tensor in
-        Log-Euclidean spacesdf
+    MatrixReLU layer supports the input of a 3D tensor, output a corresponding 3D tensor in
+        Matrix diagnal ReLU case
 
-    It implement the Matrix Logarithm with a small shift (epsilon)
+    It implement the Matrix ReLU with a small shift (epsilon)
 
         # Input shape
             3D tensor with (samples, input_dim, input_dim)
@@ -1307,3 +1380,254 @@ class Squeeze(Layer):
 
     def call(self, x, mask=None):
         return tf.squeeze(x, axis=self.axis)
+
+
+class BiLinear(Layer):
+    """
+    Define the BiLinear layer for comparison
+    It operates similar to Cov layer, but without removing the mean.
+    It then passed it into a square root operation of the output matrix and then to
+        
+    """
+    def __init__(self, eps=1e-5,
+                 bilinear_mode='channel',
+                 activation='linear',
+                 dim_ordering='default',
+                 **kwargs):
+        if dim_ordering == 'default':
+            dim_ordering = K.image_dim_ordering()
+
+        if dim_ordering == 'th':
+            self.axis_filter = 1
+            self.axis_row = 2
+            self.axis_col = 3
+        else:
+            self.axis_filter = 3
+            self.axis_row = 1
+            self.axis_col = 2
+
+        # if cov_mode is 'channel':
+        #     self.axis_cov = (self.axis_filter,)
+        #     self.axis_non_cov = (self.axis_row, self.axis_col)
+        # elif cov_mode is 'feature':
+        #     self.axis_cov = (self.axis_row, self.axis_col)
+        #     self.axis_non_cov = (self.axis_filter,)
+        if bilinear_mode not in ['channel', 'feature', 'mean', 'pmean']:
+            raise ValueError('only support cov_mode across channel and features and mean, given {}'.format(cov_mode))
+
+        self.bilinear_mode = bilinear_mode
+
+        # input parameter preset
+        self.nb_filter = 0
+        self.cols = 0
+        self.rows = 0
+        self.nb_samples = 0
+        self.eps = eps
+
+        self.activation = activations.get(activation)
+
+        self.dim_ordering = dim_ordering
+        self.input_spec = [InputSpec(ndim=4)]
+        super(BiLinear, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        """
+                Build the model based on input shape,
+                Should not set the weight vector here.
+                Add the cov_mode in 'channel' or 'feature',
+                    by using self.cov_axis.
+
+                dim-ordering is only related to the axes
+                :param input_shape:
+                :return:
+                """
+        # print('secondary_stat: input shape lenth', len(input_shape))
+        # print('second_stat: input shape {}'.format(input_shape))
+        # print('second_stat: axis filter {}'.format(self.axis_filter))
+        self.nb_samples = input_shape[0]
+        self.nb_filter = input_shape[self.axis_filter]
+        self.rows = input_shape[self.axis_row]
+        self.cols = input_shape[self.axis_col]
+
+        # Calculate covariance axis
+        if self.bilinear_mode == 'channel' or self.bilinear_mode == 'mean' or self.bilinear_mode == 'pmean':
+            self.cov_dim = self.nb_filter
+        else:
+            self.cov_dim = self.rows * self.cols
+
+        # Set out_dim accordingly.
+        self.out_dim = self.cov_dim
+        self.built = True
+
+    def get_output_shape_for(self, input_shape):
+        return input_shape[0], self.out_dim*self.out_dim
+
+    def get_config(self):
+        config = {
+            'eps':1e-5,
+            'activation':self.activation.__name__,
+            'dim_ordering':self.dim_ordering,
+            'bilinear_mode':self.bilinear_mode,
+        }
+        base_config = super(BiLinear, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def call(self, x, mask=None):
+        if not self.built:
+            raise Exception("BiLinear layer not built")
+        xf = self.reshape_tensor3d(x)
+        tx = K.batch_dot(xf, K.transpose(xf, [0,2,1]))
+        if self.bilinear_mode == 'channel' or self.bilinear_mode == 'mean' or self.bilinear_mode == 'pmean':
+            bilinear_output = tx / (self.rows * self.cols - 1)
+        #     # cov = tx / (self.rows * self.cols )
+        else:
+            bilinear_output = tx / (self.nb_filter - 1)
+        bilinear_output = K.multiply(K.sign(bilinear_output), K.sqrt(K.abs(bilinear_output) + self.eps))
+        bilinear_output = Flatten()(bilinear_output)
+        bilinear_output = K.l2_normalize(bilinear_output, axis=1)
+        return bilinear_output
+
+    def reshape_tensor3d(self, x):
+        """
+        Transpose and reshape to a format
+        (None, cov_axis, data_axis)
+        Parameters
+        ----------
+        x : tensor  (None, filter, cols, rows) for th,
+                    (None, cols, rows, filter) for tf
+        Returns
+        -------
+        """
+        if self.dim_ordering == 'th':
+            tx = K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
+        else:
+            tx = K.reshape(x, (-1, self.cols * self.rows, self.nb_filter))
+            tx = K.transpose(tx, (0, 2, 1))
+        if self.bilinear_mode == 'channel' or self.bilinear_mode == 'mean' or self.bilinear_mode == 'pmean':
+            return tx
+        else:
+            return K.transpose(tx, (0, 2, 1))
+
+
+class BiLinear_v2(Layer):
+    """
+    BiLinear v2 is a layer which can take two inputs and group them in the interaction style, that can 
+    take from multiple layers like Merge.
+    
+    Add support for two input
+    
+    References : keras.layer.Regroup
+
+    into groups equally.
+
+        # Input shape
+            n 4D tensor with (nb_sample, x, y, z)
+        # Output shape
+            C(n,2) = n*(n-1)/2 4D tensor with (nb_sample, x, y, z/n) for tensorflow.
+        # Arguments
+               should make z/n an integer
+
+    """
+    def __init__(self, inputs, mode='bilinear', concat_axis=-1,
+                 output_shape=None, output_mask=None,
+                 arguments=None, node_indices=None, tensor_indices=None,
+                 name=None, version=1,
+                 ):
+        if K.backend() == 'theano' or K.image_dim_ordering() == 'th':
+            raise RuntimeError("Only support tensorflow backend or image ordering")
+
+        self.inputs = inputs
+        self.mode = mode
+        self.concat_axis = concat_axis
+        self._output_shape = output_shape
+        self.node_indices = node_indices
+        self._output_mask = output_mask
+        self.arguments = arguments if arguments else {}
+
+        # Layer parameters
+        self.inbound_nodes = []
+        self.outbound_nodes = []
+        self.constraints = {}
+        self._trainable_weights = []
+        self._non_trainable_weights = []
+        self.supports_masking = True
+        self.uses_learning_phase = False
+        self.input_spec = None
+
+        if not name:
+            prefix = self.__class__.__name__.lower()
+            name = prefix + '_' + str(K.get_uid(prefix))
+
+        self.name = name
+
+        if inputs:
+            # The inputs is a bunch of nodes shares the same input.
+            if not node_indices:
+                node_indices = [0 for _ in range(len(inputs))]
+            self.built = True
+            # self.add_inbound_node(inputs, node_indices, tensor_indices)
+        else:
+            self.built = False
+
+    # def build(self, input_shape):
+    #     self.output_dim = input_shape[3] / self.n
+    #     self.out_shape = input_shape[:2] + (self.output_dim,)
+    #     self.split_loc = [self.output_dim * i for i in range(self.n)]
+    #     self.split_loc.append(self.output_dim * self.n)
+    #     self.built = True
+
+    def call(self, inputs, mask=None):
+        import tensorflow as tf
+        if not isinstance(inputs, list) or len(inputs) <= 1:
+            raise TypeError("Regrouping must be taking more than one "
+                            "tensor, Got: " + str(inputs))
+        # Case: 'mode' is a lambda function or function
+        if callable(self.mode):
+            arguments = self.arguments
+            arg_spec = inspect.getargspec(self.mode)
+            if 'mask' in arg_spec.args:
+                arguments['mask'] = mask
+            return self.mode(inputs, **arguments)
+
+        if self.mode == 'group':
+
+            outputs = []
+            n_inputs = len(inputs)
+            for i in range(n_inputs - 1):
+                for j in range(i + 1, n_inputs):
+                    with tf.device('/gpu:0'):
+                        outputs.append(K.concatenate([tf.identity(inputs[i]),tf.identity(inputs[j])], self.concat_axis))
+            # for i in range(0, n_inputs - 1, 2):
+            #     with tf.device('/gpu:0'):
+            #         conc = K.concatenate([tf.identity(inputs[i]), tf.identity(inputs[i+1])])
+            #     outputs.append(conc)
+            return outputs
+        else:
+            raise RuntimeError("Mode not recognized {}".format(self.mode))
+
+    def compute_mask(self, input, input_mask=None):
+        """ Override the compute mask to produce two masks """
+        n_inputs = len(input)
+        if input_mask is None or all([m is None for m in input_mask]):
+            # return [None for _ in range(0, n_inputs - 1, 2)]
+            return [None for _ in range(n_inputs * (n_inputs - 1) / 2)]
+        else:
+            raise ValueError("Not supporting mask for this layer {}".format(self.name))
+
+    def get_output_shape_for(self, input_shape):
+        """ Return a list """
+        assert isinstance(input_shape, list)
+
+        output_shape = []
+        n_inputs = len(input_shape)
+        for i in range(0, n_inputs - 1):
+            for j in range(i, n_inputs - 1):
+                tmp_shape = list(input_shape[i])
+                tmp_shape[self.concat_axis] += input_shape[j][self.concat_axis]
+                output_shape.append(tmp_shape)
+            # tmp_shape = list(input_shape[i])
+            # tmp_shape[self.concat_axis] += input_shape[i+1][self.concat_axis]
+            # output_shape.append(tmp_shape)
+        return output_shape
+
+

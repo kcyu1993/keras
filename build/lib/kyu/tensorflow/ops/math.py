@@ -6,6 +6,38 @@ import tensorflow as tf
 import keras.backend as K
 from keras.optimizers import SGD
 
+def matrix_log(x, eps=1e-5):
+    """
+    Define the matrix logarithm
+
+    Parameters
+    ----------
+    x
+
+    Returns
+    -------
+
+    """
+    s, u = tf.self_adjoint_eig(x)
+    s = tf.abs(s)
+    inner = s + eps
+    inner = tf.log(inner)
+    inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
+    inner = tf.matrix_diag(inner)
+    tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0,2,1])))
+    return tf_log
+
+
+def matrix_exp(x):
+    s, u = tf.self_adjoint_eig(x)
+    # s = tf.abs(s)
+    inner = s
+    inner = tf.exp(inner)
+    inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
+    inner = tf.matrix_diag(inner)
+    tf_exp = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
+    return tf_exp
+
 
 def matrix_sym_op(x):
     """
@@ -178,3 +210,5 @@ class StiefelSGD(SGD):
             if key in name:
                 return True
         return False
+
+

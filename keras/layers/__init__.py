@@ -12,3 +12,8 @@ from .advanced_activations import *
 from .wrappers import *
 from .convolutional_recurrent import *
 from .secondstat import *
+
+"""
+Self Defined layers
+"""
+from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization

@@ -1,7 +1,7 @@
 """
 Define general finetune process
 """
-
+import os
 import keras.backend as K
 import numpy as np
 
@@ -13,7 +13,7 @@ from third_party.openai.weightnorm import SGDWithWeightnorm
 
 
 def get_tmp_weights_path(name):
-    return '/tmp/{}_finetune.weights'.format(name)
+    return '/home/kyu/.keras/models/tmp/{}_finetune.weights'.format(name)
 
 
 def finetune_model_with_config(model, fn_function, config, nb_classes, input_shape,
@@ -242,6 +242,84 @@ def run_finetune(fn_model, fn_finetune, input_shape, config,
     for param in config.params:
         for mode in config.mode_list:
             if len(config.cov_outputs) == 0:
+                config.cov_outputs = [param[-1]]
+            for cov_output in config.cov_outputs:
+                print("Run routine 1 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
+                K.clear_session()
+                sess = K.get_session()
+                title = config.title + \
+                        '_cov_{}_wv{}_{}'.format(config.cov_branch, str(cov_output), config.cov_mode)
+                if nb_epoch_finetune > 0:
+                    with sess.as_default():
+                        model = fn_model(parametrics=param, mode=mode, cov_branch=config.cov_branch,
+                                         cov_mode=config.cov_mode,
+                                         nb_classes=nb_classes, cov_branch_output=cov_output,
+                                         input_shape=input_shape,
+                                         last_avg=False,
+                                         freeze_conv=True,
+                                         cov_regularizer=config.cov_regularizer,
+                                         nb_branch=config.nb_branch,
+                                         last_conv_feature_maps=config.last_conv_feature_maps,
+                                         epsilon=config.epsilon,
+                                         vectorization=config.vectorization,
+                                         load_weights=config.weight_path,
+                                         **kwargs
+                                         )
+                        # Write config to file
+                        config.to_configobj(folder=title, comments='finetune_{}-lr_{}-model_{}'.format(
+                            title, lr1, model.name))
+                        if monitor:
+                            summary_op = create_summary_op_for_keras_model(model, monitor_classes, monitor_measures)
+
+                        fn_finetune(model,
+                                    title='finetune_' + title,
+                                    nb_epoch_after=0, nb_epoch_finetune=nb_epoch_finetune,
+                                    batch_size=config.batch_size, early_stop=config.early_stop, verbose=verbose[0],
+                                    image_gen=image_gen,
+                                    optimizer=opt1,
+                                    lr=lr1,
+                                    weight_path=config.weight_path,
+                                    lr_decay=lr_decay)
+                        model.save_weights(get_tmp_weights_path(model.name + '_' + str(random_key)))
+
+                K.clear_session()
+                sess2 = K.get_session()
+                if nb_epoch_after > 0:
+                    with sess2.as_default():
+                        model = fn_model(parametrics=param, mode=mode, cov_branch=config.cov_branch,
+                                         cov_mode=config.cov_mode,
+                                         nb_classes=nb_classes, cov_branch_output=cov_output,
+                                         input_shape=input_shape,
+                                         last_avg=False,
+                                         freeze_conv=False,
+                                         cov_regularizer=config.cov_regularizer,
+                                         nb_branch=config.nb_branch,
+                                         last_conv_feature_maps=config.last_conv_feature_maps,
+                                         epsilon=config.epsilon,
+                                         vectorization=config.vectorization,
+                                         **kwargs
+                                         )
+                        if nb_epoch_finetune > 0:
+                            if os.path.exists(get_tmp_weights_path(model.name + '_' + str(random_key))):
+                                model.load_weights(get_tmp_weights_path(model.name + '_' + str(random_key)))
+                            else:
+                                print("ERROR !!!! NO TMP WEIGHTS FOUND")
+                        config.to_configobj(folder=title, comments='retrain_{}-lr_{}-model_{}'.format(
+                            title, lr1, model.name))
+                        if monitor:
+                            summary_op = create_summary_op_for_keras_model(model, monitor_classes, monitor_measures)
+                        fn_finetune(model,
+                                    title='retrain_' + title,
+                                    nb_epoch_after=0, nb_epoch_finetune=nb_epoch_after,
+                                    batch_size=config.batch_size/4, early_stop=config.early_stop, verbose=verbose[1],
+                                    image_gen=image_gen,
+                                    optimizer=opt2,
+                                    lr_decay=lr_decay,
+                                    lr=lr2)
+                    # Write config to file
+
+"""
+            if len(config.cov_outputs) == 0:
                 cov_output = param[-1]
                 print("Run routine 1 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
                 K.clear_session()
@@ -261,6 +339,7 @@ def run_finetune(fn_model, fn_finetune, input_shape, config,
                                          last_conv_feature_maps=config.last_conv_feature_maps,
                                          epsilon=config.epsilon,
                                          vectorization=config.vectorization,
+                                         load_weights=config.weight_path,
                                          **kwargs
                                          )
                         # Write config to file
@@ -276,6 +355,7 @@ def run_finetune(fn_model, fn_finetune, input_shape, config,
                                     image_gen=image_gen,
                                     optimizer=opt1,
                                     lr=lr1,
+                                    weight_path=config.weight_path,
                                     lr_decay=lr_decay)
                         model.save_weights(get_tmp_weights_path(model.name + '_' + str(random_key)))
 
@@ -311,76 +391,7 @@ def run_finetune(fn_model, fn_finetune, input_shape, config,
                                     lr_decay=lr_decay,
                                     lr=lr2)
                         # Write config to file
-            for cov_output in config.cov_outputs:
-                print("Run routine 1 param {}, mode {}, covariance output {}".format(param, mode, cov_output))
-                K.clear_session()
-                sess = K.get_session()
-                title = config.title + \
-                        '_cov_{}_wv{}_{}'.format(config.cov_branch, str(cov_output), config.cov_mode)
-                if nb_epoch_finetune > 0:
-                    with sess.as_default():
-                        model = fn_model(parametrics=param, mode=mode, cov_branch=config.cov_branch,
-                                         cov_mode=config.cov_mode,
-                                         nb_classes=nb_classes, cov_branch_output=cov_output,
-                                         input_shape=input_shape,
-                                         last_avg=False,
-                                         freeze_conv=True,
-                                         cov_regularizer=config.cov_regularizer,
-                                         nb_branch=config.nb_branch,
-                                         last_conv_feature_maps=config.last_conv_feature_maps,
-                                         epsilon=config.epsilon,
-                                         vectorization=config.vectorization,
-                                         **kwargs
-                                         )
-                        # Write config to file
-                        config.to_configobj(folder=title, comments='finetune_{}-lr_{}-model_{}'.format(
-                            title, lr1, model.name))
-                        if monitor:
-                            summary_op = create_summary_op_for_keras_model(model, monitor_classes, monitor_measures)
-
-                        fn_finetune(model,
-                                    title='finetune_' + title,
-                                    nb_epoch_after=0, nb_epoch_finetune=nb_epoch_finetune,
-                                    batch_size=config.batch_size, early_stop=config.early_stop, verbose=verbose[0],
-                                    image_gen=image_gen,
-                                    optimizer=opt1,
-                                    lr=lr1,
-                                    lr_decay=lr_decay)
-                        model.save_weights(get_tmp_weights_path(model.name + '_' + str(random_key)))
-
-                K.clear_session()
-                sess2 = K.get_session()
-                if nb_epoch_after > 0:
-                    with sess2.as_default():
-                        model = fn_model(parametrics=param, mode=mode, cov_branch=config.cov_branch,
-                                         cov_mode=config.cov_mode,
-                                         nb_classes=nb_classes, cov_branch_output=cov_output,
-                                         input_shape=input_shape,
-                                         last_avg=False,
-                                         freeze_conv=False,
-                                         cov_regularizer=config.cov_regularizer,
-                                         nb_branch=config.nb_branch,
-                                         last_conv_feature_maps=config.last_conv_feature_maps,
-                                         epsilon=config.epsilon,
-                                         vectorization=config.vectorization,
-                                         **kwargs
-                                         )
-                        if nb_epoch_finetune > 0:
-                            model.load_weights(get_tmp_weights_path(model.name + '_' + str(random_key)))
-                        config.to_configobj(folder=title, comments='retrain_{}-lr_{}-model_{}'.format(
-                            title, lr1, model.name))
-                        if monitor:
-                            summary_op = create_summary_op_for_keras_model(model, monitor_classes, monitor_measures)
-                        fn_finetune(model,
-                                    title='retrain_' + title,
-                                    nb_epoch_after=0, nb_epoch_finetune=nb_epoch_after,
-                                    batch_size=config.batch_size/4, early_stop=config.early_stop, verbose=verbose[1],
-                                    image_gen=image_gen,
-                                    optimizer=opt2,
-                                    lr_decay=lr_decay,
-                                    lr=lr2)
-                    # Write config to file
-
+"""
 
 def resume_finetune_with_Stiefel_layer(
         fn_model, fn_finetune, input_shape, config, weights_path,

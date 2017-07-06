@@ -1,6 +1,61 @@
 from kyu.theano.general.config import DCovConfig
 
 
+def get_new_experiment(exp):
+    batch_size = 128
+    cov_mode = 'pmean'
+    mode_list = [1]
+    cov_branch = 'o2t_no_wv'
+    early_stop = False
+    cov_regularizer = None
+    last_config_feature_maps = [512]
+    robust = True
+    regroup = False
+    cov_alpha = 0.3
+    # cov_beta = 0.1
+    cov_beta = 0.1
+    pooling = 'max'
+    if exp == 1:
+        nb_branch = 2
+        params = [[257, 128, 64], ]
+        cov_outputs = [params[0][2]]
+    elif exp == 2:
+        nb_branch = 2
+        params = [[256, 512, 512], ]
+        cov_outputs = [params[0][2]]
+    elif exp == 3:
+        nb_branch = 2
+        params = [[256,128,64,32]]
+        cov_outputs = [params[0][2]]
+    elif exp == 4:
+        nb_branch = 2
+        params = [[512, 256, 128, 64,]]
+        cov_outputs = [params[0][2]]
+        last_config_feature_maps = [1024]
+    elif exp == 5:
+        nb_branch = 4
+        params = [[256, 128, 64, 32]]
+        cov_outputs = [params[0][2]]
+    elif exp == 6:
+        nb_branch = 2
+        params = [[256, 128, 64, 32]]
+        cov_outputs = [params[0][2]]
+        pooling = 'avg'
+    else:
+        return
+
+    title = 'mit_indoor_newexperiment_{}_{}_{}'.format(cov_mode, cov_branch, pooling)
+    # weight_path = '/home/kyu/.keras/models/mit_indoor_baseline_resnet50.weights'
+    weight_path = 'imagenet'
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
+                        cov_beta=cov_beta,
+                        weight_path=weight_path,
+                        pooling=pooling)
+    return config
+
+
 def get_experiment_settings(exp=1):
     cov_regularizer = None
     nb_branch = 1
@@ -97,7 +152,7 @@ def get_aaai_experiment(exp):
         robust = False
         # cov_regularizer = 'Fob'
         # last_config_feature_maps = []
-        last_config_feature_maps = [512]
+        last_config_feature_maps = []
         # last_config_feature_maps = [1024, 512, 256]
         batch_size = 32
         vectorization = 'dense'
@@ -489,9 +544,9 @@ def get_matrix_bp(exp=1):
         # cov_regularizer = 'vN'
         cov_regularizer = None
         # last_config_feature_maps = []
-        last_config_feature_maps = [256]
+        last_config_feature_maps = [512]
         batch_size = 32
-        robust = False
+        robust = True
         regroup = False
         cov_alpha = 0.75
         concat = 'concat'
@@ -538,7 +593,7 @@ def get_matrix_bp(exp=1):
         rb = 'robost'
     else:
         rb = ''
-    title = 'minc_matbp_{}_{}_{}_{}'.format(cov_mode, cov_branch, rb, cov_regularizer)
+    title = 'mit_matbp_{}_{}_{}_{}'.format(cov_mode, cov_branch, rb, cov_regularizer)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
@@ -665,61 +720,6 @@ def get_residual_cov_experiment(exp):
     return config
 
 
-def get_VGG_second_order_batchnorm(exp):
-    """ Test VGG dimension reduction """
-    cov_regularizer = None
-    if exp == 1:
-        """ Test Multiple o2t with so bn"""
-        nb_branch = 2
-        params = [[64, 64, 32], ]
-        # params = [[257, 128, 64], ]
-        mode_list = [1]
-        cov_outputs = [64]
-        cov_branch = 'sobn_multiple_o2t'
-        cov_regularizer = None
-        last_config_feature_maps = [512]
-        # last_config_feature_maps = [1024]
-        concat = 'concat'
-        last_avg = False
-        robust = True
-        so_mode = 2
-    elif exp == 2:
-        """ Test Multiple o2t with so bn"""
-        nb_branch = 2
-        # params = [[64, 64, 32], ]
-        # params = [[257, 128, 64], ]
-        params = [[257, 128, 64, 64], ]
-        mode_list = [1]
-        cov_outputs = [64]
-        cov_branch = 'o2t_no_wv'
-        cov_regularizer = None
-        last_config_feature_maps = [512]
-        # last_config_feature_maps = [1024]
-        concat = 'concat'
-        last_avg = False
-        robust = True
-        so_mode = 2
-    else:
-        return
-    cov_mode = 'pmean'
-    early_stop = True
-    batch_size = 32
-
-    regroup = False
-    cov_alpha = 0.75
-    if robust:
-        rb = 'robost'
-    else:
-        rb = ''
-    title = 'minc2500_VGG_SOBN_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
-    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
-                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
-                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
-                        concat=concat, vectorization=None, load=False, so_mode=so_mode
-                        )
-    return config
-
-
 def get_VGG_testing_ideas(exp):
     """ Test VGG dimension reduction """
     cov_regularizer = None
@@ -779,34 +779,6 @@ def get_VGG_testing_ideas(exp):
         concat = 'concat'
         last_avg = False
         robust = True
-    elif exp == 5:
-        """ Cross Validate on the summing methods for Riemannian"""
-        nb_branch = 2
-        params = [[64, 64, 32],]
-        # params = [[257, 128, 64], ]
-        mode_list = [1]
-        cov_outputs = [64]
-        cov_branch = 'multiple_o2t'
-        cov_regularizer = None
-        last_config_feature_maps = [512]
-        # last_config_feature_maps = [1024]
-        concat = 'concat'
-        last_avg = False
-        robust = True
-    elif exp == 6:
-        """ Test Multiple o2t with so bn"""
-        nb_branch = 2
-        params = [[64, 64, 32], ]
-        # params = [[257, 128, 64], ]
-        mode_list = [1]
-        cov_outputs = [64]
-        cov_branch = 'sobn_multiple_o2t'
-        cov_regularizer = None
-        last_config_feature_maps = [512]
-        # last_config_feature_maps = [1024]
-        concat = 'concat'
-        last_avg = False
-        robust = True
     else:
         return
     cov_mode = 'pmean'
@@ -823,7 +795,7 @@ def get_VGG_testing_ideas(exp):
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
-                        concat=concat, vectorization=None, load=False
+                        concat=concat,
                         )
     return config
 
@@ -835,11 +807,11 @@ def get_ResNet_testing_ideas(exp):
         """ Experiment 1, cross validate number of branches. """
         nb_branch = 2
         # params = [[128, 64, 32], ]
-        params = [[257, 128, 64, 32], ]
+        params = [[257, 128, 64], ]
         # params = [[64, 32, 16], ]
         mode_list = [1]
         # cov_outputs = [16]
-        cov_outputs = [params[0][3]]
+        cov_outputs = [params[0][2]]
         cov_branch = 'o2t_no_wv'
         cov_regularizer = None
         # last_config_feature_maps = [512]
@@ -863,22 +835,6 @@ def get_ResNet_testing_ideas(exp):
         concat = 'concat'
         last_avg = False
         robust = False
-    elif exp == 3:
-        """ Experiment 3 June 27 2017, no 1x1 and train from scratch """
-        nb_branch = 2
-        # params = [[128, 64, 32], ]
-        params = [[257, 128, 64], ]
-        # params = [[64, 32, 16], ]
-        mode_list = [1]
-        # cov_outputs = [16]
-        cov_outputs = [params[0][2]]
-        cov_branch = 'multiple_o2t'
-        cov_regularizer = None
-        # last_config_feature_maps = [512]
-        last_config_feature_maps = [1024]
-        concat = 'concat'
-        last_avg = False
-        robust = False
     else:
         return
     cov_mode = 'pmean'
@@ -886,17 +842,16 @@ def get_ResNet_testing_ideas(exp):
     batch_size = 32
 
     regroup = False
-    cov_alpha = 0.3
-    cov_beta = 0.1
+    cov_alpha = 0.75
     if robust:
         rb = 'robost'
     else:
         rb = ''
-    title = 'minc2500_ResNetTest_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
+    title = 'minc2500_RsNTEST_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
-                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, cov_beta=cov_beta,
-                        regroup=regroup, concat=concat, weight_path='imagenet'
+                        exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
+                        concat=concat,
                         )
     return config
 

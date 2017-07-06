@@ -3,7 +3,8 @@ import warnings
 from keras.engine import merge
 from keras.layers import SecondaryStatistic, O2Transform, WeightedVectorization, Flatten, Dense, LogTransform, \
     Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, MaxPooling2D, \
-    PowTransform, BatchNormalization, Reshape, BatchNormalization_v2, ExpandDims, Squeeze, FlattenSymmetric
+    PowTransform, BatchNormalization, Reshape, BatchNormalization_v2, ExpandDims, Squeeze, FlattenSymmetric, BiLinear
+from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization
 
 from kyu.theano.general.train import toggle_trainable_layers, Model
 
@@ -194,19 +195,21 @@ def covariance_block_aaai(input_tensor, nb_class, stage, block, epsilon=0, param
 
 def covariance_block_no_wv(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                            cov_mode='channel', cov_regularizer=None, vectorization='wv',
-                           o2t_constraints=None,
+                           o2t_constraints=None, normalization=True, so_mode=1
+                           ,
                            **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
     else:
         cov_name_base = 'cov' + str(stage) + block + '_branch'
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
-    wp_name_base = 'wp' + str(stage) + block + '_branch'
     with tf.name_scope(cov_name_base):
         x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
                                cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
     for id, param in enumerate(parametric):
         with tf.name_scope(o2t_name_base + str(id)):
+            if normalization:
+                x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
             x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
     return x
 
@@ -223,10 +226,12 @@ def covariance_block_matbp(input_tensor, nb_class, stage, block, epsilon=0, para
     log_name_base = 'log' + str(stage) + block + '_branch'
     dense_name_base = 'fc' + str(stage) + block + '_branch'
 
-    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon, normalization='mean',
                            cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+    # x = BiLinear()(input_tensor)
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
+
     # add log layer here.
     x = LogTransform(epsilon, name=log_name_base)(x)
     x = Flatten()(x)
@@ -269,6 +274,109 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
         x = FlattenSymmetric()(x)
     else:
         ValueError("vectorization parameter not recognized : {}".format(vectorization))
+    return x
+
+
+def covariance_block_multi_o2t(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                               cov_mode='channel', cov_regularizer=None, vectorization=None,
+                               o2t_constraints=None, nb_o2t=4, o2t_concat='concat',
+                               **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    dense_name_base = 'fc' + str(stage) + block + '_branch'
+    wp_name_base = 'wp' + str(stage) + block + '_branch'
+
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+
+    # Try to implement multiple o2t layers out of the same x.
+    cov_input = x
+    cov_br = []
+    for i in range(nb_o2t):
+        x = cov_input
+        for id, param in enumerate(parametric):
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id) + '_'+str(i))(x)
+        if vectorization == 'wv':
+            x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base + str(id) + '_' + str(i))(x)
+        elif vectorization == 'dense':
+            x = Flatten()(x)
+            x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
+        elif vectorization == 'flatten':
+            x = Flatten()(x)
+        elif vectorization == 'mat_flatten':
+            x = FlattenSymmetric()(x)
+        elif vectorization is None:
+            pass
+        else:
+            ValueError("vectorization parameter not recognized : {}".format(vectorization))
+
+        cov_br.append(x)
+
+    if o2t_concat == 'concat' and vectorization is None:
+        # use matrix concat
+        x = MatrixConcat(cov_br)(cov_br)
+        x = WeightedVectorization(nb_class * nb_o2t / 2)(x)
+    elif o2t_concat == 'concat':
+        # use vector concat
+        x = merge(cov_br, mode='concat')
+    else:
+        raise NotImplementedError
+
+    return x
+
+
+def covariance_block_sobn_multi_o2t(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                                    cov_mode='channel', cov_regularizer=None, vectorization=None,
+                                    o2t_constraints=None, nb_o2t=1, o2t_concat='concat', so_mode=2,
+                                    **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    dense_name_base = 'fc' + str(stage) + block + '_branch'
+    wp_name_base = 'wp' + str(stage) + block + '_branch'
+
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+
+    # Try to implement multiple o2t layers out of the same x.
+    cov_input = x
+    cov_br = []
+    for i in range(nb_o2t):
+        x = cov_input
+        for id, param in enumerate(parametric):
+            x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id) + '_'+str(i))(x)
+        if vectorization == 'wv':
+            x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base + str(id) + '_' + str(i))(x)
+        elif vectorization == 'dense':
+            x = Flatten()(x)
+            x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
+        elif vectorization == 'flatten':
+            x = Flatten()(x)
+        elif vectorization == 'mat_flatten':
+            x = FlattenSymmetric()(x)
+        elif vectorization is None:
+            pass
+        else:
+            ValueError("vectorization parameter not recognized : {}".format(vectorization))
+
+        cov_br.append(x)
+
+    if o2t_concat == 'concat' and vectorization is None:
+        # use matrix concat
+        x = MatrixConcat(cov_br)(cov_br)
+        x = WeightedVectorization(nb_class * nb_o2t / 2)(x)
+    elif o2t_concat == 'concat':
+        # use vector concat
+        x = merge(cov_br, mode='concat')
+    else:
+        raise NotImplementedError
+
     return x
 
 
@@ -673,6 +781,10 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_pow
     elif cov_branch == 'o2t_batch_norm':
         covariance_block = covariance_block_batch
+    elif cov_branch == 'multiple_o2t':
+        covariance_block = covariance_block_multi_o2t
+    elif cov_branch == 'sobn_multiple_o2t':
+        covariance_block = covariance_block_sobn_multi_o2t
     else:
         raise ValueError('covariance cov_mode not supported')
 

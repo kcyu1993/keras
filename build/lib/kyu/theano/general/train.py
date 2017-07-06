@@ -97,6 +97,7 @@ def fit_model_v2(model, data,
                  log=True,
                  lr=0.001,
                  lr_decay=True,
+                 weight_path='',
                  ):
     """
     General model fitting, given model (not compiled) and data. With some setting of parameters.
@@ -135,7 +136,8 @@ def fit_model_v2(model, data,
     engine = ExampleEngine(data[0], model, data[1],
                            load_weight=load, save_weight=save, save_log=save_log,
                            lr_decay=lr_decay, early_stop=early_stop, tensorboard=True,
-                           batch_size=batch_size, nb_epoch=nb_epoch, title=title, verbose=verbose)
+                           batch_size=batch_size, nb_epoch=nb_epoch, title=title, verbose=verbose,
+                           weight_path=weight_path)
 
     if save_log:
         sys.stdout = engine.stdout

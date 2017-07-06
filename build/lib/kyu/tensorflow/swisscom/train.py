@@ -82,7 +82,7 @@ def runroutine1():
     """
     nb_finetune = 2
     nb_train = 100
-    denses = [4096,4096,]
+    denses = [256,256,256,]
     K.clear_session()
     random_key = np.random.randint(1, 1000)
     sess = K.get_session()
@@ -113,13 +113,13 @@ def runroutine2():
     """
     nb_finetune = 5
     nb_train = 100
-
+    o2ts = [128,64,32,32]
     K.clear_session()
     random_key = np.random.randint(1, 1000)
     sess = K.get_session()
     with sess.as_default():
         print("Fine tune process ")
-        model = VGG16_o2([128,64,32], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
+        model = VGG16_o2(o2ts, mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
                          cov_branch_output=64, last_avg=False, freeze_conv=True, nb_branch=2, concat='concat',
                          last_conv_feature_maps=[512])
         fit_model(model, nb_epoch=nb_finetune)
@@ -128,7 +128,7 @@ def runroutine2():
     sess2 = K.get_session()
     with sess2.as_default():
         print("Train proccess")
-        model = VGG16_o2([128,64,32], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
+        model = VGG16_o2(o2ts, mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
                          cov_branch_output=64, last_avg=False, freeze_conv=False, nb_branch=2, concat='concat',
                          last_conv_feature_maps=[512])
         model.load_weights(get_tmp_weights_path(model.name + str(random_key)))
@@ -146,13 +146,13 @@ def run_resnet():
     """
     nb_finetune = 4
     nb_train = 100
-
+    o2ts = [256,128,64,64]
     K.clear_session()
     random_key = np.random.randint(1, 1000)
     sess = K.get_session()
     with sess.as_default():
         print("Fine tune process ")
-        model = ResNet50_o2([256,128,64], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
+        model = ResNet50_o2(o2ts, mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
                             cov_branch='o2t_no_wv',
                             cov_branch_output=64, last_avg=False, freeze_conv=True, nb_branch=2, concat='concat',
                             last_conv_feature_maps=[512])
@@ -162,7 +162,7 @@ def run_resnet():
     sess2 = K.get_session()
     with sess2.as_default():
         print("Train proccess")
-        model = ResNet50_o2([256,128,64], mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
+        model = ResNet50_o2(o2ts, mode=1, nb_classes=2, input_shape=(224,224,3), cov_mode='pmean',
                             cov_branch='o2t_no_wv',
                             cov_branch_output=64, last_avg=False, freeze_conv=True, nb_branch=2, concat='concat',
                             last_conv_feature_maps=[512])
@@ -178,8 +178,8 @@ def test_loader():
     train.next()
 
 if __name__ == '__main__':
-    # runroutine1()
-    runroutine2()
+    runroutine1()
+    # runroutine2()
     # run_resnet()
     # runroutine1()
     # test_loader()

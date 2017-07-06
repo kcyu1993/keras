@@ -8,6 +8,31 @@ import numpy as np
 from tensorflow.python.framework import function
 
 
+def svd_v2(A, full_matrices=False, compute_uv=True, name=None):
+    """ Failure version ."""
+    # since dA = dUSVt + UdSVt + USdVt
+    # we can simply recompute each matrix using A = USVt
+    # while blocking gradients to the original op.
+    _, M, N = A.get_shape().as_list()
+    P = min(M, N)
+    S0, U0, V0 = map(tf.stop_gradient, tf.svd(A, full_matrices=True, name=name))
+    Ui, Vti = map(tf.matrix_inverse, [U0, tf.transpose(V0, (0, 2, 1))])
+    # A = USVt
+    # S = UiAVti
+    S = tf.matmul(Ui, tf.matmul(A, Vti))
+    S = tf.matrix_diag_part(S)
+    if not compute_uv:
+        return S
+    Si = tf.pad(tf.matrix_diag(1/S0), [[0,0], [0,N-P], [0,M-P]])
+    # U = AVtiSi
+    U = tf.matmul(A, tf.matmul(Vti, Si))
+    U = U if full_matrices else U[:, :M, :P]
+    # Vt = SiUiA
+    V = tf.transpose(tf.matmul(Si, tf.matmul(Ui, A)), (0, 2, 1))
+    V = V if full_matrices else V[:, :N, :P]
+    return S, U, V
+
+
 def matrix_symmetric(x):
     return (x + tf.transpose(x, [0,2,1])) / 2
 
@@ -24,19 +49,129 @@ def get_eigen_K(x, square=False):
     -------
 
     """
-    x -= 1e-4
     if square:
         x = tf.square(x)
     res = tf.expand_dims(x, 1) - tf.expand_dims(x, 2)
     res += tf.eye(tf.shape(res)[1])
     res = 1 / res
     res -= tf.eye(tf.shape(res)[1])
+
+    # Keep the results clean
     res = tf.where(tf.is_nan(res), tf.zeros_like(res), res)
     res = tf.where(tf.is_inf(res), tf.zeros_like(res), res)
     return res
 
 
 @tf.RegisterGradient('Svd')
+def gradient_svd(op, grad_s, grad_u, grad_v):
+    """
+    Define the gradient for SVD
+    References
+        Ionescu, C., et al, Matrix Backpropagation for Deep Networks with Structured Layers
+        with dU = 0.
+    Parameters
+    ----------
+    op
+    grad_s
+    grad_u
+    grad_v
+
+    Returns
+    -------
+    """
+    s, u, v = op.outputs
+    v_t = tf.transpose(v, [0,2,1])
+
+    with tf.name_scope('K'):
+        K = get_eigen_K(s, True)
+    inner = matrix_symmetric(K * tf.matmul(v_t, grad_v))
+
+    # Create the shape accordingly.
+    u_shape = u.get_shape()[1].value
+    v_shape = v.get_shape()[1].value
+
+    # Recover the complete S matrices and its gradient
+    eye_mat = tf.eye(v_shape, u_shape)
+    realS = tf.matmul(tf.reshape(tf.matrix_diag(s), [-1, v_shape]), eye_mat)
+    realS = tf.transpose(tf.reshape(realS, [-1, v_shape, u_shape]), [0, 2, 1])
+
+    real_grad_S = tf.matmul(tf.reshape(tf.matrix_diag(grad_s), [-1, v_shape]), eye_mat)
+    real_grad_S = tf.transpose(tf.reshape(real_grad_S, [-1, v_shape, u_shape]), [0, 2, 1])
+
+    dxdz = tf.matmul(u, tf.matmul(2 * tf.matmul(realS, inner) + real_grad_S, v_t))
+    return dxdz
+
+
+def gradient_svd_complete(op, grad_s, grad_u, grad_v):
+    """
+    Define the SVD gradient complete version.
+    
+    Parameters
+    ----------
+    op
+    grad_s
+    grad_u
+    grad_v
+
+    Returns
+    -------
+
+    """
+
+    s, u, v = op.outputs
+
+    v_t = tf.transpose(v, [0,2,1])
+    u_t = tf.transpose(u, [0,2,1])
+    with tf.name_scope('K'):
+        K = get_eigen_K(s, True)
+    inner = matrix_symmetric(K * tf.matmul(v_t, grad_v))
+
+    # Create the shape accordingly.
+    m = u_shape = u.get_shape()[1].value
+    n = v_shape = v.get_shape()[1].value
+    assert m >= n
+    # Compute partial U as u1, u2
+    u1, u2 = tf.split(value=u, axis=2, num_or_size_splits=[n+1, m-n-1])
+    grad_u1, grad_u2 = tf.split(value=grad_u, axis=2, num_or_size_splits=[n+1, m-n-1])
+    S = tf.matrix_diag(s) # With n x n
+    D = tf.matmul((grad_u1 - tf.matmul(u2, tf.matmul(tf.transpose(grad_u2, [0,2,1]), u1))), tf.matrix_inverse(S))
+
+    # Recover the complete S matrices and its gradient
+    eye_mat = tf.eye(v_shape, u_shape)
+    realS = tf.matmul(tf.reshape(tf.matrix_diag(s), [-1, v_shape]), eye_mat)
+    realS = tf.transpose(tf.reshape(realS, [-1, v_shape, u_shape]), [0, 2, 1])
+
+    real_grad_S = tf.matmul(tf.reshape(tf.matrix_diag(grad_s), [-1, v_shape]), eye_mat)
+    real_grad_S = tf.transpose(tf.reshape(real_grad_S, [-1, v_shape, u_shape]), [0, 2, 1])
+
+    # dxdz = tf.matmul(u, tf.matmul(2 * tf.matmul(realS, inner) + real_grad_S, v_t))
+    dxdz = tf.matmul(D, v_t) + tf.matmul(u, tf.matmul( tf.matrix_diag_part(tf.matrix_diag(real_grad_S - tf.matmul(u_t, D))) , v_t))
+
+#
+# def test_gradient_svd():
+#     # Set dimension
+#     batch_size = 2
+#     m = 5
+#     n = 3
+#     data = np.random.randn(batch_size, m, n)
+#     # Numpy part
+#     np_u, np_s, np_v = np.linalg.svd(data)
+#
+#     # tensorflow part
+#     tf_data = tf.Variable(data, dtype=tf.float32)
+#     s, u, v = tf.svd(tf_data, full_matrices=True)
+#
+#     # Reconstruct the tf_data
+#     u_shape = u.get_shape()[1].value
+#     v_shape = v.get_shape()[2].value
+#     eye_mat = tf.eye(v_shape, u_shape, dtype=tf.float32)
+#     realS = tf.matmul(tf.reshape(tf.matrix_diag(s), [-1, v_shape]), eye_mat)
+#     realS = tf.transpose(tf.reshape(realS, [-1, v_shape, u_shape]), [0,2,1])
+#     original = tf.matmul(u, tf.matmul(realS, tf.transpose(v, [0,2,1])))
+#
+#     # tf_data2 =
+
+# @tf.RegisterGradient('Svd')
 def gradient_eig(op, grad_s, grad_u, grad_v):
     """
     Implementation of EIG operation gradients.
@@ -229,8 +364,9 @@ if __name__ == '__main__':
     x = tf.Variable(np.random.rand(2,3,3), dtype=tf.float32)
     x = tf.identity(x)
     grad = tf.gradients(batch_matrix_log(x), [x])[0]
-
-    sess = tf.Session()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
     with sess.as_default():
         sess.run(tf.global_variables_initializer())
         print(sess.run(x))

@@ -75,6 +75,36 @@ def test_cov_reg():
                   nb_epoch=nb_epoch, verbose=1)
         model.evaluate(X_test[test_ids, :], Y_test[test_ids, :], verbose=0)
 
+import tensorflow as tf
+
+def vector_to_symmetric(v):
+    triu = vector_to_triu(v)
+    sym = triu + tf.transpose(triu) - tf.diag_part(tf.diag(triu))
+    return sym
+
+
+def vector_to_triu(vector):
+    """ vector is input shape """
+    d = vector.shape[0].value
+    n = int(np.sqrt(1 + 8 * d) - 1) / 2
+    indices = list(zip(*np.triu_indices(n)))
+    indices = tf.constant([list(i) for i in indices], dtype=tf.int32)
+    triu = tf.sparse_to_dense(indices, output_shape=[n,n], sparse_values=vector)
+    return triu
+
+def triu_to_vector(triu):
+    """ define a upper triangular matrix to vector function in tf"""
+    dim = triu.shape[0].value
+    triu_mask = tf.constant(
+        np.triu(
+            np.ones((dim, dim), dtype=np.bool_),
+            0
+        ),
+        dtype=tf.bool
+    )
+    masked = tf.boolean_mask(triu, triu_mask)
+    return
+
 
 if __name__ == '__main__':
     test_cov_reg()
