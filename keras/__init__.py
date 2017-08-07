@@ -1,4 +1,8 @@
 from __future__ import absolute_import
+
+from . import utils
+from . import activations
+from . import applications
 from . import backend
 from . import datasets
 from . import engine
@@ -8,11 +12,13 @@ from . import utils
 from . import wrappers
 from . import callbacks
 from . import constraints
-from . import initializations
+from . import initializers
 from . import metrics
 from . import models
-from . import objectives
+from . import losses
 from . import optimizers
 from . import regularizers
+# Importable from root because it's technically not a layer
+from .layers import Input
 
-__version__ = '1.2.0'
+__version__ = '2.0.6'
