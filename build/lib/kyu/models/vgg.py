@@ -30,7 +30,7 @@ def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, fr
     Model
     """
     if load_weights:
-        model = VGG16(include_top=False, input_shape=input_shape)
+        model = VGG16(include_top=False, input_shape=input_shape, weights='imagenet')
     else:
         model = VGG16(include_top=False, weights=None, input_shape=input_shape)
 

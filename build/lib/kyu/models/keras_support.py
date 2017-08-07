@@ -3,7 +3,8 @@ import warnings
 from keras.engine import merge
 from keras.layers import SecondaryStatistic, O2Transform, WeightedVectorization, Flatten, Dense, LogTransform, \
     Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, MaxPooling2D, \
-    PowTransform, BatchNormalization, Reshape, BatchNormalization_v2, ExpandDims, Squeeze, FlattenSymmetric, BiLinear
+    PowTransform, BatchNormalization, Reshape, BatchNormalization_v2, ExpandDims, Squeeze, FlattenSymmetric, BiLinear, \
+    Correlation
 from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization
 
 from kyu.theano.general.train import toggle_trainable_layers, Model
@@ -416,7 +417,55 @@ def covariance_block_batch(input_tensor, nb_class, stage, block, epsilon=0, para
     return x
 
 
-def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=[1,1], **kwargs):
+def covariance_block_corr(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                          cov_mode='channel', cov_regularizer=None, vectorization='wv',
+                          o2t_constraints=None, normalization=False, so_mode=1
+                          ,
+                          **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    wp_name_base = 'pv' + str(stage) + block + '_branch'
+    with tf.name_scope(cov_name_base):
+        x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                               cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+        x = Correlation()(x)
+    for id, param in enumerate(parametric):
+        with tf.name_scope(o2t_name_base + str(id)):
+            if normalization:
+                x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
+    with tf.name_scope(wp_name_base):
+        x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
+    return x
+
+
+def covariance_block_corr_no_wv(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                                cov_mode='channel', cov_regularizer=None, vectorization='wv',
+                                o2t_constraints=None, normalization=False, so_mode=1
+                                ,
+                                **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    wp_name_base = 'pv' + str(stage) + block + '_branch'
+    with tf.name_scope(cov_name_base):
+        x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                               cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+        x = Correlation()(x)
+    for id, param in enumerate(parametric):
+        with tf.name_scope(o2t_name_base + str(id)):
+            if normalization:
+                x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
+    return x
+
+
+def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=[1,1], stage='', **kwargs):
     """
     Wrapper to decrease the dimension feed into SecondStat layers.
 
@@ -432,10 +481,12 @@ def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=[1,1],
     """
     if method == 'conv':
         for ind, feature_dim in enumerate(last_conv_feature_maps):
-            x = Convolution2D(feature_dim, kernel[0], kernel[1], name='1x1_conv_'+str(ind), **kwargs)(x)
+            x = Convolution2D(feature_dim, kernel[0], kernel[1],
+                              name='1x1_conv_'+str(ind) + stage, **kwargs)(x)
     elif method == 'deconv':
         for feature_dim in last_conv_feature_maps:
-            x = Deconvolution2D(feature_dim, kernel[0], kernel[1] **kwargs)(x)
+            x = Deconvolution2D(feature_dim, kernel[0], kernel[1],
+                                name='dconv_' + stage, **kwargs)(x)
     else:
         raise ValueError("Upsample wrapper v1 : Error in method {}".format(method))
     return x
@@ -620,7 +671,7 @@ def dcov_model_wrapper_v2(
         cov_outputs.append(x)
 
     if concat == 'concat':
-        if cov_branch_mode == 'o2t_no_wv':
+        if cov_branch_mode == 'o2t_no_wv' or cov_branch_mode == 'corr_no_wv':
             x = MatrixConcat(cov_outputs, name='Matrix_diag_concat')(cov_outputs)
             x = WeightedVectorization(cov_branch_output*nb_branch, name='WV_big')(x)
         else:
@@ -644,8 +695,6 @@ def dcov_model_wrapper_v2(
 
     model = Model(base_model.input, x, name=basename)
     return model
-
-
 
 
 def dcov_multi_out_model_wrapper(
@@ -688,13 +737,13 @@ def dcov_multi_out_model_wrapper(
     -------
 
     """
-
+    cov_branch_mode = cov_branch
     # Function name
     covariance_block = get_cov_block(cov_branch)
 
     if cov_branch_output is None:
         cov_branch_output = nb_classes
-    # 512, 1024, 2048
+    # 256, 512, 512
     block1, block2, block3 = outputs = base_model.outputs
     print("===================")
     cov_outputs = []
@@ -740,18 +789,44 @@ def dcov_multi_out_model_wrapper(
                     cov_outputs.append(a)
             else:
                 cov_outputs.extend(block_outs)
+    elif mode == 4:
+        """ Use the similar structure to Feature Pyramid Network """
+        # supplimentary stream
+        block1 = upsample_wrapper_v1(block1, [256], stage='block1')
+        block2 = upsample_wrapper_v1(block2, [256], stage='block2')
+        # main stream
+        block3 = upsample_wrapper_v1(block3, [512], stage='block3')
 
-    print("===================")
-    if concat == 'concat':
-        x = merge(cov_outputs, mode='concat', name='merge')
-    elif concat == 'matrix_diag':
+        cov_input = SeparateConvolutionFeatures(nb_branch)(block3)
+        cov_outputs = []
+        for ind, x in enumerate(cov_input):
+
+            cov_branch = covariance_block(x, cov_branch_output, stage=5, block=str(ind), parametric=parametrics,
+                                          cov_mode=cov_mode, cov_regularizer=cov_regularizer,
+                                          normalization=False,
+                                          **kwargs)
+            x = cov_branch
+            cov_outputs.append(x)
+
         x = MatrixConcat(cov_outputs, name='Matrix_diag_concat')(cov_outputs)
-        x = WeightedVectorization(cov_branch_output*len(cov_outputs)/2, name='WV_big')(x)
-    elif concat == 'sum':
-        x = merge(cov_outputs, mode='sum', name='sum')
-        x = WeightedVectorization(cov_branch_output, name='wv_sum')(x)
-    else:
-        raise RuntimeError("concat mode not support : " + concat)
+        x = O2Transform(64, activation='relu', name='o2t_mainst_1')(x)
+
+        block2 = SecondaryStatistic(name='cov_block2', cov_mode='pmean', robust=False, eps=1e-5)(block2)
+        block2 = O2Transform(64, activation='relu', name='o2t_block2')(block2)
+
+        # fuse = merge([block2, x], mode='sum')
+        # fuse = O2Transform(64, activation='relu', name='o2t_mainst_2')(fuse)
+
+        block1 = SecondaryStatistic(name='cov_block1', cov_mode='pmean', robust=False, eps=1e-5)(block1)
+        block1 = O2Transform(64, activation='relu', name='o2t_block1')(block1)
+
+        # fuse = merge([fuse, block1], mode='sum')
+
+        x = MatrixConcat([x, block1, block2], name='Matrix_diag_concat_all')([x, block1, block2])
+        x = WeightedVectorization(128, activation='relu', name='wv_fuse')(x)
+
+        # Merge the last matrix for matrix concat
+
 
     if freeze_conv:
         toggle_trainable_layers(base_model, not freeze_conv)
@@ -785,6 +860,8 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_multi_o2t
     elif cov_branch == 'sobn_multiple_o2t':
         covariance_block = covariance_block_sobn_multi_o2t
+    elif cov_branch == 'corr':
+        covariance_block = covariance_block_corr
     else:
         raise ValueError('covariance cov_mode not supported')
 

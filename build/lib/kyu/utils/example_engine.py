@@ -189,6 +189,9 @@ class ExampleEngine(object):
         self.batch_size = batch_size
         self.nb_epoch = nb_epoch
         self.verbose = verbose
+        if nb_epoch == 0:
+            return None
+
         if self.load_weight:
             print("Load weights from {}".format(self.weight_path))
             self.model.load_weights(self.weight_path, by_name=True)

@@ -387,7 +387,7 @@ def get_VGG_dimension_reduction(exp=1):
         rb = 'robost'
     else:
         rb = ''
-    title = 'minc2500_DR_{}_{}_LC{}'.format(cov_mode, rb, last_config_feature_maps)
+    title = 'sun397_DR_{}_{}_LC{}'.format(cov_mode, rb, last_config_feature_maps)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
@@ -711,7 +711,7 @@ def get_VGG_second_order_batchnorm(exp):
         rb = 'robost'
     else:
         rb = ''
-    title = 'minc2500_VGG_SOBN_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
+    title = 'sun397_VGG_SOBN_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
@@ -764,7 +764,7 @@ def get_VGG_correlation(exp):
         rb = 'robost'
     else:
         rb = ''
-    title = 'minc2500_VGG_Corr_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
+    title = 'sun397_VGG_Corr_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
@@ -780,12 +780,12 @@ def get_VGG_testing_ideas(exp):
         """ Experiment 1, cross validate number of branches. """
         nb_branch = 2
         # params = [[128, 64, 32], ]
-        params = [[257, 128, 64], ]
+        params = [[257, 128, 128], ]
         # params = [[64, 32, 16], ]
         mode_list = [1]
         # cov_outputs = [16]
         cov_outputs = [params[0][2]]
-        cov_branch = 'o2transform'
+        cov_branch = 'o2t_no_wv'
         cov_regularizer = None
         last_config_feature_maps = [512]
         # last_config_feature_maps = [1024]
@@ -875,22 +875,20 @@ def get_VGG_testing_ideas(exp):
     else:
         return
     cov_mode = 'pmean'
-    early_stop = True
+    early_stop = False
     batch_size = 32
 
     regroup = False
     cov_alpha = 0.3
-    cov_beta = 0.1
     if robust:
         rb = 'robost'
     else:
         rb = ''
-    title = 'minc2500_VGGTEST_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
+    title = 'sun397_VGGTEST_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
-                        cov_beta=cov_beta,
-                        concat=concat, vectorization=None, load=False
+                        concat=concat, vectorization=None, load=False, normalization=False
                         )
     return config
 
@@ -959,7 +957,7 @@ def get_ResNet_testing_ideas(exp):
         rb = 'robost'
     else:
         rb = ''
-    title = 'minc2500_ResNetTest_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
+    title = 'sun397_ResNetTest_{}_{}_LC{}_exp_{}_{}'.format(cov_branch, rb, last_config_feature_maps, exp, concat)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, cov_beta=cov_beta,
@@ -988,7 +986,7 @@ def get_cov_alpha_cv(exp):
     # cov_beta = 0.1
     cov_beta = 0.5
 
-    title = 'minc2500_cv_covAlpha_{}_{}'.format(cov_alpha, cov_branch)
+    title = 'sun397_cv_covAlpha_{}_{}'.format(cov_alpha, cov_branch)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
@@ -1016,7 +1014,7 @@ def get_cov_beta_cv(exp):
     # cov_beta = 0.1
     cov_beta = 0.5
 
-    title = 'minc2500_cv_covBeta_{}_{}'.format(cov_beta, cov_branch)
+    title = 'sun397_cv_covBeta_{}_{}'.format(cov_beta, cov_branch)
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,

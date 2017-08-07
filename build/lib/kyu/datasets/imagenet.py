@@ -189,6 +189,7 @@ class ImageIterator(Iterator):
                  batch_size=32,
                  shuffle=True,
                  seed=None,
+                 category_dict=None,
                  save_to_dir=None, save_prefix='', save_format='JPEG'):
         """
         Create a ImageIterator based on image locations and corresponding categories.
@@ -260,6 +261,7 @@ class ImageIterator(Iterator):
         # Generate the image list and corresponding category
         self.img_files_list = [self.get_image_path(i) for i in imgloc_list]
         self.img_cate_list = cate_list.astype(np.uint32)
+        self.category_dict = category_dict
 
         self.nb_sample = len(self.img_files_list)
         super(ImageIterator, self).__init__(self.nb_sample, batch_size, shuffle, seed)
@@ -293,15 +295,6 @@ class ImageIterator(Iterator):
 
             batch_x[i] = x
 
-        # optionally save augmented images to disk for debugging purposes
-        if self.save_to_dir:
-            for i in range(current_batch_size):
-                img = array_to_img(batch_x[i], self.dim_ordering, scale=True)
-                fname = '{prefix}_{index}_{hash}.{format}'.format(prefix=self.save_prefix,
-                                                                  index=current_index + i,
-                                                                  hash=np.random.randint(1e4),
-                                                                  format=self.save_format)
-                img.save(os.path.join(self.save_to_dir, fname))
 
         # build batch of labels
         if self.class_mode == 'sparse':
@@ -318,7 +311,34 @@ class ImageIterator(Iterator):
                 batch_y[i, label] = 1.
         else:
             return batch_x
+
+        # optionally save augmented images to disk for debugging purposes
+        if self.save_to_dir:
+            for i in range(current_batch_size):
+                img = array_to_img(batch_x[i], self.dim_ordering, scale=True)
+                if self.category_dict is not None:
+                    label = 'None'
+                    for (cate_name, ind) in self.category_dict.items():
+                        if ind == self.img_cate_list[index_array[i]]:
+                            label = cate_name
+                    fname = '{prefix}_{index}_{hash}-{label}.{format}'.format(
+                        prefix=self.save_prefix,
+                        index=current_index + i,
+                        hash=np.random.randint(1e4),
+                        format=self.save_format,
+                        label=label + str(self.img_cate_list[index_array[i]])
+                    )
+                else:
+                    fname = '{prefix}_{index}_{hash}.{format}'.format(
+                        prefix=self.save_prefix,
+                        index=current_index + i,
+                        hash=np.random.randint(1e4),
+                        format=self.save_format,
+                    )
+                img.save(os.path.join(self.save_to_dir, fname))
+
         batch_x = preprocess_input(batch_x, dim_ordering=self.dim_ordering)
+
         return batch_x, batch_y
 
     def get_image_path(self, img_file):

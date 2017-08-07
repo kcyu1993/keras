@@ -30,8 +30,6 @@ class MITLoader(object):
         self.label_lists = None
         self.dim_ordering = 'tf'
 
-
-
     def decode(self, path):
         """
         Give a relative path, return the results category

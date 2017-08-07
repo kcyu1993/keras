@@ -29,10 +29,8 @@ from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Mode
 
 import keras.backend as K
 from keras.preprocessing.image import ImageDataGeneratorAdvanced, ImageDataGenerator
-from kyu.theano.minc.finetune import get_von_with_regroup, get_residual_cov_experiment, \
-    get_aaai_experiment, get_log_experiment, get_tmp_weights_path, get_von_settings, get_von_with_multibranch
 from kyu.theano.minc.configs import get_experiment_settings, get_aaai_experiment, get_log_experiment, get_von_settings, \
-    get_von_with_regroup, get_von_with_multibranch, get_residual_cov_experiment
+    get_von_with_regroup, get_von_with_multibranch, get_residual_cov_experiment, get_VGG_testing_ideas
 
 # Some constants
 nb_classes = 23
@@ -86,11 +84,15 @@ def model_finetune(base_model, pred_model, optimizer,
 def mincorig_finetune(model,
                       nb_epoch_finetune=100, nb_epoch_after=0, batch_size=32,
                       image_gen=None,
-                      title='MINCorig_finetune', early_stop=False,
+                      title='MINCorig_finetune',
+                      early_stop=False,
                       keyword='',
                       optimizer=None,
+                      weight_path='',
                       log=True,
                       verbose=2,
+                      load=False,
+                      lr_decay=True,
                       lr=0.001):
 
 
@@ -104,10 +106,13 @@ def mincorig_finetune(model,
                  optimizer=optimizer,
                  early_stop=early_stop,
                  verbose=verbose,
+                 weight_path=weight_path,
+                 lr_decay=lr_decay,
                  log=log,
                  lr=lr)
     tmp_weights = get_tmp_weights_path(model.name)
-    model.save_weights(tmp_weights)
+    if nb_epoch_finetune > 0:
+        model.save_weights(tmp_weights)
     if nb_epoch_after > 0:
         # K.clear_session()
         toggle_trainable_layers(model, True, keyword)
@@ -398,10 +403,13 @@ if __name__ == '__main__':
     # config = get_constraints_settings(1)
     # config = get_experiment_settings(7)
     # config = get_experiment_settings()
-    config = get_von_with_regroup(1)
+    # config = get_von_with_regroup(1)
+    exp = 1
+    config = get_VGG_testing_ideas(exp)
+
     # config = get_von_with_multibranch(2)
-    config.cov_mode = 'pmean'
-    config.batch_size = 8
+    # config.cov_mode = 'pmean'
+    config.batch_size = 32
     # config = get_residual_cov_experiment(2)
     print(config.title)
     # log_model_to_path(ResNet50_o2, input_shape, config, nb_classes, 'minc2500')
@@ -413,11 +421,12 @@ if __name__ == '__main__':
     #                    stiefel_lr=(0.01, 0.001), nb_epoch_finetune=2, nb_epoch_after=50)
 
     # run_routine_resnet_multibranch(config, verbose=(1, 2), stiefel_observed=['o2t'],
-    #                                stiefel_lr=(0.01, 0.001), nb_epoch_finetune=2, nb_epoch_after=50)
-    run_routine_resnet_multibranch(config, verbose=(1, 2), nb_epoch_finetune=2, nb_epoch_after=50)
+                                   # stiefel_lr=(0.01, 0.001), nb_epoch_finetune=2, nb_epoch_after=50)
+    # run_routine_resnet_multibranch(config, verbose=(1, 2), nb_epoch_finetune=2, nb_epoch_after=50)
 
-    # run_routine_vgg(config, verbose=(1, 2), stiefel_observed=['o2t'],
-    #                 stiefel_lr=(0.01, 0.001), nb_epoch_finetune=5, nb_epoch_after=50)
+    run_routine_vgg(config, verbose=(2, 2),
+                    # stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001),
+                    nb_epoch_finetune=5, nb_epoch_after=50)
 
     # run_routine_resnet(config)
 
