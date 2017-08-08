@@ -780,7 +780,7 @@ def get_VGG_testing_ideas(exp):
         """ Experiment 1, cross validate number of branches. """
         nb_branch = 2
         # params = [[128, 64, 32], ]
-        params = [[257, 128, 128], ]
+        params = [[257, 128, 64], ]
         # params = [[64, 32, 16], ]
         mode_list = [1]
         # cov_outputs = [16]

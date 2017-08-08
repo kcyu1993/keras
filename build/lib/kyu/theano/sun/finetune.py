@@ -76,17 +76,17 @@ def model_finetune(base_model, pred_model, optimizer,
 
 
 def sun_finetune(model,
-                        nb_epoch_finetune=100, nb_epoch_after=0, batch_size=32,
-                        image_gen=None,
-                        title='sun_finetune', early_stop=False,
-                        keyword='',
-                        optimizer=None,
-                        log=True,
-                        lr_decay=True,
-                        weight_path='',
-                        load=False,
-                        verbose=2,
-                        lr=0.001):
+                 nb_epoch_finetune=100, nb_epoch_after=0, batch_size=32,
+                 image_gen=None,
+                 title='sun_finetune', early_stop=False,
+                 keyword='',
+                 optimizer=None,
+                 log=True,
+                 lr_decay=True,
+                 weight_path='',
+                 load=False,
+                 verbose=2,
+                 lr=0.001):
     lr_decay = False
     loader = SUN397(dirpath='/home/kyu/.keras/datasets/sun')
     # train = loader.generator(mode='train', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
@@ -94,8 +94,8 @@ def sun_finetune(model,
                              image_data_generator=image_gen, batch_size=batch_size)
     test = loader.generator(mode='test', target_size=TARGET_SIZE,
                             image_data_generator=image_gen, batch_size=batch_size)
-
-    model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+    # if optimizer is None:
+    # model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
     fit_model_v2(model, [train, test], batch_size=batch_size*4, title=title,
                  nb_epoch=nb_epoch_finetune,
                  optimizer=optimizer,
@@ -456,16 +456,16 @@ if __name__ == '__main__':
     #                                stiefel_lr=None, nb_epoch_finetune=4, nb_epoch_after=50)
 
     # config.title = 'minc_VGG_TEST_original_exp{}'.format(exp)
-    # run_routine_vgg(config, verbose=(2, 2),
+    run_routine_vgg(config, verbose=(2, 2),
                     # stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
-                    # nb_epoch_finetune=5, nb_epoch_after=200)
+                    nb_epoch_finetune=5, nb_epoch_after=200)
     #
     # run_routine_resnet(config)
 
     # run_residual_cov_resnet(1)
     # baseline_finetune_vgg(1)
 
-    baseline_finetune_resnet(2)
+    # baseline_finetune_resnet(2)
     # run_routine_vgg(4)
     # test_routine_vgg(4)
     # test_routine_resnet(6)

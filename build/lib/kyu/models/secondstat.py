@@ -197,7 +197,7 @@ class SecondaryStatistic(Layer):
             self.activity_regularizer = self.C_regularizer
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         return input_shape[0], self.out_dim, self.out_dim
 
     def call(self, x, mask=None):
@@ -355,7 +355,7 @@ class FlattenSymmetric(Layer):
             )
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if not all(input_shape[1:]):
             raise Exception('The shape of the input to "Flatten" '
                             'is not fully defined '
@@ -406,7 +406,7 @@ class SeparateConvolutionFeatures(Layer):
 
     """
     def __init__(self, n, **kwargs):
-        if K.backend() == 'theano' or K.image_dim_ordering() == 'th':
+        if K.backend() == 'theano' or K.image_data_format() == 'channels_first':
             raise RuntimeError("Only support tensorflow backend or image ordering")
         self.n = n
         self.input_spec = [InputSpec(ndim='4+')]
@@ -423,7 +423,7 @@ class SeparateConvolutionFeatures(Layer):
         self.split_loc.append(self.output_dim * self.n)
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         """ Return a list """
         output_shape = []
         for i in range(self.n):
@@ -438,7 +438,6 @@ class SeparateConvolutionFeatures(Layer):
         for i in range(self.n):
             outputs.append(x[:,:,:, self.split_loc[i]:self.split_loc[i+1]])
         return outputs
-
 
     def compute_mask(self, input, input_mask=None):
         """ Override the compute mask to produce two masks """
@@ -550,7 +549,7 @@ class Regrouping(Layer):
         else:
             raise ValueError("Not supporting mask for this layer {}".format(self.name))
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         """ Return a list """
         assert isinstance(input_shape, list)
 
@@ -636,7 +635,7 @@ class MatrixConcat(Layer):
         else:
             raise ValueError("Not supporting mask for this layer {}".format(self.name))
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         """ Return a list """
         assert isinstance(input_shape, list)
         assert len(input_shape[0]) == 3
@@ -689,7 +688,7 @@ class Correlation(Layer):
         return corr
         # inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         assert len(input_shape) == 3
         assert input_shape[1] == input_shape[2]
         return input_shape
@@ -736,7 +735,7 @@ class MatrixReLU(Layer):
         # self.b = K.eye(self.out_dim, name='strange?')
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if not all(input_shape[1:]):
             raise Exception('The shape of the input to "LogTransform'
                             'is not fully defined '
@@ -820,7 +819,7 @@ class LogTransform(Layer):
         # self.b = K.eye(self.out_dim, name='strange?')
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if not all(input_shape[1:]):
             raise Exception('The shape of the input to "LogTransform'
                             'is not fully defined '
@@ -941,7 +940,7 @@ class PowTransform(Layer):
         # self.b = K.eye(self.out_dim, name='strange?')
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         if not all(input_shape[1:]):
             raise Exception('The shape of the input to "LogTransform'
                             'is not fully defined '
@@ -1028,7 +1027,7 @@ class O2Transform(Layer):
         # input parameter preset
         self.nb_samples = 0
         self.activation = activations.get(activation)
-        self.init = initializers.get(init, dim_ordering=dim_ordering)
+        self.init = initializers.get(init)
         self.initial_weights = weights
         self.W_regularizer = regularizers.get(W_regularizer)
         self.W_constraint = constraints.get(W_constraint)
@@ -1055,7 +1054,7 @@ class O2Transform(Layer):
         self.trainable_weights = [self.W]
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         assert len(input_shape) == 3
         assert input_shape[1] == input_shape[2]
         return input_shape[0], self.out_dim, self.out_dim
@@ -1146,7 +1145,7 @@ class O2Transform_v2(Layer):
         self.trainable_weights = [self.W]
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         assert len(input_shape) == 4
         assert input_shape[1] == input_shape[2]
         return input_shape[0], self.out_dim, self.out_dim, self.out_channel
@@ -1255,7 +1254,7 @@ class WeightedVectorization(Layer):
             output += self.b
         return self.activation(output)
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         # 3D tensor (nb_samples, n_cov, n_cov)
         '''
         :param input_shape: 3D tensor where item 1 and 2 must be equal.
@@ -1348,7 +1347,7 @@ class ExpandDims(Layer):
         self.axis = axis
         super(ExpandDims, self).__init__()
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         return input_shape[0:self.axis] + (input_shape[self.axis], 1,) + input_shape[self.axis: -1]
 
     def get_config(self):
@@ -1367,7 +1366,7 @@ class Squeeze(Layer):
         self.axis = axis
         super(Squeeze, self).__init__()
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         assert input_shape[self.axis] == 1
         return input_shape[0:self.axis] + input_shape[self.axis: -1]
 
@@ -1459,7 +1458,7 @@ class BiLinear(Layer):
         self.out_dim = self.cov_dim
         self.built = True
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         return input_shape[0], self.out_dim*self.out_dim
 
     def get_config(self):
@@ -1614,7 +1613,7 @@ class BiLinear_v2(Layer):
         else:
             raise ValueError("Not supporting mask for this layer {}".format(self.name))
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         """ Return a list """
         assert isinstance(input_shape, list)
 

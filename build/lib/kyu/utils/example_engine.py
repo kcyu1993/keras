@@ -230,7 +230,7 @@ class ExampleEngine(object):
 
     def fit_generator(self):
         print("{} fit with generator".format(self.model.name))
-        sample_per_epoch = self.train.N
+        sample_per_epoch = self.train.n
         if sample_per_epoch == 0:
             sample_per_epoch = 128 * 200
         history = self.model.fit_generator(

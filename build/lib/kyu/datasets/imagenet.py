@@ -216,9 +216,12 @@ class ImageIterator(Iterator):
         """
         assert len(imgloc_list) == len(cate_list)
 
+        # Legacy support
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
+
         self.dim_ordering = dim_ordering
+        self.data_format = K.image_data_format()
 
         if class_mode not in {'categorical', 'binary', 'sparse', None}:
             raise ValueError('Invalid class_mode:', class_mode,
@@ -244,12 +247,12 @@ class ImageIterator(Iterator):
         self.image_data_generator = image_data_generator
 
         if self.color_mode == 'rgb':
-            if self.dim_ordering == 'tf':
+            if self.data_format == 'channels_last':
                 self.image_shape = self.target_size + (3,)
             else:
                 self.image_shape = (3,) + self.target_size
         else:
-            if self.dim_ordering == 'tf':
+            if self.data_format == 'channels_last':
                 self.image_shape = self.target_size + (1,)
             else:
                 self.image_shape = (1,) + self.target_size
@@ -281,7 +284,7 @@ class ImageIterator(Iterator):
             img = load_img(fname, grayscale=grayscale)
             # Random crop
             # img = random_crop_img(img, target_size=self.target_size)
-            x = img_to_array(img, dim_ordering=self.dim_ordering)
+            x = img_to_array(img, data_format=self.data_format)
 
             # x = preprocess_input(x, dim_ordering=self.dim_ordering)
             if self.imageOpAdv:
@@ -338,7 +341,7 @@ class ImageIterator(Iterator):
                     )
                 img.save(os.path.join(self.save_to_dir, fname))
 
-        batch_x = preprocess_input(batch_x, dim_ordering=self.dim_ordering)
+        batch_x = preprocess_input(batch_x, data_format=self.data_format)
 
         return batch_x, batch_y
 

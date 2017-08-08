@@ -467,7 +467,7 @@ def covariance_block_corr_no_wv(input_tensor, nb_class, stage, block, epsilon=0,
     return x
 
 
-def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=[1,1], stage='', **kwargs):
+def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=(1,1), stage='', **kwargs):
     """
     Wrapper to decrease the dimension feed into SecondStat layers.
 

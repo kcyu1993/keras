@@ -2,14 +2,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 import warnings
 
-
+from keras.applications.imagenet_utils import _obtain_input_shape
 from kyu.models.keras_support import covariance_block_vector_space, covariance_block_original, dcov_model_wrapper_v1, \
     dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
 
 import keras.backend as K
-from keras.applications.resnet50 import ResNet50,\
-    covariance_block_original, identity_block, \
-    identity_block_original, conv_block, conv_block_original, ResNet50CIFAR
+from keras.applications.resnet50 import ResNet50, identity_block, conv_block
+
+from ..models.keras_support import covariance_block_original
 
 from keras.layers import BatchNormalization
 from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
@@ -18,6 +18,83 @@ from keras.layers import merge, Input
 from keras.models import Model
 from kyu.theano.general.train import toggle_trainable_layers
 import tensorflow as tf
+
+
+def conv_block_original(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),batch_norm=True):
+    '''conv_block is the block that has a conv layer at shortcut
+
+    # Arguments
+        input_tensor: input tensor
+        kernel_size: defualt 3, the kernel size of middle conv layer at main path
+        filters: list of integers, the nb_filters of 3 conv layer at main path
+        stage: integer, current stage label, used for generating layer names
+        block: 'a','b'..., current block label, used for generating layer names
+
+    Note that from stage 3, the first conv layer at main path is with subsample=(2,2)
+    And the shortcut should have subsample=(2,2) as well
+    '''
+    nb_filter1, nb_filter2 = filters
+    if K.image_dim_ordering() == 'tf':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    x = Convolution2D(nb_filter1, kernel_size, kernel_size, subsample=strides,
+                      name=conv_name_base + '2a', border_mode="same")(input_tensor)
+    if batch_norm:
+        x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
+    x = Activation('relu')(x)
+
+    x = Convolution2D(nb_filter2, kernel_size, kernel_size, border_mode='same',
+                      name=conv_name_base + '2b')(x)
+    if batch_norm:
+        x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
+    x = Activation('relu')(x)
+
+    shortcut = Convolution2D(nb_filter2, kernel_size, kernel_size, subsample=strides,border_mode='same',
+                             name=conv_name_base + '1')(input_tensor)
+    if batch_norm:
+        shortcut = BatchNormalization(axis=bn_axis, name=bn_name_base + '1')(shortcut)
+
+    x = merge([x, shortcut], mode='sum')
+    x = Activation('relu')(x)
+    return x
+
+
+def identity_block_original(input_tensor, kernel_size, filters, stage, block, batch_norm=True):
+    '''The identity_block is the block that has no conv layer at shortcut
+
+    # Arguments
+        input_tensor: input tensor
+        kernel_size: defualt 3, the kernel size of middle conv layer at main path
+        filters: list of integers, the nb_filters of 3 conv layer at main path
+        stage: integer, current stage label, used for generating layer names
+        block: 'a','b'..., current block label, used for generating layer names
+    '''
+    nb_filter1, nb_filter2 = filters
+    if K.image_dim_ordering() == 'tf':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    x = Convolution2D(nb_filter1, kernel_size, kernel_size, name=conv_name_base + '2a', border_mode='same')(input_tensor)
+    if batch_norm:
+        x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
+    x = Activation('relu')(x)
+
+    x = Convolution2D(nb_filter2, kernel_size, kernel_size,
+                      border_mode='same', name=conv_name_base + '2b')(x)
+    if batch_norm:
+        x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
+    x = Activation('relu')(x)
+
+    x = merge([x, input_tensor], mode='sum')
+    x = Activation('relu')(x)
+    return x
 
 
 def ResNet50_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, freeze_conv=False,
@@ -88,7 +165,6 @@ def ResNet50_o2_multibranch(parametrics=[], mode=0, nb_classes=1000, input_shape
                             last_conv_feature_maps=[],
                             **kwargs
                             ):
-    from keras.applications.resnet50 import ResCovNet50
     basename = 'ResNet_o2-multi-' + cov_branch
     if parametrics is not []:
         basename += '_para-'
@@ -463,3 +539,229 @@ def ResCovNet50(parametrics=[], epsilon=0., mode=0, nb_classes=23, input_shape=(
     model = Model(input_tensor, x, name=basename)
     return model
 
+
+
+def ResNet50CIFAR(include_top=True,
+                  input_tensor=None,
+                  input_shape=None,
+                  weights=None,
+                  last_avg=False,
+                  nb_class=10, batch_norm=True):
+    '''Instantiate the ResNet50 architecture,
+    optionally loading weights pre-trained
+    on ImageNet. Note that when using TensorFlow,
+    for best performance you should set
+    `image_dim_ordering="tf"` in your Keras config
+    at ~/.keras/keras.json.
+
+    The model and the weights are compatible with both
+    TensorFlow and Theano. The dimension ordering
+    convention used by the model is the one
+    specified in your Keras config file.
+
+    # Arguments
+        include_top: whether to include the 3 fully-connected
+            layers at the top of the network.
+        weights: one of `None` (random initialization)
+            or "imagenet" (pre-training on ImageNet).
+        input_tensor: optional Keras tensor (i.e. xput of `layers.Input()`)
+            to use as image input for the model.
+
+    # Returns
+        A Keras model instance.
+    '''
+
+    # Determine proper input shape
+    # Determine proper input shape
+    input_shape = _obtain_input_shape(input_shape,
+                                      default_size=32,
+                                      min_size=24,
+                                      data_format=K.image_data_format(),
+                                      include_top=include_top)
+    if input_tensor is None:
+        img_input = Input(shape=input_shape)
+    else:
+        if not K.is_keras_tensor(input_tensor):
+            img_input = Input(tensor=input_tensor, shape=input_shape)
+        else:
+            img_input = input_tensor
+
+    if K.image_dim_ordering() == 'tf':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+
+    # x = ZeroPadding2D((2, 2))(img_input)
+    x = Convolution2D(16, 3, 3, name='conv1')(img_input)
+    if batch_norm:
+        x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
+    x = Activation('relu')(x)
+
+    x = conv_block_original(x, 3, [16, 16], stage=2, block='a', strides=(1,1), batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='b', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='c', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='d', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='e', batch_norm=batch_norm)
+
+    x = conv_block_original(x, 3, [32, 32], stage=3, block='a', strides=(2,2), batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='b', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='c', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='d', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='e', batch_norm=batch_norm)
+
+    x = conv_block_original(x, 3, [64, 64], stage=4, block='a', strides=(2,2), batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='b', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='c', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='d', batch_norm=batch_norm)
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='e', batch_norm=batch_norm)
+
+    if include_top:
+        x = AveragePooling2D((3, 3), name='avg_pool')(x)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='softmax', name='fc')(x)
+    # else:
+    #     return x, img_input
+
+    model = Model(img_input, x)
+    if weights:
+        model.load_weights(weights, True)
+    return model
+
+
+def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
+    '''Instantiate the ResNet50 architecture,
+    optionally loading weights pre-trained
+    on ImageNet. Note that when using TensorFlow,
+    for best performance you should set
+    `image_dim_ordering="tf"` in your Keras config
+    at ~/.keras/keras.json.
+
+    The model and the weights are compatible with both
+    TensorFlow and Theano. The dimension ordering
+    convention used by the model is the one
+    specified in your Keras config file.
+
+    # Arguments
+        include_top: whether to include the 3 fully-connected
+            layers at the top of the network.
+        weights: one of `None` (random initialization)
+            or "imagenet" (pre-training on ImageNet).
+        input_tensor: optional Keras tensor (i.e. xput of `layers.Input()`)
+            to use as image input for the model.
+        cov_mode:   {0,1,2,3 ..}
+             cov_mode 0: concat in the final layer {FC256, WP 10} then FC 10
+             cov_mode 1: concat in the second last {FC10, WP 10} then FC 10
+             cov_mode 2: sum in the second last {relu(FC10) + relu(WP 10)} -> softmax
+             cov_mode 3: sum in the second last {soft(FC10) + soft(WP 10)} -> softmax
+
+    # Returns
+        A Keras model instance.
+    '''
+
+    basename = 'ResCov_CIFAR'
+    if parametrics is not []:
+        basename += '_para-'
+        for para in parametrics:
+            basename += str(para) + '_'
+
+    # Determine proper input shape
+    if K.image_dim_ordering() == 'th':
+        input_shape = (3, 32, 32)
+    else:
+        input_shape = (32, 32, 3)
+
+    if input_tensor is None:
+        img_input = Input(shape=input_shape)
+    else:
+        if not K.is_keras_tensor(input_tensor):
+            img_input = Input(tensor=input_tensor, shape=input_shape)
+        else:
+            img_input = input_tensor
+
+    if K.image_dim_ordering() == 'tf':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+
+    # x = ZeroPadding2D((2, 2))(img_input)
+    x = Convolution2D(16, 3, 3, name='conv1')(img_input)
+    x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
+    x = Activation('relu')(x)
+
+    x = conv_block_original(x, 3, [16, 16], stage=2, block='a', strides=(1,1))
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='b')
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='c')
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='d')
+    x = identity_block_original(x, 3, [16, 16], stage=2, block='e')
+    block1_x = x
+
+    x = conv_block_original(x, 3, [32, 32], stage=3, block='a', strides=(2,2))
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='b')
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='c')
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='d')
+    x = identity_block_original(x, 3, [32, 32], stage=3, block='e')
+    block2_x = x
+
+    x = conv_block_original(x, 3, [64, 64], stage=4, block='a', strides=(2,2))
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='b')
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='c')
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='d')
+    x = identity_block_original(x, 3, [64, 64], stage=4, block='e')
+    block3_x = x
+
+    x = AveragePooling2D((3, 3), name='avg_pool')(x)
+
+    cov_input = block3_x
+    if mode == 0:
+        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 1:
+        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 2:
+        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch], mode='sum', name='sum')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 3:
+        cov_branch = covariance_block_vector_space(cov_input, nb_class, stage=5, block='a', parametric=parametrics)
+        cov_branch = Activation('softmax')(cov_branch)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='softmax', name='fc')(x)
+        x = merge([x, cov_branch], mode='sum', name='sum')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 4:
+        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 5:
+        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        x = merge([x, cov_branch1, cov_branch2, cov_branch3], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    elif mode == 6:
+        cov_branch1 = covariance_block_vector_space(block1_x, nb_class, stage=2, block='a', parametric=parametrics)
+        cov_branch2 = covariance_block_vector_space(block2_x, nb_class, stage=3, block='b', parametric=parametrics)
+        cov_branch3 = covariance_block_vector_space(block3_x, nb_class, stage=4, block='c', parametric=parametrics)
+        x = Flatten()(x)
+        x = Dense(nb_class, activation='relu', name='fc')(x)
+        cov_branch = merge([cov_branch1, cov_branch2, cov_branch3], mode='sum', name='sum')
+        x = merge([x, cov_branch], mode='concat', name='concat')
+        x = Dense(nb_class, activation='softmax', name='predictions')(x)
+    else:
+        raise ValueError("Mode not supported {}".format(mode))
+
+    model = Model(img_input, x, name=basename + "mode_" + str(mode))
+    return model

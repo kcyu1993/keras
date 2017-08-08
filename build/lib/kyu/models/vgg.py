@@ -65,7 +65,7 @@ def VGG16_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3),
              nb_branch=1,
              concat='concat',
              last_conv_feature_maps=[],
-             pooling='max',
+             pooling=None,
              **kwargs
             ):
     """

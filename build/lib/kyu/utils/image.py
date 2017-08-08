@@ -372,7 +372,6 @@ class MincOriginalIterator(Iterator):
                    current_index, current_batch_size)
 
 
-
 class ImageDataGeneratorAdvanced(ImageDataGenerator):
     """
     Advanced operation:
@@ -399,7 +398,7 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         self.target_size = target_size
         super(ImageDataGeneratorAdvanced, self).__init__(**kwargs)
 
-    def advancedoperation(self, x, dim_ordering='default'):
+    def advancedoperation(self, x, data_format='default'):
         """
         Make the image to target size based on operations.
 
@@ -411,10 +410,10 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         -------
         ndarray (3, target_size) or (target_size, 3)
         """
-        if dim_ordering == 'default':
-            dim_ordering = self.dim_ordering
-        # Change back to th.
-        if dim_ordering == 'tf':
+        if data_format == 'default':
+            data_format = self.data_format
+        # Change back to channels last.
+        if data_format == 'channels_last':
             x = x.transpose(2,0,1)
 
         width = x.shape[1]
@@ -445,15 +444,15 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         tx = imresize(x, [int(new_width), int(new_height)]).transpose(2,0,1)
         if self.random_crop:
             # Cornor change
-            cornor[0] = np.random.randint(0, new_width - self.target_size[0])
-            cornor[1] = np.random.randint(0, new_height - self.target_size[1])
+            cornor[0] = np.random.randint(0, int(new_width - self.target_size[0]))
+            cornor[1] = np.random.randint(0, int(new_height - self.target_size[1]))
 
         tx =  tx[
                :,
                cornor[0]: cornor[0] + self.target_size[0],
                cornor[1]: cornor[1] + self.target_size[1]
                ]
-        if dim_ordering == 'tf':
+        if data_format == 'channels_last':
             tx = tx.transpose(1,2,0)
         return tx
 
