@@ -894,7 +894,7 @@ def get_VGG_testing_ideas(exp):
 
 
 def get_ResNet_testing_ideas(exp):
-    """ Test VGG dimension reduction """
+    """ Test ResNet dimension reduction """
     cov_regularizer = None
     if exp == 1:
         """ Experiment 1, cross validate number of branches. """
@@ -944,6 +944,16 @@ def get_ResNet_testing_ideas(exp):
         concat = 'concat'
         last_avg = False
         robust = False
+    elif exp == 4:
+        nb_branch = 2
+        params = [[],]
+        mode_list = [1]
+        cov_outputs = [512]
+        last_config_feature_maps = [1024]
+        cov_branch = 'o2transform'
+        cov_regularizer = None
+        concat = 'concat'
+        robust = True
     else:
         return
     cov_mode = 'pmean'
