@@ -1,10 +1,10 @@
-import tensorflow.contrib.slim as slim
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 # import tensorflow.python.ops.nn as nn
 from tensorflow.python.ops import nn
 
 # Second layer
-from keras.layers.secondstat import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform, MatrixReLU
+from kyu.models.secondstat import SecondaryStatistic, O2Transform, LogTransform, MatrixReLU
 
 
 def fitnet_slim(input_tensor):

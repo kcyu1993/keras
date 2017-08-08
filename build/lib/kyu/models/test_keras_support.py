@@ -1,19 +1,14 @@
 # from kyu.utils.cov_reg import FobNormRegularizer
-from keras.layers.secondstat import SecondaryStatistic, WeightedVectorization
-
-from keras.models import Sequential
-from keras.layers import Input, Convolution2D
-from keras.layers import Dense
-from keras.layers import Activation
-from keras.layers import Flatten
-from keras.layers import ActivityRegularization
-from keras.layers import Embedding
-from keras.datasets import mnist
-from keras.utils import np_utils
-from keras import regularizers
-import keras.backend as K
 import numpy as np
 
+import keras.backend as K
+from keras.datasets import mnist
+from keras.layers import Activation
+from keras.layers import Convolution2D
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.utils import np_utils
+from kyu.models.secondstat import SecondaryStatistic, WeightedVectorization
 
 # input image dimensions
 img_rows, img_cols = 28, 28

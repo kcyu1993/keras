@@ -1,20 +1,18 @@
-import pytest
 import numpy as np
-from keras.engine import Model
-from scipy.linalg import logm
-from numpy.testing import assert_allclose
 import tensorflow as tf
-from keras.utils.test_utils import layer_test, keras_test
+from numpy.testing import assert_allclose
+
 from keras import backend as K
+from keras.engine import Model
 from keras.engine import merge
 from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform, LogTransform, \
     MatrixReLU, Convolution2D, Regrouping, SeparateConvolutionFeatures, Input, Dense, O2Transform_v2
-
+from keras.utils.test_utils import layer_test, keras_test
 # def test_matrix_logrithm():
 #     data = np.random.randn(3, 10, 10)
 #     result = logm(data)
 #
-from kyu.tensorflow.ops.svd_gradients import matrix_symmetric, svd_v2
+from kyu.tensorflow.ops.svd_gradients import matrix_symmetric
 
 
 def get_covariance_matrices(batch_size, nb_channel, dim, rank):
@@ -227,7 +225,7 @@ def test_logtransform():
         res[i,:,:] = logm(data[i,:,:])
 
     # log layer
-    from keras.layers.secondstat import LogTransform
+    from kyu.models.secondstat import LogTransform
     a = layer_test(LogTransform,
                    input_data=data,
                    kwargs={
@@ -670,7 +668,6 @@ def test_matrixrelu():
         tf_result = tf_relu.eval({tf_input:data})
 
     # log layer
-    from keras.layers.secondstat import LogTransform
     a = layer_test(MatrixReLU,
                    input_data=data,
                    kwargs={
