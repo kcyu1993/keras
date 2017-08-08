@@ -1,7 +1,7 @@
 import warnings
 
 from keras.legacy.layers import merge
-from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose
+from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose, MaxPooling2D
 
 from kyu.models.secondstat import SecondaryStatistic, O2Transform, WeightedVectorization,  LogTransform, \
     SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, \

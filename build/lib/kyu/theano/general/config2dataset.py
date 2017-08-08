@@ -8,6 +8,7 @@ Give a dataset name and related keywords, like shuffle, xxx
 from configobj import ConfigObj
 from keras.utils import np_utils
 
+
 class Data(object):
     """
     Generalized from MincLoader
@@ -41,7 +42,6 @@ class Data(object):
 
         """
         pass
-
 
 
 def config2data(config):
