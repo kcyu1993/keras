@@ -3,12 +3,14 @@ Re implement VGG model for general usage
 
 """
 from keras.engine import Model
-from keras.engine import merge
+from keras.legacy.layers import merge
 
-from keras.layers import Flatten, Dense, warnings, Convolution2D, MaxPooling2D, BiLinear
+from keras.layers import Flatten, Dense, warnings, Convolution2D, MaxPooling2D
 
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
+
+from kyu.models.secondstat import BiLinear
 from kyu.models.keras_support import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
 from kyu.models.keras_support import covariance_block_vector_space
 from kyu.theano.general.train import toggle_trainable_layers
@@ -87,11 +89,11 @@ def VGG16_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3),
 
     """
     if load_weights == 'imagenet':
-        base_model = VGG16(include_top=False, input_shape=input_shape, last_avg=last_avg, pooling=pooling)
+        base_model = VGG16(include_top=False, input_shape=input_shape, pooling=pooling)
     elif load_weights is None:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape,last_avg=last_avg, pooling=pooling)
+        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
     else:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape,last_avg=last_avg, pooling=pooling)
+        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
         base_model.load_weights(load_weights, by_name=True)
 
     basename = 'VGG16_o2'
@@ -133,11 +135,11 @@ def VGG16_o2_with_config(param, mode, cov_output, config, nb_class, input_shape,
 
 def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), last_avg=True, freeze_conv=False):
     if load_weights == 'imagenet':
-        base_model = VGG16(include_top=False, input_shape=input_shape, last_avg=last_avg)
+        base_model = VGG16(include_top=False, input_shape=input_shape)
     elif load_weights is None:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape,last_avg=last_avg)
+        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape)
     else:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape,last_avg=last_avg)
+        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape)
         base_model.load_weights(load_weights, by_name=True)
 
     # Create Dense layers
