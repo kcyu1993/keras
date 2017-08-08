@@ -643,7 +643,7 @@ class MatrixConcat(Layer):
         for i in range(1, len(input_shape)):
             output_shape[1] += input_shape[i][1]
             output_shape[2] += input_shape[i][2]
-        return [output_shape]
+        return [tuple(output_shape), ]
 
 
 class Correlation(Layer):
@@ -1193,26 +1193,40 @@ class O2Transform_v2(Layer):
 
 
 class WeightedVectorization(Layer):
-    ''' Probability weighted vector layer for secondary image statistics
+    """ Probability weighted vector layer for secondary image statistics
     neural networks. It is simple at this time, just v_c.T * Cov * v_c, with
     basic activitation function such as ReLU, softmax, thus the
-    Version 0.1: Implement the basic weighted probablitity coming from cov-layer
-    Version 0.2: Implement trainable weights to penalized over-fitting
 
-    '''
+        Version 0.1: Implement the basic weighted probablitity coming from cov-layer
+        Version 0.2: Implement trainable weights to penalized over-fitting
+        Version 0.3: Change to Keras 2 API.
 
-    def __init__(self, output_dim, input_dim=None, init='glorot_uniform', activation='linear', weights=None,
+    """
+
+    def __init__(self, output_dim, input_dim=None, activation='linear',
+                 kernel_initializer='glorot_uniform',
+                 kernel_constraint=None,
+                 kernel_regularizer=None,
                  # W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  # W_constraint=None, b_constraint=None,
-                 bias=False,  **kwargs):
-        self.init = initializers.get(init)
+                 use_bias=False,
+                 bias_initializer='zeros',
+                 bias_regularizer=None,
+                 bias_constraint=None,
+                 **kwargs):
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.kernel_constraint = kernel_constraint
+        self.kernel_regularizer = kernel_regularizer
+        self.use_bias = use_bias
+        self.bias_initializer = bias_initializer
+        self.bias_constraint = bias_constraint
+        self.bias_regularizer = bias_regularizer
+
         self.activation = activations.get(activation)
         self.input_dim = input_dim      # Squared matrix input, as property of cov matrix
         self.output_dim = output_dim    # final classified categories number
         if output_dim is None:
             raise ValueError ("Output dim must be not None")
-        self.bias = bias
-        self.initial_weights = weights
 
         super(WeightedVectorization, self).__init__(**kwargs)
 
@@ -1229,19 +1243,25 @@ class WeightedVectorization(Layer):
         input_dim = input_shape[1]
         if self.output_dim is None:
             print("Wrong ! Should not be a None for output_dim")
-        self.W = self.init((input_dim, self.output_dim), name='{}_W'.format(self.name))
+        self.kernel = self.add_weight(shape=(input_dim, self.output_dim),
+                                      initializer=self.kernel_initializer,
+                                      regularizer=self.kernel_regularizer,
+                                      constraint=self.kernel_constraint,
+                                      name='kernel'
+                                      )
 
-        if self.bias:
-            self.b = K.zeros((self.output_dim,), name='{}_b'.format(self.name))
-            self.trainable_weights = [self.W, self.b]
+        if self.use_bias:
+            self.bias = self.add_weight(shape=(self.output_dim,),
+                                        initializer=self.bias_initializer,
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint,
+                                        name='bias'
+                                        )
         else:
-            self.trainable_weights = [self.W]
+            self.bias = None
+        self.built = True
 
-        if self.initial_weights is not None:
-            self.set_weights(self.initial_weights)
-            del self.initial_weights
-
-    def call(self, x, mask=None):
+    def call(self, inputs):
         '''
         The calculation of call function is not trival.
         sum( self.W .* ( x * self.W) ) along axis 1
@@ -1250,11 +1270,15 @@ class WeightedVectorization(Layer):
         :return: final output vector with w_i^T * W * w_i as item i, and propagate to all
             samples. Output Shape (nb_samples, vector c)
         '''
-        logging.debug("prob_out: x_shape {}".format(K.shape(x)))
+        # logging.debug("prob_out: x_shape {}".format(K.shape(inputs)))
         # new_W = K.expand_dims(self.W, dim=1)
-        output = K.sum(K.multiply(self.W, K.dot(x, self.W)), axis=1)
-        if self.bias:
-            output += self.b
+        if K.backend() == 'tensorflow':
+            output = K.sum((self.kernel * K.dot(inputs, self.kernel)), axis=1)
+        else:
+            raise NotImplementedError("Not support for other backend. ")
+        if self.use_bias:
+            output = K.bias_add(output, self.bias, data_format=K.image_data_format())
+
         return self.activation(output)
 
     def compute_output_shape(self, input_shape):
@@ -1270,15 +1294,17 @@ class WeightedVectorization(Layer):
 
     def get_config(self):
         config = {'output_dim': self.output_dim,
-                  'init': self.init.__name__,
-                  'activation': self.activation.__name__,
-                  # 'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
-                  # 'b_regularizer': self.b_regularizer.get_config() if self.b_regularizer else None,
-                  # 'activity_regularizer': self.activity_regularizer.get_config() if self.activity_regularizer else None,
-                  # 'W_constraint': self.W_constraint.get_config() if self.W_constraint else None,
-                  # 'b_constraint': self.b_constraint.get_config() if self.b_constraint else None,
-                  'bias': self.bias,
-                  'input_dim': self.input_dim}
+                  'input_dim': self.input_dim,
+                  'activation': activations.serialize(self.activation),
+                  'use_bias': self.use_bias,
+                  'kernel_initializer': initializers.serialize(self.kernel_initializer),
+                  'bias_initializer': initializers.serialize(self.bias_initializer),
+                  'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+                  'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+                  'activity_regularizer': regularizers.serialize(self.activity_regularizer),
+                  'kernel_constraint': constraints.serialize(self.kernel_constraint),
+                  'bias_constraint': constraints.serialize(self.bias_constraint),
+                  }
         base_config = super(WeightedVectorization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 

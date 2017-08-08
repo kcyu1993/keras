@@ -50,7 +50,7 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
                                cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
     for id, param in enumerate(parametric):
         with tf.name_scope(o2t_name_base + str(id)):
-            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
     with tf.name_scope(wp_name_base):
         x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     return x
@@ -213,7 +213,7 @@ def covariance_block_no_wv(input_tensor, nb_class, stage, block, epsilon=0, para
         with tf.name_scope(o2t_name_base + str(id)):
             if normalization:
                 x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
-            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
     return x
 
 
@@ -438,7 +438,7 @@ def covariance_block_corr(input_tensor, nb_class, stage, block, epsilon=0, param
         with tf.name_scope(o2t_name_base + str(id)):
             if normalization:
                 x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
-            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
     with tf.name_scope(wp_name_base):
         x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     return x
@@ -463,7 +463,7 @@ def covariance_block_corr_no_wv(input_tensor, nb_class, stage, block, epsilon=0,
         with tf.name_scope(o2t_name_base + str(id)):
             if normalization:
                 x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
-            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), W_constraint=o2t_constraints)(x)
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
     return x
 
 
