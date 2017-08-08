@@ -6,7 +6,8 @@ Define visualization methods here
 import tensorflow as tf
 
 from keras.applications import ResNet50
-from keras.applications.resnet50 import ResCovNet50
+
+from kyu.models.resnet import ResCovNet50
 
 # LOG_PATH_ROOT = '/home/kyu/cvkyu/tensorboard/'
 from kyu.models.resnet import ResNet50_o2_multibranch

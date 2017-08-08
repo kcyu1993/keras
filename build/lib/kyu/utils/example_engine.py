@@ -20,9 +20,10 @@ import keras.backend as K
 from keras.callbacks import ModelCheckpoint, \
     CSVLogger, LearningRateScheduler, \
     EarlyStopping, ReduceLROnPlateau, TensorBoard
-from keras.utils.data_utils import get_absolute_dir_project, get_weight_path
-from keras.utils.io_utils import cpickle_load, cpickle_save
-from keras.utils.logger import Logger
+
+from kyu.utils.data_utils import get_absolute_dir_project, get_weight_path
+from kyu.utils.io_utils import cpickle_load, cpickle_save
+from kyu.utils.logger import Logger
 from keras.preprocessing.image import ImageDataGenerator, DirectoryIterator, Iterator
 
 import os

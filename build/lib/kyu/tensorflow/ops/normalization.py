@@ -2,7 +2,6 @@
 Define the second order batch normalization
 
 """
-from keras import initializations, regularizers
 import keras.backend as K
 from keras.engine import Layer, InputSpec
 from keras.layers import BatchNormalization
@@ -40,19 +39,6 @@ class SecondOrderBatchNormalization(BatchNormalization):
                  **kwargs):
         self.so_mode = so_mode
         print(" ##### SecondOrderBatchNormalization with mode {} \n".format(so_mode))
-        # self.supports_masking = True
-        # self.beta_init = initializations.get(beta_init)
-        # self.gamma_init = initializations.get(gamma_init)
-        # self.epsilon = epsilon
-        # self.mode = mode
-        # self.axis = axis
-        # self.momentum = momentum
-        # self.gamma_regularizer = regularizers.get(gamma_regularizer)
-        # self.beta_regularizer = regularizers.get(beta_regularizer)
-        # self.initial_weights = weights
-        # if self.mode == 0:
-        #     self.uses_learning_phase = True
-
         super(SecondOrderBatchNormalization, self).__init__(**kwargs)
 
     def build(self, input_shape):

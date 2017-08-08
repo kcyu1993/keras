@@ -4,10 +4,10 @@ import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 from random import shuffle
 
-from keras.preprocessing.image import ImageDataGenerator, \
-    Iterator, load_img, img_to_array, array_to_img, crop_img, random_crop_img, ImageDataGeneratorAdvanced
 import keras.backend as K
 from keras.applications.imagenet_utils import preprocess_input
+from keras.preprocessing.image import ImageDataGenerator, Iterator, load_img, img_to_array, array_to_img
+
 import numpy as np
 import glob
 import logging
@@ -15,6 +15,7 @@ import logging
 from scipy.io import loadmat
 from scipy.misc import imresize
 
+from kyu.utils.image import crop_img, random_crop_img, ImageDataGeneratorAdvanced
 ## Imagenet
 
 IMAGENET_VALID_GROUNDTRUTH_FILE = 'ILSVRC2014_clsloc_validation_ground_truth.txt'

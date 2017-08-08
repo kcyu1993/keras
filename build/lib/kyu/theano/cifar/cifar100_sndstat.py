@@ -22,7 +22,7 @@ from keras.applications.resnet50 import ResNet50, ResNet50CIFAR
 from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
-from keras.utils.logger import Logger
+from kyu.utils.logger import Logger
 import sys
 
 batch_size = 32
