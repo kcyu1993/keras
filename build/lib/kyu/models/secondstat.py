@@ -993,7 +993,7 @@ class PowTransform(Layer):
 
 class O2Transform(Layer):
     """ This layer shall stack one trainable weights out of previous input layer.
-
+        Update for Keras 2. API.
         # Input shape
             3D tensor with
             (samples, input_dim, input_dim)
@@ -1013,13 +1013,11 @@ class O2Transform(Layer):
     """
 
     def __init__(self, output_dim=None,
-                 init='glorot_uniform', activation='relu', weights=None,
-                 W_regularizer=None, dim_ordering='default',
-                 W_constraint=None,
+                 kernel_initializer='glorot_uniform', activation='relu',
+                 # weights=None,
+                 kernel_regularizer=None,
+                 kernel_constraint=None,
                  **kwargs):
-        if dim_ordering == 'default':
-            dim_ordering = K.image_dim_ordering()
-        self.dim_ordering = dim_ordering
 
         # Set out_dim accordingly.
         self.out_dim = output_dim
@@ -1027,10 +1025,10 @@ class O2Transform(Layer):
         # input parameter preset
         self.nb_samples = 0
         self.activation = activations.get(activation)
-        self.init = initializers.get(init)
-        self.initial_weights = weights
-        self.W_regularizer = regularizers.get(W_regularizer)
-        self.W_constraint = constraints.get(W_constraint)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        # self.initial_weights = weights
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
         self.input_spec = [InputSpec(ndim=3)]
         super(O2Transform, self).__init__(**kwargs)
 
@@ -1045,13 +1043,19 @@ class O2Transform(Layer):
         assert input_shape[1] == input_shape[2]
 
         # Create the weight vector
-        self.W_shape = (input_shape[1], self.out_dim)
-        if self.initial_weights is not None:
-            self.set_weights(self.initial_weights)
-            del self.initial_weights
-        else:
-            self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
-        self.trainable_weights = [self.W]
+        kernel_shape = (input_shape[1], self.out_dim)
+        # if self.initial_weights is not None:
+        #     self.set_weights(self.initial_weights)
+        #     del self.initial_weights
+        # else:
+        #     self.W = self.init(self.W_shape, name='{}_W'.format(self.name))
+        self.kernel = self.add_weight(shape=kernel_shape,
+                                      initializer=self.kernel_initializer,
+                                      name='kernel',
+                                      regularizer=self.kernel_regularizer,
+                                      constraint=self.kernel_constraint
+                                      )
+        # self.trainable_weights = [self.W]
         self.built = True
 
     def compute_output_shape(self, input_shape):
@@ -1059,23 +1063,22 @@ class O2Transform(Layer):
         assert input_shape[1] == input_shape[2]
         return input_shape[0], self.out_dim, self.out_dim
 
-    def call(self, x, mask=None):
+    def call(self, inputs):
         # result, updates = scan(fn=lambda tx: K.dot(self.W.T, K.dot(tx, self.W)),
         #                         outputs_info=None,
         #                         sequences=[x],
         #                         non_sequences=None)
         #
-        com = K.dot(K.transpose(K.dot(x, self.W),[0,2,1]), self.W)
-
+        com = K.dot(K.transpose(K.dot(inputs, self.kernel),[0,2,1]), self.kernel)
         # print("O2Transform shape" + com.eval().shape)
         return com
 
     def get_config(self):
-        config = {'init': self.init.__name__,
-                  'activation': self.activation.__name__,
-                  'dim_ordering': self.dim_ordering,
-                  'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
-                  'W_constraint': self.W_constraint.get_config() if self.W_constraint else None,
+        config = {'kernel_initializer': self.kernel_initializer,
+                  'activation': activations.serialize(self.activation),
+                  'kernel_initializater': initializers.serialize(self.kernel_initializer),
+                  'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+                  'kernel_constraint': constraints.serialize(self.kernel_constraint),
                   }
         base_config = super(O2Transform, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
