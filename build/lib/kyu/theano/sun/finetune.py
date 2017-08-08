@@ -3,7 +3,7 @@ Finetune with MINC dataset
 """
 import os
 
-from keras.layers import SecondaryStatistic, O2Transform
+from kyu.models.secondstat import SecondaryStatistic, O2Transform
 from kyu.datasets.sun import SUN397
 from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config
@@ -22,9 +22,9 @@ from kyu.models.vgg import VGG16_o1, VGG16_o2, VGG16_bilinear
 from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_multibranch
 
 from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Model
+from kyu.utils.image import ImageDataGeneratorAdvanced
 
 import keras.backend as K
-from keras.preprocessing.image import ImageDataGeneratorAdvanced
 
 # Some constants
 nb_classes = 397
