@@ -8,7 +8,7 @@ from keras.layers import BatchNormalization, Flatten
 from keras import constraints
 
 from keras.engine import Layer, InputSpec
-from keras import initializations, regularizers
+from keras import initializers, regularizers
 from keras import backend as K
 from keras import activations
 from kyu.utils.cov_reg import FrobNormRegularizer, VonNeumannDistanceRegularizer, robust_estimate_eigenvalues
@@ -135,7 +135,7 @@ class SecondaryStatistic(Layer):
 
         self.activation = activations.get(activation)
 
-        self.init = initializations.get(init, dim_ordering=dim_ordering)
+        self.init = initializers.get(init)
         self.initial_weights = weights
         self.W_regularizer = regularizers.get(W_regularizer)
 
@@ -784,7 +784,6 @@ class MatrixReLU(Layer):
                 raise RuntimeError("Log transform layer should be built before using")
 
 
-
 class LogTransform(Layer):
     """
     LogTranform layer supports the input of a 3D tensor, output a corresponding 3D tensor in
@@ -1029,7 +1028,7 @@ class O2Transform(Layer):
         # input parameter preset
         self.nb_samples = 0
         self.activation = activations.get(activation)
-        self.init = initializations.get(init, dim_ordering=dim_ordering)
+        self.init = initializers.get(init, dim_ordering=dim_ordering)
         self.initial_weights = weights
         self.W_regularizer = regularizers.get(W_regularizer)
         self.W_constraint = constraints.get(W_constraint)
@@ -1120,7 +1119,7 @@ class O2Transform_v2(Layer):
         # input parameter preset
         self.nb_samples = 0
         self.activation = activations.get(activation)
-        self.init = initializations.get(init, dim_ordering=dim_ordering)
+        self.init = initializers.get(init, dim_ordering=dim_ordering)
         self.initial_weights = weights
         self.W_regularizer = regularizers.get(W_regularizer)
         self.W_constraint = constraints.get(W_constraint)
@@ -1204,7 +1203,7 @@ class WeightedVectorization(Layer):
                  # W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  # W_constraint=None, b_constraint=None,
                  bias=False,  **kwargs):
-        self.init = initializations.get(init)
+        self.init = initializers.get(init)
         self.activation = activations.get(activation)
         self.input_dim = input_dim      # Squared matrix input, as property of cov matrix
         self.output_dim = output_dim    # final classified categories number
@@ -1413,7 +1412,8 @@ class BiLinear(Layer):
         #     self.axis_cov = (self.axis_row, self.axis_col)
         #     self.axis_non_cov = (self.axis_filter,)
         if bilinear_mode not in ['channel', 'feature', 'mean', 'pmean']:
-            raise ValueError('only support cov_mode across channel and features and mean, given {}'.format(cov_mode))
+            raise ValueError('only support cov_mode across channel and features and mean, given {}'.
+                             format(bilinear_mode))
 
         self.bilinear_mode = bilinear_mode
 

@@ -1064,7 +1064,7 @@ def batch_dot(x, y, axes=None):
     return out
 
 
-def transpose(x):
+def transpose(x, axes=None):
     """Transposes a tensor and returns it.
 
     # Arguments
@@ -1096,7 +1096,7 @@ def transpose(x):
 
     ```
     """
-    return tf.transpose(x)
+    return tf.transpose(x, perm=axes)
 
 
 def gather(reference, indices):

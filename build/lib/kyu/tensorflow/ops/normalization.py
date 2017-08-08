@@ -66,11 +66,11 @@ class SecondOrderBatchNormalization(BatchNormalization):
             intermediate_shape = (input_shape[0], input_shape[1] * input_shape[2])
             shape = (intermediate_shape[self.axis],)
             self.gamma = self.add_weight(shape,
-                                         initializer=self.gamma_init,
+                                         initializer=self.gamma_initializer,
                                          regularizer=self.gamma_regularizer,
                                          name='{}_gamma'.format(self.name))
             self.beta = self.add_weight(shape,
-                                        initializer=self.beta_init,
+                                        initializer=self.beta_initializer,
                                         regularizer=self.beta_regularizer,
                                         name='{}_beta'.format(self.name))
             self.running_mean = self.add_weight(shape, initializer='zero',
@@ -80,9 +80,9 @@ class SecondOrderBatchNormalization(BatchNormalization):
                                                name='{}_running_std'.format(self.name),
                                                trainable=False)
 
-            if self.initial_weights is not None:
-                self.set_weights(self.initial_weights)
-                del self.initial_weights
+            # if self.initial_weights is not None:
+            #     self.set_weights(self.initial_weights)
+            #     del self.initial_weights
             self.built = True
 
     def call(self, x, mask=None):
@@ -113,14 +113,17 @@ class SecondOrderBatchNormalization(BatchNormalization):
             x_norm = tf.matrix_band_part(x_norm, 0, -1)
             x_norm = x_norm + K.transpose(x_norm, [0, 2, 1]) - \
                      tf.matrix_diag(tf.matrix_diag_part(x_norm))
+        else:
+            raise ValueError("SecondBatchNorm: so_mode not supported {}".format(self.so_mode))
         return x_norm
 
     def get_config(self):
+
         config = {'epsilon': self.epsilon,
-                  'mode': self.mode,
                   'axis': self.axis,
                   'gamma_regularizer': self.gamma_regularizer.get_config() if self.gamma_regularizer else None,
                   'beta_regularizer': self.beta_regularizer.get_config() if self.beta_regularizer else None,
-                  'momentum': self.momentum}
+                  'momentum': self.momentum,
+                  'so_mode': self.so_mode}
         base_config = super(SecondOrderBatchNormalization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
