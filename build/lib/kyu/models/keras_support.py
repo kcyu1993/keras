@@ -1,9 +1,11 @@
 import warnings
 
-from keras.engine import merge
-from keras.layers import SecondaryStatistic, O2Transform, WeightedVectorization, Flatten, Dense, LogTransform, \
-    Convolution2D, Deconvolution2D, SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, MaxPooling2D, \
-    PowTransform, BatchNormalization, Reshape, BatchNormalization_v2, ExpandDims, Squeeze, FlattenSymmetric, BiLinear, \
+from keras.legacy.layers import merge
+from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose
+
+from kyu.models.secondstat import SecondaryStatistic, O2Transform, WeightedVectorization,  LogTransform, \
+    SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, \
+    PowTransform, BatchNormalization_v2, ExpandDims, Squeeze, FlattenSymmetric, BiLinear, \
     Correlation
 from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization
 
@@ -481,12 +483,10 @@ def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=[1,1],
     """
     if method == 'conv':
         for ind, feature_dim in enumerate(last_conv_feature_maps):
-            x = Convolution2D(feature_dim, kernel[0], kernel[1],
-                              name='1x1_conv_'+str(ind) + stage, **kwargs)(x)
+            x = Conv2D(feature_dim, kernel, name='1x1_conv_' + str(ind) + stage, **kwargs)(x)
     elif method == 'deconv':
         for feature_dim in last_conv_feature_maps:
-            x = Deconvolution2D(feature_dim, kernel[0], kernel[1],
-                                name='dconv_' + stage, **kwargs)(x)
+            x = Conv2DTranspose(feature_dim, kernel, name='dconv_' + stage, **kwargs)(x)
     else:
         raise ValueError("Upsample wrapper v1 : Error in method {}".format(method))
     return x
