@@ -439,7 +439,6 @@ if __name__ == '__main__':
     # config = get_aaai_experiment(1)
     # config = get_matrix_bp(1)
 
-
     print(config.title)
 
     # config.cov_mode = 'channel'
