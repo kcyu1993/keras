@@ -6,6 +6,9 @@ class KCConfig(ConfigObj):
      define SuperClass Config
      add file system support. Save to the default places ??
     """
+    @property
+    def default_location(self):
+        return None
 
 
 
@@ -16,9 +19,12 @@ class RunningConfig(KCConfig):
         batch_size
         verbose
         save log
-        logging location
-        model saved location
-        plot location
+
+        ProjectFile object to have all stored locations
+            for model saving (soft-link)
+            for running storing
+
+
 
         init weight path (if necessary)
         save weights

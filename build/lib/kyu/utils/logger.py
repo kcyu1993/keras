@@ -1,6 +1,7 @@
 import sys
 
-from .data_utils import get_absolute_dir_project
+from kyu.utils.io_utils import get_absolute_dir_project
+
 
 class Logger(object):
 
