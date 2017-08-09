@@ -31,7 +31,9 @@ Keras Trainer based on Example Engine
         3. Save
 
 """
+from keras.preprocessing.image import ImageDataGenerator, Iterator
 
+from kyu.utils.io_utils import ProjectFile
 
 
 class ClassificationTrainer(object):
@@ -50,5 +52,46 @@ class ClassificationTrainer(object):
                  data_config=None,
                  running_config=None,
                  logger=None,
+                 root_folder=None,
                  ):
+        self.model = model # Ready for compilation
+        self.train = train
+        self.validation = validation
+        self.test = test
+        self.dirhelper = ProjectFile(root_folder)
+
+        self.model_config = model_config
+        self.running_config = running_config
+        self.logger = logger
+        self.data_config = data_config
+
+        self.mode = self.get_data_mode() # mode for fit ndarray or generator
+
+    def build(self):
+        """ Construct the corresponding configs to prepare running """
+        # Keras Callbacks
         pass
+
+    def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=True):
+
+
+    def get_data_mode(self):
+        # Data input
+        data = self.train
+        if isinstance(data, (list, tuple)):
+            assert len(data) == 2
+            self.train = data
+        elif isinstance(data, (ImageDataGenerator, Iterator)):
+            self.train = data
+            self.mode = 1
+        else:
+            raise TypeError('data is not supported {}'.format(data.__class__))
+        return self.mode
+
+    # Get folder names methods
+    def get_plot_folder(self):
+        return self.dirhelper.get_plot_path(self.train.name)
+
+    def get_weight_folder(self):
+        return self.dirhelper.get_run_path(self.train.name, self.model.name, self.model_config.cov_branch)
+

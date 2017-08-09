@@ -1,6 +1,8 @@
 """
 Define the file structure in this folder
 """
+import gzip
+
 import os
 from datetime import datetime
 import cPickle
@@ -155,15 +157,6 @@ def cpickle_save(data, output_file, ftype='gz'):
     return output_file
 
 
-
-
-if __name__ == '__main__':
-    getProjectPath()
-    f_manage = ProjectFile(getProjectPath(), getProjectPath())
-    p = f_manage.get_run_path('CIFAR', 'FitNet-v2_second', '10')
-    print(p)
-
-
 def get_project_dir():
     """
     Get the current project directory
@@ -252,3 +245,10 @@ def get_plot_path_with_subdir(filename, subdir, dir='project'):
     if filename == '' or filename is None:
         return path
     return os.path.join(path, filename)
+
+
+if __name__ == '__main__':
+    getProjectPath()
+    f_manage = ProjectFile(getProjectPath(), getProjectPath())
+    p = f_manage.get_run_path('CIFAR', 'FitNet-v2_second', '10')
+    print(p)
