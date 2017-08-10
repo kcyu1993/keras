@@ -355,7 +355,7 @@ class ExampleEngine(object):
             else:
                 raise RuntimeError("plot only support metric as loss, acc")
             x_factor = range(len(train))
-            from keras.utils.visualize_util import plot_train_test
+            from kyu.utils.visualize_util import plot_train_test
             from _tkinter import TclError
             try:
                 plot_train_test(train, valid, x_factor=x_factor, show=show,
@@ -374,7 +374,7 @@ class ExampleEngine(object):
             va_loss = history['val_loss']
             va_acc = history['val_acc']
             x_factor = range(len(tr_loss))
-            from keras.utils.visualize_util import plot_loss_acc
+            from kyu.utils.visualize_util import plot_loss_acc
             from _tkinter import TclError
             try:
                 plot_loss_acc(tr_loss, va_loss, tr_acc=tr_acc, te_acc=va_acc, show=show,

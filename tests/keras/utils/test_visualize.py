@@ -2,6 +2,7 @@ import pytest
 import os
 import numpy as np
 
+import kyu.utils.visualize_util
 from keras.utils.test_utils import get_test_data
 from keras.utils import visualize_util
 
@@ -12,9 +13,9 @@ te = (10 + np.random.rand(epoch), np.random.rand(epoch))
 
 def test_plot_train_test():
 
-    path = visualize_util.plot_train_test(tr[0], tr[1], range(epoch),
-                                   xlabel='epoch', ylabel='loss',
-                                   filename='test.png', plot_type=0)
+    path = kyu.utils.visualize_util.plot_train_test(tr[0], tr[1], range(epoch),
+                                                    xlabel='epoch', ylabel='loss',
+                                                    filename='test.png', plot_type=0)
     print(path)
     assert os.path.exists(path)
     # os.remove(path)
@@ -23,9 +24,9 @@ def test_multiple_model():
     tr = (np.random.rand(epoch),np.random.rand(epoch),np.random.rand(epoch))
     te = (np.random.rand(epoch),np.random.rand(epoch),np.random.rand(epoch))
     modelnames=('model1', 'model2', 'model3')
-    path = visualize_util.plot_multiple_train_test(tr, te, modelnames, range(epoch),
-                                                   xlabel='epoch', ylabel='acc',
-                                                   filename='test3.png')
+    path = kyu.utils.visualize_util.plot_multiple_train_test(tr, te, modelnames, range(epoch),
+                                                             xlabel='epoch', ylabel='acc',
+                                                             filename='test3.png')
     print(path)
     assert os.path.exists(path)
     # os.remove(path)

@@ -96,6 +96,7 @@ class DCovConfig(object):
                  dropout=False,
                  last_conv_feature_maps=[],
                  batch_size=8,
+                 finetune_batch_size=64,
                  exp=0,
                  vectorization='wv',
                  epsilon=0,

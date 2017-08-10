@@ -57,7 +57,7 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
             hist_list.append(hist_dict)
 
     # For each plot: decode into title-model-hash.history
-    from keras.utils.visualize_util import plot_multiple_train_test
+    from kyu.utils.visualize_util import plot_multiple_train_test
     list_tr_mis = []
     list_te_mis = []
     list_tr_loss = []
@@ -124,7 +124,7 @@ def plot_rescov_results():
             model_list.append(model_name)
 
     # For each plot: decode into title-model-hash.history
-    from keras.utils.visualize_util import plot_multiple_train_test
+    from kyu.utils.visualize_util import plot_multiple_train_test
     list_tr_mis = []
     list_te_mis = []
     list_tr_loss = []

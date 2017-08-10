@@ -913,7 +913,7 @@ def get_ResNet_testing_ideas(exp):
         last_avg = False
         robust = True
     elif exp == 2:
-        """ Experiment 2, no robust """
+        """ Experiment 2, robust """
         nb_branch = 2
         # params = [[128, 64, 32], ]
         params = [[257, 128, 64], ]
@@ -927,7 +927,7 @@ def get_ResNet_testing_ideas(exp):
         last_config_feature_maps = [1024]
         concat = 'concat'
         last_avg = False
-        robust = False
+        robust = True
     elif exp == 3:
         """ Experiment 3 June 27 2017, no 1x1 and train from scratch """
         nb_branch = 2
@@ -947,9 +947,9 @@ def get_ResNet_testing_ideas(exp):
     else:
         return
     cov_mode = 'pmean'
-    early_stop = True
+    early_stop = False
     batch_size = 32
-
+    finetune_batch_size = 128
     regroup = False
     cov_alpha = 0.3
     cov_beta = 0.1
@@ -961,7 +961,8 @@ def get_ResNet_testing_ideas(exp):
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, cov_beta=cov_beta,
-                        regroup=regroup, concat=concat, weight_path='imagenet'
+                        regroup=regroup, concat=concat, weight_path='imagenet',
+                        finetune_batch_size=finetune_batch_size, normalization=False,
                         )
     return config
 

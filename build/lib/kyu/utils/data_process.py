@@ -9,7 +9,7 @@ import os
 
 import itertools
 import numpy as np
-from keras.utils.visualize_util import get_cmap, plot_cross_validation
+from kyu.utils.visualize_util import plot_cross_validation, get_cmap
 from kyu.utils.example_engine import ExampleEngine
 
 # ROOT_FOLDER = '/Users/kcyu/Dropbox/git/keras/model_saved/history/CIFAR10/CIFAR-10 retest'
