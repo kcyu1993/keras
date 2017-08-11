@@ -414,7 +414,7 @@ def test_loader():
 
 if __name__ == '__main__':
     # test_loader()
-    exp = 2
+    exp = 4
     # config = get_von_settings(4)
     # config = get_log_experiment(2)
     # config = get_experiment_settings(6)

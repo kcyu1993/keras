@@ -7,6 +7,11 @@ import os
 from datetime import datetime
 import cPickle
 
+
+# def create_path(path, recursive):
+#     os.makedirs()
+#     os.mkdir(path)
+
 def getProjectPath():
     """
     Get project path based on current evaluation.
@@ -24,7 +29,19 @@ def getProjectPath():
     return p
 
 
+def check_id_set(get_path):
+    def __decorator(self):
+        # print("checking {}".format(self.root_path))
+        if not self._run_id_set:
+            Warning("ID Not set, return Nothing ")
+            return None
+        path = get_path(self)
+        return path
+    return __decorator
+
+
 class ProjectFile(object):
+
     """
     ProjectFile is a file management class, which provides the structure of organized outputs, sources and other
     file location related operations
@@ -36,13 +53,16 @@ class ProjectFile(object):
     root-path/
         output/
             run/
+                tasks/
                 dataset/
-                    run_name/ # Different with model name, could be comparison between
-                        model mode.timestamp/
-                            file_of_config.config
-                            run-plots
-                            model_nb_epoch.weights
-                            history
+                    model category (Run ID = title + comments +timestamp)
+                        configs/RunID.config
+                        plots/RunID_plot_type.png
+                        weights/RunID_epoch.weights and RunID.weights (in the end)
+                        logs/RunID.log
+                        tensorboard/RunID/
+                        historys/RunID+timestamps.history
+
             plot/
                 dataset/
                     run_plot_type/
@@ -56,7 +76,13 @@ class ProjectFile(object):
             dataset/
                 model_mode_time_stamp.history
     """
-    def __init__(self, root_path='/home/kyu/secondstat', source_path='/home/kyu/.pycharm/keras'):
+
+    def __init__(self, root_path='/home/kyu/secondstat',
+                 source_path='/home/kyu/.pycharm/keras',
+                 task='cls',
+                 dataset='default',
+                 model_category='default'
+                 ):
         # Locate the root structure
         self.root_path = root_path
         if not os.path.exists(source_path):
@@ -71,24 +97,98 @@ class ProjectFile(object):
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 
-    def get_run_path(self, dataset, model, mode):
-        """
-        Get run path to save all
-            run/dataset/model/mode + time_stamp/
+        self._run_path = os.path.join(self.output_path, 'run')
+        self._task = task
+        self._dataset = dataset
+        self._model_category = model_category
+        self._run_id = None
+        self._run_id_set = False
 
-        Parameters
-        ----------
-        dataset : str   dataset name
-        model : str     model name
-        mode : str      settings.
+    @property
+    def run_path(self):
+        return self._run_path
 
-        Returns
-        -------
-        root_path/run_path
-        """
-        timestamp = datetime.now().isoformat()
-        run_path = os.path.join('run', dataset, model, mode + '.' + timestamp)
-        return os.path.join(self.output_path, run_path)
+    @property
+    def task(self):
+        return self._task
+
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @property
+    def run_id(self):
+        return self._run_id
+
+    @run_id.setter
+    def run_id(self, value):
+        if not isinstance(value, str) or value is None:
+            try:
+                value = str(value)
+            except ValueError:
+                Warning("ID Not set, cannot translate to string. ")
+                return
+        self._run_id_set = True if value is not None else False
+        self._run_id = value + "_" + datetime.now().isoformat().split('.')[0]
+
+    def build(self, task=None, dataset=None, model_category=None):
+        self._task = task if task is not None else self._task
+        self._dataset = dataset if dataset is not None else self._dataset
+        self._model_category = model_category if model_category is not None else self._model_category
+
+        # create the folders if not exists
+
+    def get_model_run_path(self):
+        path = os.path.join(self.run_path, self.task, self.dataset, self._model_category)
+        # print(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        return path
+
+    @check_id_set
+    def get_history_path(self):
+        path = os.path.join(self.get_history_folder(), self.run_id + '.history')
+        return path
+
+    @check_id_set
+    def get_plot_path(self, name='default', post_fix='png'):
+        return os.path.join(self.get_plot_folder(), self.run_id + name + '.' + post_fix)
+
+    @check_id_set
+    def get_tensorboard_path(self):
+        path = os.path.join(self.get_tensorboard_path, self.run_id)
+        os.makedirs(path)
+        return path
+
+    @check_id_set
+    def get_weight_path(self):
+        return os.path.join(self.get_weight_path(), self.run_id + '.weights')
+
+    @check_id_set
+    def get_tmp_weight_path(self, epoch=None):
+        if epoch:
+            return os.path.join(self.get_weight_path(), self.run_id + 'epoch_{}'.format(epoch) + '.tmp')
+        else:
+            return os.path.join(self.get_weight_path(), self.run_id + '.tmp')
+
+    @check_id_set
+    def get_config_path(self):
+        return os.path.join(self.get_config_folder(), self.run_id + '.config')
+
+    def get_weight_folder(self):
+        return os.path.join(self.get_model_run_path(), 'weights')
+
+    def get_plot_folder(self):
+        return os.path.join(self.get_model_run_path(), 'plots')
+
+    def tensorboard_folder(self):
+        return os.path.join(self.get_model_run_path(), 'tensorboard')
+
+    def get_history_folder(self):
+        return os.path.join(self.get_model_run_path(), 'historys')
+
+    def get_config_folder(self):
+        return os.path.join(self.get_model_run_path(), 'configs')
 
 
 def save_array(array, name):

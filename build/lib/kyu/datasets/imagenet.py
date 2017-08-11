@@ -186,6 +186,7 @@ class ImageIterator(Iterator):
                  dir_prefix='',
                  target_size=(224,224), color_mode='rgb',
                  dim_ordering='default',
+                 data_format='default',
                  class_mode='categorical',
                  batch_size=32,
                  shuffle=True,
@@ -221,7 +222,7 @@ class ImageIterator(Iterator):
             dim_ordering = K.image_dim_ordering()
 
         self.dim_ordering = dim_ordering
-        self.data_format = K.image_data_format()
+        self.data_format = K.image_data_format() if data_format == 'default' else data_format
 
         if class_mode not in {'categorical', 'binary', 'sparse', None}:
             raise ValueError('Invalid class_mode:', class_mode,

@@ -228,17 +228,25 @@ class ExampleEngine(object):
         return history
 
     def fit_generator(self):
-        print("{} fit with generator".format(self.model.name))
-        sample_per_epoch = self.train.n
-        if sample_per_epoch == 0:
-            sample_per_epoch = 128 * 200
+        steps_per_epoch = self.train.n / self.train.batch_size
+        val_steps_per_epoch = self.validation.n / self.validation.batch_size
+        print("{} fit with generator with steps per epoch training {} val {}".
+              format(self.model.name, steps_per_epoch, val_steps_per_epoch))
+        if steps_per_epoch == 0:
+            steps_per_epoch = 200
         history = self.model.fit_generator(
-            self.train, samples_per_epoch=sample_per_epoch, nb_epoch=self.nb_epoch,
-            nb_worker=4,
-            validation_data=self.validation, nb_val_samples=self.nb_te_sample,
+            self.train,
+            # samples_per_epoch=sample_per_epoch,
+            steps_per_epoch=steps_per_epoch,
+            # nb_epoch=self.nb_epoch,
+            epochs=self.nb_epoch,
+            workers=4,
+            validation_data=self.validation,
+            validation_steps=val_steps_per_epoch,
             verbose=self.verbose,
             callbacks=self.cbks
         )
+        # self.model.fit_generator()
         if self.save_weight:
             print("weights saved to {}".format(self.weight_path))
             self.model.save_weights(self.weight_path)

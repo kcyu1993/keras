@@ -888,7 +888,7 @@ def get_VGG_testing_ideas(exp):
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
-                        concat=concat, vectorization=None, load=False, normalization=False
+                        concat=concat, vectorization=None, load=False, normalization=None
                         )
     return config
 
@@ -944,6 +944,18 @@ def get_ResNet_testing_ideas(exp):
         concat = 'concat'
         last_avg = False
         robust = False
+    elif exp == 4:
+        nb_branch = 2
+        # params = [[],]
+        params = [[256,]]
+        mode_list = [1]
+        cov_outputs = [128]
+        last_config_feature_maps = [1024]
+        # cov_branch = 'o2t_no_wv'
+        cov_branch = 'o2t_no_wv'
+        cov_regularizer = None
+        concat = 'concat'
+        robust = True
     else:
         return
     cov_mode = 'pmean'
