@@ -5,12 +5,12 @@ import os
 import warnings
 
 import keras.backend as K
-from keras.engine import merge
-from keras.layers import Flatten, O2Transform, SecondaryStatistic
+from kyu.models.bilinear import ResNet50_bilinear
+from kyu.models.secondstat import O2Transform, SecondaryStatistic
 
 from keras.applications import ResNet50
 from keras.layers import Dense
-from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_original, covariance_block_vector_space
 from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config, \
     get_tmp_weights_path
@@ -29,7 +29,9 @@ from kyu.datasets.dtd import load_dtd
 from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Model
 
 import keras.backend as K
-from keras.preprocessing.image import ImageDataGeneratorAdvanced, ImageDataGenerator
+from keras.preprocessing.image import ImageDataGenerator
+
+from kyu.utils.image import ImageDataGeneratorAdvanced
 
 # Some constants
 nb_classes = 47
@@ -91,7 +93,7 @@ def dtd_finetune(model,
 
     train, _, test = load_dtd(True, image_gen=image_gen, batch_size=batch_size)
     load = True
-    weight_path = '/home/kyu/.keras/models/tmp/VGG16_o2_para-mode_1_matbp_784_finetune.weights'
+    # weight_path = '/home/kyu/.keras/models/tmp/VGG16_o2_para-mode_1_matbp_784_finetune.weights'
     model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
     fit_model_v2(model, [train, test], batch_size=batch_size, title=title,
                  nb_epoch=nb_epoch_finetune,
@@ -772,23 +774,36 @@ def baseline_finetune_resnet(exp):
 
 
 def baseline_finetune_bilinear(exp=1):
-    nb_epoch_finetune = 1
-    nb_epoch_after = 100
+    nb_epoch_finetune = 2
+    nb_epoch_after = 400
 
     if exp == 1:
         model = VGG16_bilinear(nb_class=nb_classes, input_shape=input_shape, freeze_conv=True)
+        model.name = 'baseline_vgg16_bilinear'
+        image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+                                               horizontal_flip=True,
+                                               preprocessing_function=preprocess_image_for_imagenet
+                                               # channelwise_std_normalization=True
+                                               )
+        title = 'dtd_finetune_vgg16_bilinear'
+    elif exp == 2:
+        model = ResNet50_bilinear(nb_class=nb_classes, input_shape=input_shape, freeze_conv=True, last_avg=False)
+        model.name = 'baseline_resnet50_bilinear'
+        image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+                                               horizontal_flip=True,
+                                               # preprocessing_function=preprocess_image_for_imagenet
+                                               # channelwise_std_normalization=True
+                                               )
+        title = 'dtd_finetune_resnet50_bilinear'
+    else:
+        raise NotImplementedError
 
-    model.name = 'baseline_vgg16_bilinear'
-    image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
-                                           horizontal_flip=True,
-                                           preprocessing_function=preprocess_image_for_imagenet
-                                           # channelwise_std_normalization=True
-                                           )
-    weight_path = '/home/kyu/.keras/models/dtd_finetune_vgg16_bilinear-baseline_vgg16_bilinear_1.weights_100'
-    dtd_finetune(model, image_gen=image_gen, title='dtd_finetune_vgg16_bilinear',
+    # weight_path = '/home/kyu/.keras/models/dtd_finetune_vgg16_bilinear-baseline_vgg16_bilinear_1.weights_100'
+    weight_path = ''
+    dtd_finetune(model, image_gen=image_gen, title=title, optimizer='sgd',
                  nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-                 weight_path=weight_path, load=True,
-                 batch_size=32, early_stop=True, lr_decay=False,
+                 weight_path=weight_path, load=False,
+                 batch_size=32, early_stop=False, lr_decay=False,
                  lr=0.05)
 
 
@@ -927,7 +942,7 @@ if __name__ == '__main__':
     # config = get_residual_cov_experiment(2)
     # config = get_von_settings(4)
     # config = get_new_experiment(6)
-    config = get_matrix_bp(1)
+    # config = get_matrix_bp(1)
 
     # config = get_aaai_experiment(1)
     # config.batch_size = 4
@@ -936,8 +951,8 @@ if __name__ == '__main__':
     # config = get_experiment_settings()
     # config.batch_size = 32
 
-    print(config.title)
-    run_routine_vgg(config, verbose=(2,1), nb_epoch_after=200, nb_epoch_finetune=0)
+    # print(config.title)
+    # run_routine_vgg(config, verbose=(2,1), nb_epoch_after=200, nb_epoch_finetune=0)
 
     # run_routine_vgg()
     # test_routine_resnet(config, verbose=(2,1), nb_epoch_after=50, nb_epoch_finetune=2)
@@ -945,3 +960,4 @@ if __name__ == '__main__':
     # run_routine_resnet(config, verbose=(1,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001),
     #                    nb_epoch_finetune=4, nb_epoch_after=50)
     # run_routine_resnet(config, verbose=(1,2), nb_epoch_finetune=39, nb_epoch_after=50)
+    baseline_finetune_bilinear(1)

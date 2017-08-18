@@ -2,17 +2,21 @@
 Re implement VGG model for general usage
 
 """
+from kyu.theano.general.config import ModelConfig
+
+from kyu.engine.configs.generic import KCConfig
+
 from keras.engine import Model
 from keras.legacy.layers import merge
 
-from keras.layers import Flatten, Dense, warnings, Convolution2D, MaxPooling2D
+from keras.layers import Flatten, Dense, warnings, Conv2D, MaxPooling2D
 
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
 
 from kyu.models.secondstat import BiLinear
-from kyu.models.keras_support import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
-from kyu.models.keras_support import covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
+from kyu.models.so_cnn_helper import covariance_block_vector_space
 from kyu.theano.general.train import toggle_trainable_layers
 
 
@@ -39,7 +43,7 @@ def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, fr
     # Create Dense layers
     x = model.output
     if last_conv:
-        x = Convolution2D(1024, 1, 1)(x)
+        x = Conv2D(1024, (1, 1))(x)
     if last_pooling:
         x = MaxPooling2D((7,7))(x)
     x = Flatten()(x)
@@ -144,13 +148,19 @@ def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), l
 
     # Create Dense layers
     x = base_model.output
-    x = BiLinear(eps=1e-10, activation='linear')(x)
+    x = Conv2D(256, (1,1), name='1x1_stage5')(x)
+    x = BiLinear(eps=0, activation='linear')(x)
     x = Dense(nb_class, activation='softmax')(x)
     if freeze_conv:
         toggle_trainable_layers(base_model, trainable=False)
 
-    new_model = Model(model.input, x, name='VGG16_bilinear')
+    new_model = Model(base_model.input, x, name='VGG16_bilinear')
     return new_model
+
+
+def get_model(config):
+    if isinstance(config, ModelConfig):
+
 
 
 if __name__ == '__main__':

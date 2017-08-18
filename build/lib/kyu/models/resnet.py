@@ -3,13 +3,13 @@ from __future__ import print_function
 import warnings
 
 from keras.applications.imagenet_utils import _obtain_input_shape
-from kyu.models.keras_support import covariance_block_vector_space, covariance_block_original, dcov_model_wrapper_v1, \
+from kyu.models.so_cnn_helper import covariance_block_vector_space, covariance_block_original, dcov_model_wrapper_v1, \
     dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
 
 import keras.backend as K
 from keras.applications.resnet50 import ResNet50, identity_block, conv_block
 
-from ..models.keras_support import covariance_block_original
+from ..models.so_cnn_helper import covariance_block_original
 
 from keras.layers import BatchNormalization
 from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
@@ -765,3 +765,7 @@ def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
 
     model = Model(img_input, x, name=basename + "mode_" + str(mode))
     return model
+
+
+def get_model(config):
+    pass

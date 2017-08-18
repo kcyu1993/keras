@@ -467,7 +467,7 @@ class ClassificationIterator(Iterator):
                  image_data_generator,
                  load_path_prefix='',
                  target_size=(224,224), color_mode='rgb',
-                 dim_ordering='default',
+                 data_format='default',
                  batch_size=32,
                  shuffle=True,
                  seed=None,
@@ -494,8 +494,8 @@ class ClassificationIterator(Iterator):
         save_format
         follow_links
         """
-        if dim_ordering == 'default':
-            dim_ordering = K.image_dim_ordering()
+        if data_format == 'default':
+            data_format = K.image_data_format()
         if image_data_generator is None:
             image_data_generator = ImageDataGenerator()
         self.load_path_prefix = load_path_prefix
@@ -507,14 +507,14 @@ class ClassificationIterator(Iterator):
             raise ValueError('Invalid color mode:', color_mode,
                              '; expected "rgb" or "grayscale".')
         self.color_mode = color_mode
-        self.dim_ordering = dim_ordering
+        self.data_format = data_format
         if self.color_mode == 'rgb':
-            if self.dim_ordering == 'tf':
+            if self.data_format == 'channels_last':
                 self.image_shape = self.target_size + (3,)
             else:
                 self.image_shape = (3,) + self.target_size
         else:
-            if self.dim_ordering == 'tf':
+            if self.dim_ordering == 'channels_last':
                 self.image_shape = self.target_size + (1,)
             else:
                 self.image_shape = (1,) + self.target_size
@@ -550,7 +550,7 @@ class ClassificationIterator(Iterator):
             img = load_img(os.path.join(self.load_path_prefix, fname),
                            grayscale=grayscale,
                            target_size=self.target_size)
-            x = img_to_array(img, dim_ordering=self.dim_ordering)
+            x = img_to_array(img, data_format=self.data_format)
             x = self.image_data_generator.random_transform(x)
             x = self.image_data_generator.standardize(x)
             batch_x[i] = x
@@ -558,7 +558,7 @@ class ClassificationIterator(Iterator):
         # optionally save augmented images to disk for debugging purposes
         if self.save_to_dir:
             for i in range(current_batch_size):
-                img = array_to_img(batch_x[i], self.dim_ordering, scale=True)
+                img = array_to_img(batch_x[i], self.data_format, scale=True)
                 fname = '{prefix}_{index}_{hash}.{format}'.format(prefix=self.save_prefix,
                                                                   index=current_index + i,
                                                                   hash=np.random.randint(1e4),

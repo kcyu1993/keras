@@ -9,7 +9,7 @@ from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config
 from kyu.theano.sun.configs import get_experiment_settings, get_von_settings, get_residual_cov_experiment, \
     get_VGG_dimension_reduction, get_matrix_bp, get_VGG_testing_ideas, get_cov_alpha_cv, get_cov_beta_cv, \
-    get_aaai_experiment, get_ResNet_testing_ideas
+    get_aaai_experiment, get_ResNet_testing_ideas, get_iccv_experiment
 from kyu.theano.mit.configs import get_new_experiment
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
@@ -414,7 +414,7 @@ def test_loader():
 
 if __name__ == '__main__':
     # test_loader()
-    exp = 4
+    exp = 5
     # config = get_von_settings(4)
     # config = get_log_experiment(2)
     # config = get_experiment_settings(6)
@@ -422,8 +422,8 @@ if __name__ == '__main__':
     # config = get_VGG_dimension_reduction(4)
 
     # config = get_VGG_testing_ideas(exp)
+    # config = get_iccv_experiment(1)
     config = get_ResNet_testing_ideas(exp)
-
     # config = get_von_settings(4)
     # config = get_constraints_settings(1)
     # config = get_experiment_settings(7)
@@ -445,7 +445,7 @@ if __name__ == '__main__':
     # config.batch_size = 16
     # config = get_residual_cov_experiment(2)
     # log_model_to_path(ResNet50_o2, input_shape, config, nb_classes, 'sun')
-    run_routine_resnet(config, verbose=(1, 2), nb_epoch_after=70, nb_epoch_finetune=4)
+    # run_routine_resnet(config, verbose=(1, 2), nb_epoch_after=70, nb_epoch_finetune=4)
     # run_routine_resnet(config, verbose=(1, 2), stiefel_observed=[],
     # run_routine_resnet(config, verbose=(1, 1), stiefel_observed=['o2t'],
     #                    stiefel_lr=(0.001, 0.001), nb_epoch_finetune=2, nb_epoch_after=100)

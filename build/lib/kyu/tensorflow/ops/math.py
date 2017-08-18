@@ -212,3 +212,4 @@ class StiefelSGD(SGD):
         return False
 
 
+# def ClippingSGD()

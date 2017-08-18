@@ -32,43 +32,24 @@ Keras Trainer based on Example Engine
 
 """
 import os
+import sys
 
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, TensorBoard
 from keras.engine import Model
+from keras.losses import categorical_crossentropy
+from keras.metrics import top_k_categorical_accuracy
 from keras.preprocessing.image import ImageDataGenerator, Iterator
-from kyu.engine.configs.running import RunningConfig, KCConfig
+from kyu.engine.configs.running import RunningConfig
+from kyu.engine.configs.generic import KCConfig
 from kyu.engine.utils.data_utils import ImageData
 from kyu.utils.callback import ReduceLROnDemand
 
-from kyu.utils.io_utils import ProjectFile
+from kyu.utils.io_utils import ProjectFile, cpickle_load, cpickle_save
+from kyu.utils.logger import Logger
 
 
-
-def save_history(self, history, tmp=False):
-    from keras.callbacks import History
-    import numpy as np
-
-    if isinstance(history, History):
-        history = history.history
-    filename = "{}-{}_{}.history".format(self.title, self.model.name, np.random.randint(1e4))
-
-    if tmp:
-        filename = 'tmp_' + filename
-    if history is None:
-        return
-    logging.debug("compress with gz")
-    dir = gethistoryfiledir()
-    if not os.path.exists(dir):
-        os.mkdir(dir)
-    filename = os.path.join(dir, filename)
-    print("Save the history to " + filename)
-    filename = cpickle_save(data=history, output_file=filename)
-    return filename
-
-
-@staticmethod
 def load_history(filename):
-    logging.debug("load history from {}".format(filename))
+    print ("load history from {}".format(filename))
     hist = cpickle_load(filename)
     if isinstance(hist, dict):
         return hist
@@ -76,9 +57,8 @@ def load_history(filename):
         raise ValueError("Should read a dict term")
 
 
-@staticmethod
 def load_history_from_log(filename):
-    logging.debug('Load history from {}'.format(filename))
+    print('Load history from {}'.format(filename))
     with open(filename, 'r') as f:
         lines = [line.rstrip() for line in f]
         hist = dict()
@@ -112,6 +92,8 @@ class ClassificationTrainer(object):
                  model_config=None,
                  running_config=None,
                  # logger=None,
+                 save_log=True,
+                 logfile=None
                  ):
         """
 
@@ -140,7 +122,7 @@ class ClassificationTrainer(object):
         else:
             raise ValueError("dirhelper must be a ProjectFile object ")
 
-        if isinstance(model_config, KCConfig):
+        if isinstance(model_config, KCConfig) or model_config is None:
             self.model_config = model_config
         else:
             raise ValueError("Model config must be a KCConfig got {}".format(model_config))
@@ -150,11 +132,18 @@ class ClassificationTrainer(object):
         else:
             raise ValueError('running config must be RunningConfig type')
 
-        # self.logger = logger
+        if logfile is None:
+            logfile = dirhelper.get_log_path()
+        self.logfile = logfile
+        self.save_log = save_log
+        if self.save_log:
+            self.stdout = Logger(self.logfile)
+
         self.cbks = []
         self.fit_mode = 0
         # self.mode = self.get_data_mode() # mode for fit ndarray or generator
         self._built = False
+        self.history = None
 
     def build(self):
         """ Construct the corresponding configs to prepare running """
@@ -187,20 +176,43 @@ class ClassificationTrainer(object):
             self.cbks.append(self.running_config.early_stop)
         else:
             if self.running_config.early_stop:
-                self.cbks.append(EarlyStopping(self.running_config.patience, verbose=1))
+                self.cbks.append(EarlyStopping(patience=self.running_config.patience, verbose=1))
 
         # Tensorboard
         if isinstance(self.running_config.tensorboard, TensorBoard):
             print("Add Tensorboard to the callbacks")
             self.cbks.append(self.running_config.tensorboard)
 
+        # Compile the model (even again)
+        self.model.compile(optimizer=self.running_config.optimizer, loss=categorical_crossentropy,
+                           metrics=['accuracy', top_k_categorical_accuracy])
+
         self._built = True
 
-    def fit(self, batch_size=32, nb_epoch=100, verbose=2):
+    def fit(self, batch_size=None, nb_epoch=None, verbose=None):
         if self._built is not True:
             self.build()
+
+        if nb_epoch is None:
+            nb_epoch = self.running_config.nb_epoch
+        else: # update the running config
+            self.running_config.nb_epoch = nb_epoch
+        if verbose is None:
+            verbose = self.running_config.verbose
+        if batch_size is None:
+            batch_size = self.running_config.batch_size
+
+        if self.save_log:
+            sys.stdout = self.stdout
+
         try:
             if self.fit_mode == 0:
+                # Save 3 configs
+                self.model_config.write_to_config(self.dirhelper.get_config_path('model'))
+                self.save_keras_model_config(self.dirhelper.get_config_path('keras'))
+                self.running_config.write_to_config(self.dirhelper.get_config_path('run'))
+
+                # Run the train function.
                 history = self._fit_generator(batch_size=batch_size, nb_epoch=nb_epoch, verbose=verbose)
             else:
                 raise NotImplementedError("Fit mode other than 0 is not handled {}".format(self.fit_mode))
@@ -213,7 +225,7 @@ class ClassificationTrainer(object):
 
                 try:
                     history = self.model.history
-                    save_history(history, tmp=True)
+                    self.save_history(history, tmp=True)
                     self.plot_result(tmp=True)
                 except Exception as e:
                     raise e
@@ -229,12 +241,18 @@ class ClassificationTrainer(object):
                 os.remove(tmp_weight)
             self.model.save_weights(weights_path)
 
-        # TODO handle the logging
+        if self.save_log:
+            # Close logging after weight saved.
+            sys.stdout = self.stdout.close()
+
         return history
 
-    def _fit_generator(self, batch_size=32, nb_epoch=100, verbose=2):
+    def _fit_generator(self, batch_size=None, nb_epoch=None, verbose=None):
         train = self.data.get_train()
-        valid = self.data.get_valid()
+        if self.data.use_validation:
+            valid = self.data.get_valid()
+        else:
+            valid = self.data.get_test()
 
         if not isinstance(train, Iterator):
             raise ValueError("Only support generator for training data")
@@ -252,29 +270,23 @@ class ClassificationTrainer(object):
             # samples_per_epoch=sample_per_epoch,
             steps_per_epoch=steps_per_epoch,
             # nb_epoch=self.nb_epoch,
-            epochs=self.running_config.nb_epoch,
+            epochs=nb_epoch,
             workers=4,
             validation_data=valid,
             validation_steps=val_steps_per_epoch,
-            verbose=self.running_config.verbose,
+            verbose=verbose,
             callbacks=self.cbks
         )
 
         return history
 
-    # def get_data_mode(self):
-    #     # Data input
-    #     data = self.train
-    #     if isinstance(data, (list, tuple)):
-    #         assert len(data) == 2
-    #         self.train = data
-    #     elif isinstance(data, (ImageDataGenerator, Iterator)):
-    #         self.train = data
-    #         self.mode = 1
-    #     else:
-    #         raise TypeError('data is not supported {}'.format(data.__class__))
-    #     return self.mode
-
+    def compile_model(self, optimizer=None, lr=None,  **kwargs):
+        """ Provide a way to compile the model """
+        if optimizer is None:
+            optimizer = self.running_config.optimizer
+        if lr is None:
+            lr = self.running_config.lr
+        self.model.compile(optimizer=optimizer, lr=lr, **kwargs)
 
     def plot_result(self, metric=('loss', 'acc'), linestyle='-', show=False, dictionary=None, tmp=False):
         """
@@ -290,14 +302,20 @@ class ClassificationTrainer(object):
         -------
 
         """
+        prefix = 'loss_acc'
+        run_id = self.dirhelper.run_id
+        filename = prefix + '-' + run_id
         if tmp:
-            import numpy as np
-            filename = "{}-{}_{}_{}.png".format(self.title, self.model.name, self.mode, np.random.randint(1, 1e4))
-        else:
-            filename = "{}-{}_{}.png".format(self.title, self.model.name, self.mode)
+            filename += ".tmp"
+        filename += '.png'
+
+        fpath = os.path.join(self.dirhelper.get_plot_folder(), filename)
+
         if self.history is None:
             return
+
         history = self.history.history
+
         if dictionary is not None:
             history = dictionary
         if isinstance(metric, str):
@@ -316,7 +334,7 @@ class ClassificationTrainer(object):
                 plot_train_test(train, valid, x_factor=x_factor, show=show,
                                 xlabel='epoch', ylabel=metric,
                                 linestyle=linestyle,
-                                filename=filename, plot_type=0)
+                                filename=fpath, plot_type=0)
                 self.save_history(history)
             except TclError:
                 print("Catch the Tcl Error, save the history accordingly")
@@ -334,9 +352,35 @@ class ClassificationTrainer(object):
             try:
                 plot_loss_acc(tr_loss, va_loss, tr_acc=tr_acc, te_acc=va_acc, show=show,
                               xlabel='epoch', ylabel=metric,
-                              filename=filename)
+                              filename=fpath)
                 self.save_history(history)
             except TclError:
                 print("Catch the Tcl Error, save the history accordingly")
                 self.save_history(history)
                 return
+
+    def save_history(self, history, tmp=False):
+        from keras.callbacks import History
+
+        if isinstance(history, History):
+            history = history.history
+        filename = self.dirhelper.get_history_path()
+        if tmp:
+            filename = 'tmp_' + filename
+        if history is None:
+            return
+        # logging.debug("compress with gz")
+
+        print("Save the history to " + filename)
+        filename = cpickle_save(data=history, output_file=filename)
+        return filename
+
+    def save_keras_model_config(self, path, model=None, **kwargs):
+        """ Save the keras model config to the running folder """
+        import json
+        if model is None:
+            model = self.model
+
+        json_config = model.to_json(**kwargs)
+        with open(path, 'w') as f:
+            json.dump(json_config, f)

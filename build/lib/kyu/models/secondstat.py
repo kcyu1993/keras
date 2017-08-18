@@ -907,6 +907,9 @@ class PowTransform(Layer):
     PowTranform layer supports the input of a 3D tensor, output a corresponding 3D tensor in
         Power Euclidean space
 
+    References:
+        Is second-order information really helpful in large-scale visual recognition?
+
     It implement the Matrix Logarithm with a small shift (epsilon)
 
         # Input shape
@@ -918,7 +921,7 @@ class PowTransform(Layer):
 
     """
 
-    def __init__(self, alpha=0.5, epsilon=0, normalization='frob', **kwargs):
+    def __init__(self, alpha=0.5, epsilon=1e-7, normalization='frob', **kwargs):
         self.input_spec = [InputSpec(ndim='3+')]
         self.eps = epsilon
         self.out_dim = None
@@ -956,13 +959,12 @@ class PowTransform(Layer):
 
     def call(self, x, mask=None):
         """
-        2016.12.15 Implement with the theano.scan
 
         Returns
         -------
         3D tensor with same shape as input
         """
-        if K.backend() == 'theano':
+        if K.backend() == 'theano' or K.backend() == 'CNTK':
             raise NotImplementedError("This is not implemented for theano anymore.")
         else:
             if self.built:
@@ -970,19 +972,27 @@ class PowTransform(Layer):
                 from kyu.tensorflow.ops.svd_gradients import gradient_eig_for_log
                 import tensorflow as tf
                 # g = tf.get_default_graph()
-
+                # tf.float64
                 # s, u, v = tf.svd(x)
                 s, u = tf.self_adjoint_eig(x)
-                s = tf.abs(s)
+
+                # s = tf.abs(s)
+                comp = tf.zeros_like(s) + self.eps
+                inner = tf.where(tf.less(s, comp), comp, s)
+
                 inner = s + self.eps
                 # tmp_power = tf.ones_like(inner) * self.alpha
                 # inner = tf.pow(inner, tmp_power)
                 inner = tf.sqrt(inner)
                 # inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
                 if self.norm == 'l2':
-                    pass
+                    inner /= tf.reduce_max(inner)
                 elif self.norm == 'frob' or self.norm == 'Frob':
-                    inner /= tf.norm(s)
+                    inner /= tf.sqrt(tf.reduce_sum(s))
+                elif self.norm is None:
+                    pass
+                else:
+                    raise ValueError("PowTransform: Normalization not supported {}".format(self.norm))
                 # inner = tf.Print(inner, [inner], message='power inner', summarize=65)
                 inner = tf.matrix_diag(inner)
                 tf_pow = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
@@ -1014,6 +1024,7 @@ class O2Transform(Layer):
 
     def __init__(self, output_dim=None,
                  kernel_initializer='glorot_uniform', activation='relu',
+                 activation_regularizer=None,
                  # weights=None,
                  kernel_regularizer=None,
                  kernel_constraint=None,
@@ -1204,6 +1215,8 @@ class WeightedVectorization(Layer):
     """
 
     def __init__(self, output_dim, input_dim=None, activation='linear',
+                 eps=1e-8,
+                 output_sqrt=False,
                  kernel_initializer='glorot_uniform',
                  kernel_constraint=None,
                  kernel_regularizer=None,
@@ -1213,7 +1226,22 @@ class WeightedVectorization(Layer):
                  bias_initializer='zeros',
                  bias_regularizer=None,
                  bias_constraint=None,
+                 activation_regularizer=None,
                  **kwargs):
+
+        # self parameters
+        self.output_sqrt = output_sqrt
+        self.eps = eps
+        self.input_dim = input_dim  # Squared matrix input, as property of cov matrix
+        self.output_dim = output_dim  # final classified categories number
+        if output_dim is None:
+            raise ValueError("Output dim must be not None")
+
+        if activation_regularizer in ('l2', 'l1',None):
+            self.activation_regularizer = activation_regularizer
+        else:
+            raise ValueError("Activation regularizer only support l1, l2, None. Got {}".format(activation_regularizer))
+
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.kernel_constraint = kernel_constraint
         self.kernel_regularizer = kernel_regularizer
@@ -1223,11 +1251,6 @@ class WeightedVectorization(Layer):
         self.bias_regularizer = bias_regularizer
 
         self.activation = activations.get(activation)
-        self.input_dim = input_dim      # Squared matrix input, as property of cov matrix
-        self.output_dim = output_dim    # final classified categories number
-        if output_dim is None:
-            raise ValueError ("Output dim must be not None")
-
         super(WeightedVectorization, self).__init__(**kwargs)
 
     def build(self, input_shape):
@@ -1278,6 +1301,12 @@ class WeightedVectorization(Layer):
             raise NotImplementedError("Not support for other backend. ")
         if self.use_bias:
             output = K.bias_add(output, self.bias, data_format=K.image_data_format())
+
+        if self.output_sqrt:
+            output = K.sign(output) * K.sqrt(K.abs(output) + self.eps)
+
+        if self.activation_regularizer == 'l2':
+            output = K.l2_normalize(output, axis=1)
 
         return self.activation(output)
 
@@ -1510,7 +1539,7 @@ class BiLinear(Layer):
         #     # cov = tx / (self.rows * self.cols )
         else:
             bilinear_output = tx / (self.nb_filter - 1)
-        bilinear_output = K.multiply(K.sign(bilinear_output), K.sqrt(K.abs(bilinear_output) + self.eps))
+        bilinear_output = K.sign(bilinear_output) * K.sqrt(K.abs(bilinear_output))
         bilinear_output = Flatten()(bilinear_output)
         bilinear_output = K.l2_normalize(bilinear_output, axis=1)
         return bilinear_output

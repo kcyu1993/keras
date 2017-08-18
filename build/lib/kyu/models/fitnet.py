@@ -13,8 +13,8 @@ from keras.engine import Model
 from keras.engine import get_source_inputs
 from keras.engine import merge
 from keras.layers import Convolution2D, Activation, MaxPooling2D, Dropout, Flatten, Dense
-from kyu.models.keras_support import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
-from kyu.models.keras_support import covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
+from kyu.models.so_cnn_helper import covariance_block_vector_space
 
 
 def convolution_block(input_tensor, feature_maps=[], kernel=[3,3], border_mode='same', init='glorot_normal',

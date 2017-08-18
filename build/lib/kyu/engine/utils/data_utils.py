@@ -76,13 +76,36 @@ class ImageData(object):
 
     @image_data_generator.setter
     def image_data_generator(self, value):
-        if isinstance(value, ImageDataGenerator):
+        if value is None:
+            self._image_data_generator = ImageDataGenerator()
+        elif isinstance(value, ImageDataGenerator):
             self._image_data_generator = value
         else:
             Warning("Not supported ")
 
     def to_string(self):
         return self.name
+
+    def get_train(self, **kwargs):
+        return self._get_train(**kwargs)
+
+    def get_valid(self, **kwargs):
+        return self._get_valid(**kwargs)
+
+    def get_test(self, **kwargs):
+        return self._get_test(**kwargs)
+
+    @abstractmethod
+    def _get_train(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def _get_valid(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def _get_test(self, **kwargs):
+        pass
 
 
 class ClassificationImageData(ImageData):
@@ -93,6 +116,7 @@ class ClassificationImageData(ImageData):
 
     """
     def __init__(self, root_folder, image_dir=None, category=None, name=None, meta_folder=None,
+                 use_validation=False,
                  **kwargs):
         # self.root_folder = root_folder
         # self.image_folder = image_dir
@@ -101,8 +125,8 @@ class ClassificationImageData(ImageData):
         super(ClassificationImageData, self).__init__(name, root_folder,
                                                       image_folder=image_dir, meta_folder=meta_folder,
                                                       **kwargs)
-
-        self.category_path = os.path.join(self.root_folder, category) if not os.path.isabs(category) else category
+        self.category_path = os.path.join(self.root_folder, category) \
+            if category is not None and not os.path.isabs(category) else category
         self.category_dict = None
         self.nb_class = 0
         self.build_category_dict()
@@ -117,6 +141,8 @@ class ClassificationImageData(ImageData):
         self.batch_size = 32
         self.channel = 'rgb'
 
+        self.use_validation = use_validation
+
     def build_category_dict(self):
         self.category_dict = self._build_category_dict()
 
@@ -124,15 +150,43 @@ class ClassificationImageData(ImageData):
 
     @abstractmethod
     def _build_category_dict(self):
-        """ To be override the local rule."""
+        """
+        Abstract method:
+            To read meta-file, or scan the dataset, to build the dictionary for image category.
+            And also, set the nb-class attributes.
+
+        Returns
+        -------
+        category
+        """
         pass
 
     @abstractmethod
     def decode(self, path):
+        """
+        support method for load image from txt.
+        decode the image file from text to the classes.
+
+        Parameters
+        ----------
+        path
+
+        Returns
+        -------
+
+        """
         pass
 
     @abstractmethod
     def build_image_label_lists(self):
+        """
+        Build Image Label list for training, testing and validation.
+        The built image list should contains the absolute path. (which can be accessed anywhere)
+
+        Returns
+        -------
+
+        """
         pass
 
     def generator(self, mode, indice, **kwargs):
@@ -170,6 +224,27 @@ class ClassificationImageData(ImageData):
         return gen
 
     # Private method
+    def _get_train(self, index=0, **kwargs):
+        return self.generator('train', index)
+
+    def _get_valid(self, index=0, **kwargs):
+        return self.generator('valid', index)
+
+    def _get_test(self, index=0, **kwargs):
+        return self.generator('test', index)
+
+    def _set_train(self, image_list, label_list, index=0):
+        self.image_list['train' + str(index)] = image_list
+        self.label_list['train' + str(index)] = label_list
+
+    def _set_valid(self, image_list, label_list, index=0):
+        self.image_list['valid' + str(index)] = image_list
+        self.label_list['valid' + str(index)] = label_list
+
+    def _set_test(self, image_list, label_list, index=0):
+        self.image_list['test' + str(index)] = image_list
+        self.label_list['test' + str(index)] = label_list
+
     def _load_image_location_from_txt(self, path):
         """
         Load the image list and maps to indices, as described.

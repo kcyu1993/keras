@@ -11,7 +11,7 @@ from keras.layers import \
     Flatten, O2Transform, Dense, WeightedVectorization
 from keras.models import Sequential, Model
 from kyu.models.fitnet import convolution_block
-from kyu.models.keras_support import covariance_block_original, covariance_block_vector_space, covariance_block_residual
+from kyu.models.so_cnn_helper import covariance_block_original, covariance_block_vector_space, covariance_block_residual
 
 
 def cifar_fitnet_v5(parametrics=[], epsilon=0., mode=0, nb_classes=10, input_shape=(3,32,32),

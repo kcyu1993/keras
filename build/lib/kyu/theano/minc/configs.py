@@ -889,7 +889,7 @@ def get_VGG_testing_ideas(exp):
     config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, regroup=regroup,
-                        cov_beta=cov_beta,
+                        cov_beta=cov_beta, normalization=False,
                         concat=concat, vectorization=None, load=False
                         )
     return config

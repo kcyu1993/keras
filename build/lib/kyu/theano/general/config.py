@@ -131,15 +131,6 @@ class DCovConfig(object):
         config.write(f)
 
 
-class ModelConfig(object):
-    """
-    Model Config Object containing all information to create a model
-
-    """
-    # @property
-    # input_shape
-
-
 class DataConfig(object):
     """
     Data Config Object containing all information to get a data object

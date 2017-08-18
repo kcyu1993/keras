@@ -129,6 +129,33 @@ def get_aaai_experiment(exp):
     return config
 
 
+def get_iccv_experiment(exp):
+    cov_regularizer = None
+    if exp == 1:
+        """ aaai paper test """
+        nb_branch = 1
+        params = [[],]
+        mode_list = [1]
+        cov_outputs = [50]
+        cov_mode = 'channel'
+        cov_branch = 'pow_o2t'
+        early_stop = False
+        robust = False
+        # cov_regular izer = 'Frob'
+        # last_config_feature_maps = []
+        last_config_feature_maps = [256]
+        batch_size = 32
+        vectorization = 'mat_flatten'
+
+    else:
+        return
+    title = 'iccv_issecond_baseline'
+    config = DCovConfig(params, mode_list, cov_outputs, cov_branch, cov_mode, early_stop, cov_regularizer,
+                        nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
+                        exp=exp, vectorization=vectorization, epsilon=1e-5, title=title, robust=robust)
+    return config
+
+
 def get_log_experiment(exp):
     cov_regularizer = None
     nb_branch = 1
@@ -896,6 +923,8 @@ def get_VGG_testing_ideas(exp):
 def get_ResNet_testing_ideas(exp):
     """ Test VGG dimension reduction """
     cov_regularizer = None
+    normalization = 'mean'
+    cov_mode = 'pmean'
     if exp == 1:
         """ Experiment 1, cross validate number of branches. """
         nb_branch = 2
@@ -946,19 +975,33 @@ def get_ResNet_testing_ideas(exp):
         robust = False
     elif exp == 4:
         nb_branch = 2
-        # params = [[],]
-        params = [[256,]]
+        params = [[],]
+        # params = [[256,]]
         mode_list = [1]
         cov_outputs = [128]
         last_config_feature_maps = [1024]
+        cov_branch = 'o2transform'
+        normalization = 'mean'
         # cov_branch = 'o2t_no_wv'
-        cov_branch = 'o2t_no_wv'
         cov_regularizer = None
         concat = 'concat'
         robust = True
+    elif exp == 5:
+        """ 2017.8.15 New PV test with l2 normalization and sqrt after PV """
+        nb_branch = 1
+        params = [[128],]
+        mode_list = [1]
+        cov_outputs = [128]
+        last_config_feature_maps = [1024]
+        cov_branch = 'new_wv'
+        normalization = 'mean'
+        cov_regularizer = None
+        concat = 'concat'
+        robust = False
+        cov_mode = 'channel'
     else:
         return
-    cov_mode = 'pmean'
+
     early_stop = False
     batch_size = 32
     finetune_batch_size = 128
@@ -974,7 +1017,7 @@ def get_ResNet_testing_ideas(exp):
                         nb_branch=nb_branch, last_conv_feature_maps=last_config_feature_maps, batch_size=batch_size,
                         exp=exp, epsilon=1e-5, title=title, robust=robust, cov_alpha=cov_alpha, cov_beta=cov_beta,
                         regroup=regroup, concat=concat, weight_path='imagenet',
-                        finetune_batch_size=finetune_batch_size, normalization=False,
+                        finetune_batch_size=finetune_batch_size, normalization=normalization,
                         )
     return config
 

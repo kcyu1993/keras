@@ -1,6 +1,5 @@
 import itertools
 
-from .io_utils import get_plot_path, get_plot_path_with_subdir
 try:
     import matplotlib
     matplotlib.use('Agg')
@@ -59,7 +58,8 @@ def plot_cross_validation(list_x, list_y, labels, linestyle='-', y_lim=(0.7,0.9)
 
     if show:
         plt.show()
-    plt_path = get_plot_path_with_subdir("cross_validation" + filename, subdir='summary')
+    # update the file name system.
+    plt_path = filename
     print("save plot to " + plt_path)
     plt.savefig(plt_path + '.eps', format='eps')
     plt.close()
@@ -101,7 +101,8 @@ def plot_loss_acc(tr_loss, te_loss, tr_acc, te_acc, epochs=None, show=False,
 
     if show:
         plt.show()
-    plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='run')
+    # plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='run')
+    plt_path = filename
     plt.savefig(plt_path)
     plt.close()
     return plt_path
@@ -175,7 +176,8 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
 
     if show:
         plt.show()
-    plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='summary')
+    # plt_path = get_plot_path_with_subdir("train_test " + filename, subdir='summary')
+    plt_path = filename
     print("save plot to " + plt_path)
     plt.savefig(plt_path)
     plt.close()
@@ -193,7 +195,24 @@ def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
     * test_errors[0] = RMSE of the parameter found by ridge regression applied on the test set
 
     degree is just used for the title of the plot
-    :param plot_type: 0 for smooth, 1 for scatter
+
+    Parameters
+    ----------
+    train_errors
+    test_errors
+    x_factor
+    show
+    names
+    xlabel
+    ylabel
+    filename : absolute path
+    color : tuple for different names
+    linestyle
+    plot_type
+
+    Returns
+    -------
+
     """
 
     if plot_type == 0:
@@ -213,7 +232,8 @@ def plot_train_test(train_errors, test_errors, x_factor=None, show=False,
 
     if show:
         plt.show()
-    plt_path = get_plot_path("train_test " + filename)
+    # plt_path = get_plot_path("train_test " + filename)
+    plt_path = filename
     plt.savefig(plt_path)
     plt.close()
     return plt_path

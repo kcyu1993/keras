@@ -246,7 +246,7 @@ def covariance_block_matbp(input_tensor, nb_class, stage, block, epsilon=0, para
 
 
 def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
-                         cov_mode='pmean', cov_regularizer=None, vectorization='mat_flatten',
+                         cov_mode='channel', cov_regularizer=None, vectorization='mat_flatten',
                          o2tconstraints=None,
                          **kwargs):
     if epsilon > 0:
@@ -265,7 +265,7 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
 
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
-    x = PowTransform(alpha=0.5, name=pow_name_base)(x)
+    x = PowTransform(alpha=0.5, name=pow_name_base, normalization=None)(x)
     if vectorization == 'wv':
         x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     elif vectorization == 'dense':
@@ -464,6 +464,28 @@ def covariance_block_corr_no_wv(input_tensor, nb_class, stage, block, epsilon=0,
             if normalization:
                 x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
             x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
+    return x
+
+
+def covariance_block_new_wv(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                            cov_mode='channel', cov_regularizer=None, vectorization='wv',
+                            o2t_constraints=None, normalization=False, so_mode=1
+                            ,
+                            **kwargs):
+    if epsilon > 0:
+        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    else:
+        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    wp_name_base = 'pv' + str(stage) + block + '_branch'
+    with tf.name_scope(cov_name_base):
+        x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
+                               cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+    for id, param in enumerate(parametric):
+        with tf.name_scope(o2t_name_base + str(id)):
+            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
+
+    x = WeightedVectorization(nb_class, output_sqrt=False, activation_regularizer=None, name=wp_name_base)(x)
     return x
 
 
@@ -862,6 +884,8 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_sobn_multi_o2t
     elif cov_branch == 'corr':
         covariance_block = covariance_block_corr
+    elif cov_branch == 'new_wv':
+        covariance_block = covariance_block_new_wv
     else:
         raise ValueError('covariance cov_mode not supported')
 

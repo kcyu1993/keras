@@ -1,4 +1,4 @@
-from kyu.models.keras_support import covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_vector_space
 from keras.engine import Input
 from keras.engine import Model
 from keras.engine import merge

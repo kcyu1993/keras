@@ -3,7 +3,7 @@ Finetune with MINC dataset
 """
 import os
 
-from keras.layers import SecondaryStatistic, O2Transform
+from kyu.models.secondstat import SecondaryStatistic, O2Transform
 from kyu.datasets.mit import MITLoader
 from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config
@@ -24,7 +24,7 @@ from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_multibranch
 from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Model
 
 import keras.backend as K
-from keras.preprocessing.image import ImageDataGeneratorAdvanced
+from kyu.utils.image import ImageDataGeneratorAdvanced
 
 # Some constants
 nb_classes = 67
@@ -86,14 +86,15 @@ def mit_indoor_finetune(model,
                         weight_path='',
                         load=False,
                         verbose=2,
-                        lr=0.001):
+                        lr=0.01):
     lr_decay = True
     loader = MITLoader(dirpath='/home/kyu/cvkyu/dataset/mit_indoor')
     # train = loader.generator(mode='train', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
-    train = loader.generator(mode='complete', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
+    # train = loader.generator(mode='complete', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
+    train = loader.generator(mode='complete_train', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
     test = loader.generator(mode='test', target_size=TARGET_SIZE, image_data_generator=image_gen, batch_size=batch_size)
 
-    model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+    # model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
     fit_model_v2(model, [train, test], batch_size=batch_size, title=title,
                  nb_epoch=nb_epoch_finetune,
                  optimizer=optimizer,
@@ -109,7 +110,7 @@ def mit_indoor_finetune(model,
     if nb_epoch_after > 0:
         # K.clear_session()
         toggle_trainable_layers(model, True, keyword)
-        model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+        # model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
         # model.load_weights(tmp_weights)
         fit_model_v2(model, [train, test], batch_size=batch_size, title=title,
                      nb_epoch=nb_epoch_after,
@@ -308,10 +309,12 @@ def baseline_finetune_vgg(exp=1):
 
 def baseline_finetune_bilinear(exp=1):
     nb_epoch_finetune = 1
-    nb_epoch_after = 100
+    nb_epoch_after = 400
 
     if exp == 1:
         model = VGG16_bilinear(nb_class=nb_classes, input_shape=input_shape, freeze_conv=True)
+    elif exp == 2:
+        model = VGG16_bilinear(nb_class=nb_classes, input_shape=input_shape, freeze_conv=False)
 
     model.name = 'baseline_vgg16_bilinear'
     image_gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
@@ -319,11 +322,12 @@ def baseline_finetune_bilinear(exp=1):
                                            preprocessing_function=preprocess_image_for_imagenet
                                            # channelwise_std_normalization=True
                                            )
-    weight_path = '/home/kyu/.keras/models/mit_finetune_vgg16_bilinear-baseline_vgg16_bilinear_1.weights_100'
+    # weight_path = '/home/kyu/.keras/models/mit_finetune_vgg16_bilinear-baseline_vgg16_bilinear_1.weights_100'
+    weight_path = ''
     mit_indoor_finetune(model, image_gen=image_gen, title='mit_finetune_vgg16_bilinear',
                         nb_epoch_finetune=nb_epoch_finetune, nb_epoch_after=nb_epoch_after,
-                        weight_path=weight_path, load=True,
-                        batch_size=32, early_stop=True, lr_decay=False,
+                        weight_path=weight_path, load=False,
+                        batch_size=32, early_stop=False, lr_decay=False,
                         lr=0.05)
 
 
@@ -415,7 +419,7 @@ if __name__ == '__main__':
     # config = get_experiment_settings(6)
     # config = get_aaai_experiment(2)
     # config = get_VGG_dimension_reduction(4)
-
+    exp = 4
     # config = get_VGG_testing_ideas(exp)
     # config = get_ResNet_testing_ideas(exp)
 
@@ -429,12 +433,12 @@ if __name__ == '__main__':
     # config = get_cov_alpha_cv(1)
     # config = get_cov_beta_cv(1)
     # config.batch_size = 32
-    # baseline_finetune_bilinear(1)
+    baseline_finetune_bilinear(1)
     # config = get_new_experiment(6)
     # config = get_aaai_experiment(1)
-    config = get_matrix_bp(1)
+    # config = get_matrix_bp(1)
 
-    print(config.title)
+    # print(config.title)
 
     # config.cov_mode = 'channel'
     # config.batch_size = 16
@@ -450,9 +454,9 @@ if __name__ == '__main__':
     #                                stiefel_lr=None, nb_epoch_finetune=4, nb_epoch_after=50)
 
     # config.title = 'minc_VGG_TEST_original_exp{}'.format(exp)
-    run_routine_vgg(config, verbose=(2, 1),
+    # run_routine_vgg(config, verbose=(2, 2),
                     # stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
-                    nb_epoch_finetune=10, nb_epoch_after=200)
+                    # nb_epoch_finetune=5, nb_epoch_after=200)
     #
     # run_routine_resnet(config)
 

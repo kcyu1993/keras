@@ -80,7 +80,10 @@ class MITLoader(object):
         if mode == 'train':
             txt_file = 'TrainImages.txt'
         elif mode == 'complete':
+            # txt_file = 'NewTrain.txt'
             txt_file = 'NewTrain.txt'
+        elif mode == 'complete_train':
+            txt_file = 'CompleteTrain.txt'
         else:
             txt_file = 'TestImages.txt'
 

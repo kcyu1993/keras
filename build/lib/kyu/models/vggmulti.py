@@ -10,9 +10,9 @@ from keras.layers import Flatten, Dense, warnings, Convolution2D, MaxPooling2D, 
 # from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
 from keras.applications.vgg16 import VGG16_Multi
-from kyu.models.keras_support import covariance_block_original, dcov_model_wrapper_v1, \
+from kyu.models.so_cnn_helper import covariance_block_original, dcov_model_wrapper_v1, \
     dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
-from kyu.models.keras_support import covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_vector_space
 from kyu.theano.general.train import toggle_trainable_layers
 
 

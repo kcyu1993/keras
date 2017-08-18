@@ -2,7 +2,7 @@
 Define the file structure in this folder
 """
 import gzip
-
+import numpy as np
 import os
 from datetime import datetime
 import cPickle
@@ -30,13 +30,21 @@ def getProjectPath():
 
 
 def check_id_set(get_path):
-    def __decorator(self):
+    def __decorator(*args, **kwargs):
         # print("checking {}".format(self.root_path))
-        if not self._run_id_set:
-            Warning("ID Not set, return Nothing ")
-            return None
-        path = get_path(self)
+        if not args[0]._run_id_set:
+            raise ValueError(" ID Not set, return Nothing ")
+        path = get_path(*args, **kwargs)
         return path
+    return __decorator
+
+
+def mkdirs_if_not_exist(get_folder):
+    def __decorator(*args, **kwargs):
+        folder = get_folder(*args, **kwargs)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        return folder
     return __decorator
 
 
@@ -97,7 +105,9 @@ class ProjectFile(object):
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 
-        self._run_path = os.path.join(self.output_path, 'run')
+        self._run_dir = os.path.join(self.output_path, 'run')
+        self._plots_dir = os.path.join(self.output_path, 'plots')
+        self._logs_dir = os.path.join(self.output_path, 'logs')
         self._task = task
         self._dataset = dataset
         self._model_category = model_category
@@ -105,8 +115,16 @@ class ProjectFile(object):
         self._run_id_set = False
 
     @property
-    def run_path(self):
-        return self._run_path
+    def run_dir(self):
+        return self._run_dir
+
+    @property
+    def plots_dir(self):
+        return self._plots_dir
+
+    @property
+    def logs_dir(self):
+        return self._logs_dir
 
     @property
     def task(self):
@@ -131,19 +149,49 @@ class ProjectFile(object):
         self._run_id_set = True if value is not None else False
         self._run_id = value + "_" + datetime.now().isoformat().split('.')[0]
 
-    def build(self, task=None, dataset=None, model_category=None):
+    def build(self, run_id, task=None, dataset=None, model_category=None):
+        if not isinstance(run_id, str):
+            raise ValueError("Run id must be a valid string")
+
+        self.run_id = run_id
         self._task = task if task is not None else self._task
         self._dataset = dataset if dataset is not None else self._dataset
         self._model_category = model_category if model_category is not None else self._model_category
 
         # create the folders if not exists
 
+    @check_id_set
     def get_model_run_path(self):
-        path = os.path.join(self.run_path, self.task, self.dataset, self._model_category)
+        path = os.path.join(self.run_dir, self.task, self.dataset, self._model_category, self.run_id)
         # print(path)
         if not os.path.exists(path):
             os.makedirs(path)
         return path
+
+    @mkdirs_if_not_exist
+    def get_weight_folder(self):
+        return os.path.join(self.get_model_run_path())
+
+    @mkdirs_if_not_exist
+    def get_plot_folder(self):
+        # return os.path.join(self.get_model_run_path(), 'plots')
+        return os.path.join(self.run_dir, 'plots', self.dataset, self._model_category)
+
+    @mkdirs_if_not_exist
+    def get_tensorboard_folder(self):
+        return os.path.join(self.get_model_run_path(), 'tensorboard')
+
+    @mkdirs_if_not_exist
+    def get_history_folder(self):
+        return os.path.join(self.get_model_run_path())
+
+    @mkdirs_if_not_exist
+    def get_log_folder(self):
+        return os.path.join(self.get_model_run_path())
+
+    @mkdirs_if_not_exist
+    def get_config_folder(self):
+        return os.path.join(self.get_model_run_path())
 
     @check_id_set
     def get_history_path(self):
@@ -156,39 +204,43 @@ class ProjectFile(object):
 
     @check_id_set
     def get_tensorboard_path(self):
-        path = os.path.join(self.get_tensorboard_path, self.run_id)
+        path = os.path.join(self.get_tensorboard_folder(), self.run_id)
         os.makedirs(path)
         return path
 
     @check_id_set
     def get_weight_path(self):
-        return os.path.join(self.get_weight_path(), self.run_id + '.weights')
+        return os.path.join(self.get_weight_folder(), self.run_id + '.weights')
 
     @check_id_set
     def get_tmp_weight_path(self, epoch=None):
         if epoch:
-            return os.path.join(self.get_weight_path(), self.run_id + 'epoch_{}'.format(epoch) + '.tmp')
+            return os.path.join(self.get_weight_folder(), self.run_id + 'epoch_{}'.format(epoch) + '.tmp')
         else:
-            return os.path.join(self.get_weight_path(), self.run_id + '.tmp')
+            return os.path.join(self.get_weight_folder(), self.run_id + '.tmp')
 
     @check_id_set
-    def get_config_path(self):
-        return os.path.join(self.get_config_folder(), self.run_id + '.config')
+    def get_config_path(self, mode=None):
+        """
+        Get config path with given mode
 
-    def get_weight_folder(self):
-        return os.path.join(self.get_model_run_path(), 'weights')
 
-    def get_plot_folder(self):
-        return os.path.join(self.get_model_run_path(), 'plots')
+        Parameters
+        ----------
+        mode : str   either 'model', 'run' or None
 
-    def tensorboard_folder(self):
-        return os.path.join(self.get_model_run_path(), 'tensorboard')
+        Returns
+        -------
 
-    def get_history_folder(self):
-        return os.path.join(self.get_model_run_path(), 'historys')
+        """
+        if mode is None:
+            return os.path.join(self.get_config_folder(), self.run_id + '.config')
+        else:
+            return os.path.join(self.get_config_folder(), self.run_id + '_' + mode + '.config')
 
-    def get_config_folder(self):
-        return os.path.join(self.get_model_run_path(), 'configs')
+    @check_id_set
+    def get_log_path(self):
+        return os.path.join(self.get_log_folder(), self.run_id + '.log')
 
 
 def save_array(array, name):
