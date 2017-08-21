@@ -2,30 +2,75 @@
 Design to serve as model getter like keras.loss.get(id), but switch by the configs it self.
 
 """
+import six
+
 from kyu.engine.configs.model import ModelConfig
-
-from . import vgg
-from . import resnet
+from kyu.utils.sys_utils import merge_dicts
 
 
-def get_model(config):
+def get_model_from_config(model_fn, config, compulsory, optional):
     """
-    Define the get model method from identifier
+    Get model from config with compulsory and optional arguments.
 
     Parameters
     ----------
-    config
+    model_fn : function takes the compulsory and optional arguments
+    config : ModelConfig
+    compulsory : list[str ...]
+    optional : list[str ...]
 
     Returns
     -------
 
     """
-    if not isinstance(config, ModelConfig):
-        raise ValueError("Get model must be a config file. ")
+    if model_fn is None:
+        return None
 
-    identifier = str(config.class_id).lower()
-    if identifier in ['vgg', 'vgg16', 'vgg19']:
-        return vgg.get_model(config)
-    elif identifier in ['resnet', 'resnet50',]:
-        return resnet.get_model(config)
+    if not isinstance(config, ModelConfig):
+        raise ValueError("VGG: get_model only support ModelConfig object")
+
+    if not all(hasattr(config, item) for item in compulsory):
+        raise ValueError("{} config is not complete. \n {}".format(config.model_id, config))
+
+    comp_dict = dict(zip(compulsory, [getattr(config, item) for item in compulsory]))
+    opt_dict = {}
+    for item in optional:
+        # attr = getattr(config, item)
+        if hasattr(config, item):
+            opt_dict[item] = getattr(config, item)
+    args = merge_dicts(comp_dict, opt_dict)
+
+    # Return the model
+    return model_fn(**args)
+
+
+def deserialize_model_object(identifier, module_objects=None,
+                             printable_module_name='model object'):
+    """
+    deserialize the model object given a string as identifier.
+    It will search the module objects (like create functions or class constructors) to
+    construct the model based on selection.
+
+    References:
+        keras.utils.generic_utils deserialize_keras_object
+
+    Parameters
+    ----------
+    identifier : one of six.string_types
+    module_objects : the related globals()
+    printable_module_name : module name
+
+    Returns
+    -------
+
+    """
+    if isinstance(identifier, six.string_types):
+        function_name = identifier
+        fn = module_objects.get(function_name)
+        if fn is None:
+            raise ValueError("generic_loader: Unknown " + printable_module_name + ":"
+                             + function_name)
+        return fn
+
+
 

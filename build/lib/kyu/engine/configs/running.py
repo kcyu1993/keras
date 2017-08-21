@@ -1,5 +1,6 @@
 import os
 
+from kyu.engine.configs import ModelConfig
 from kyu.engine.configs.generic import KCConfig
 from kyu.utils.io_utils import ProjectFile
 
@@ -39,7 +40,7 @@ class RunningConfig(KCConfig):
     """
     def __init__(self,
                  # root_folder,
-                 _title=None,
+                 _title='default',
                  nb_epoch=100,
                  batch_size=32,
                  verbose=2,
@@ -54,10 +55,11 @@ class RunningConfig(KCConfig):
                  tensorboard=None,
                  optimizer='SGD',
                  lr=0.01,
-                 dcov_config=None, # possibly
+                 model_config=None, # possibly
                  ):
         # self.__dict__.update(locals())
-        self._title = _title if dcov_config is None else dcov_config.title
+        self.model_config = model_config
+        self._title = _title
         self.batch_size = batch_size
         self.nb_epoch = nb_epoch
         self.verbose = verbose

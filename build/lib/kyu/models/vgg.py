@@ -2,7 +2,9 @@
 Re implement VGG model for general usage
 
 """
-from kyu.theano.general.config import ModelConfig
+import six
+
+from kyu.engine.configs.model import ModelConfig
 
 from kyu.engine.configs.generic import KCConfig
 
@@ -13,11 +15,13 @@ from keras.layers import Flatten, Dense, warnings, Conv2D, MaxPooling2D
 
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
+from .generic_loader import deserialize_model_object, get_model_from_config
 
 from kyu.models.secondstat import BiLinear
 from kyu.models.so_cnn_helper import covariance_block_original, dcov_model_wrapper_v1, dcov_model_wrapper_v2
 from kyu.models.so_cnn_helper import covariance_block_vector_space
 from kyu.theano.general.train import toggle_trainable_layers
+from kyu.utils.sys_utils import merge_dicts
 
 
 def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, freeze_conv=False, last_conv=False,
@@ -158,9 +162,47 @@ def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), l
     return new_model
 
 
-def get_model(config):
-    if isinstance(config, ModelConfig):
+def second_order(config):
+    """ Implement the original SO-VGG16 with single stream structure """
+    pass
 
+
+def bilinear(config):
+    """ Create the bilinear model and return """
+    if not isinstance(config, ModelConfig):
+        raise ValueError("VGG: get_model only support ModelConfig object")
+
+    compulsory = ['nb_class', ]
+    optional = ['load_weights', 'input_shape', 'last_avg', 'freeze_conv']
+
+    # Return the model
+    # return VGG16_bilinear(**args)
+    return get_model_from_config(VGG16_bilinear, config, compulsory, optional)
+
+
+def deserialize(name, custom_objects=None):
+    return deserialize_model_object(name,
+                                    module_objects=globals(),
+                                    printable_module_name='vgg model'
+                                    )
+
+
+def get_model(config):
+    if not isinstance(config, ModelConfig):
+        raise ValueError("VGG: get_model only support ModelConfig object")
+
+    model_id = config.model_id
+    # Decompose the config with different files.
+    # if model_id == ''
+    if isinstance(model_id, six.string_types):
+        model_id = str(model_id)
+        model_function = deserialize(model_id)
+    elif callable(model_id):
+        model_function = model_id
+    else:
+        raise ValueError("Could not interpret the vgg model with {}".format(model_id))
+
+    return model_function(config)
 
 
 if __name__ == '__main__':

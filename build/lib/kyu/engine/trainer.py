@@ -359,6 +359,15 @@ class ClassificationTrainer(object):
                 self.save_history(history)
                 return
 
+    def plot_model(self, show_shapes=True, show_layer_names=True):
+        from keras.utils.visualize_util import plot, model_to_dot
+        from IPython.display import SVG
+        filename = os.path.join(self.dirhelper.get_model_run_path, 'model.png')
+        plot(self.model, to_file=filename, show_shapes=show_shapes, show_layer_names=show_layer_names)
+        dot_data = model_to_dot(self.model, show_shapes=show_shapes, show_layer_names=show_layer_names)
+        svg_data = SVG(dot_data.create(prog='dot', format='svg'))
+        dot_data.write()
+
     def save_history(self, history, tmp=False):
         from keras.callbacks import History
 
