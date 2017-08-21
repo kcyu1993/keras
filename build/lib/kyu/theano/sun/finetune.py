@@ -422,8 +422,8 @@ if __name__ == '__main__':
     # config = get_VGG_dimension_reduction(4)
 
     # config = get_VGG_testing_ideas(exp)
-    # config = get_iccv_experiment(1)
-    config = get_ResNet_testing_ideas(exp)
+    config = get_iccv_experiment(1)
+    # config = get_ResNet_testing_ideas(exp)
     # config = get_von_settings(4)
     # config = get_constraints_settings(1)
     # config = get_experiment_settings(7)
@@ -455,9 +455,9 @@ if __name__ == '__main__':
     #                                stiefel_lr=None, nb_epoch_finetune=4, nb_epoch_after=50)
 
     # config.title = 'minc_VGG_TEST_original_exp{}'.format(exp)
-    # run_routine_vgg(config, verbose=(2, 2),
+    run_routine_vgg(config, verbose=(2, 2),
                     # stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
-                    # nb_epoch_finetune=5, nb_epoch_after=200)
+                    nb_epoch_finetune=5, nb_epoch_after=200)
     #
     # run_routine_resnet(config)
 

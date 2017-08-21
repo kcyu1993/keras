@@ -242,7 +242,7 @@ class SecondaryStatistic(Layer):
         -------
 
         """
-        config = {'init': self.init.__name__,
+        config = {'init': self.init,
                   'activation': self.activation.__name__,
                   'dim_ordering': self.dim_ordering,
                   'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
@@ -968,23 +968,11 @@ class PowTransform(Layer):
             raise NotImplementedError("This is not implemented for theano anymore.")
         else:
             if self.built:
-                # return self.logm(x)
-                from kyu.tensorflow.ops.svd_gradients import gradient_eig_for_log
                 import tensorflow as tf
-                # g = tf.get_default_graph()
-                # tf.float64
-                # s, u, v = tf.svd(x)
-                s, u = tf.self_adjoint_eig(x)
-
-                # s = tf.abs(s)
-                comp = tf.zeros_like(s) + self.eps
-                inner = tf.where(tf.less(s, comp), comp, s)
-
-                inner = s + self.eps
-                # tmp_power = tf.ones_like(inner) * self.alpha
-                # inner = tf.pow(inner, tmp_power)
-                inner = tf.sqrt(inner)
-                # inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
+                from kyu.tensorflow.ops import safe_truncated_sqrt
+                with tf.device('/cpu:0'):
+                    s, u = tf.self_adjoint_eig(x)
+                inner = safe_truncated_sqrt(s)
                 if self.norm == 'l2':
                     inner /= tf.reduce_max(inner)
                 elif self.norm == 'frob' or self.norm == 'Frob':

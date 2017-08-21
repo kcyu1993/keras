@@ -16,8 +16,8 @@ def get_model_from_config(model_fn, config, compulsory, optional):
     ----------
     model_fn : function takes the compulsory and optional arguments
     config : ModelConfig
-    compulsory : list[str ...]
-    optional : list[str ...]
+    compulsory : list[str ...] (args into model_fn)
+    optional : list[str ...]  (optional args into model_fn
 
     Returns
     -------
@@ -36,8 +36,9 @@ def get_model_from_config(model_fn, config, compulsory, optional):
     opt_dict = {}
     for item in optional:
         # attr = getattr(config, item)
-        if hasattr(config, item):
+        if hasattr(config, item) and item not in comp_dict.keys():
             opt_dict[item] = getattr(config, item)
+
     args = merge_dicts(comp_dict, opt_dict)
 
     # Return the model

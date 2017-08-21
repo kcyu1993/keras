@@ -37,7 +37,7 @@ def fn_regroup(tensors):
 
 def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                               cov_mode='channel', cov_regularizer=None, vectorization='wv',
-                              o2t_constraints=None,
+                              o2t_constraints=None, use_bias=False,
                               **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -52,7 +52,7 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
         with tf.name_scope(o2t_name_base + str(id)):
             x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
     with tf.name_scope(wp_name_base):
-        x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
+        x = WeightedVectorization(nb_class, use_bias=use_bias, activation=activation, name=wp_name_base)(x)
     return x
 
 

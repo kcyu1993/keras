@@ -4,29 +4,12 @@ Testing for the trainer built
 Use DTD and SO-VGG16 for example
 
 """
-from kyu.engine.configs.model import ModelConfig
-from kyu.engine.configs.running import RunningConfig
-from kyu.engine.configs.generic import KCConfig
-
-from kyu.utils.io_utils import ProjectFile
-
 from kyu.datasets.dtd import DTD
-from kyu.models.bilinear import VGG16_bilinear
+from kyu.engine.configs.running import RunningConfig
 from kyu.engine.trainer import ClassificationTrainer
-
 from kyu.models import get_model
-
-
-class BilinearConfig(ModelConfig):
-
-    def __init__(self,
-                 nb_class,
-                 input_shape,
-                 ):
-        super(BilinearConfig, self).__init__('vgg', 'bilinear')
-        self.nb_class = nb_class
-        self.input_shape = input_shape
-        self.load_weights = 'imagenet'
+from kyu.models.bilinear import BilinearConfig
+from kyu.utils.io_utils import ProjectFile
 
 
 def get_dtd_bilinear_model():
@@ -49,6 +32,10 @@ def get_dtd_bilinear_model():
 
     dirhelper.build(running_config.title)
     return model, data, dirhelper, model_config, running_config
+
+
+def get_dtd_so_model():
+    pass
 
 
 def test_dtd_bilinear():

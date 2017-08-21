@@ -1,6 +1,7 @@
 
 from keras.applications import VGG16, ResNet50
 from keras.layers import Conv2D, Dense
+from kyu.engine.configs import ModelConfig
 from kyu.models.secondstat import BiLinear
 from kyu.theano.general.train import toggle_trainable_layers, Model
 
@@ -18,7 +19,7 @@ def _compose_bilinear_model(base_model, nb_class, freeze_conv=False, name='Bilin
     return new_model
 
 
-def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), last_avg=True, freeze_conv=False):
+def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), freeze_conv=False):
     if load_weights == 'imagenet':
         base_model = VGG16(include_top=False, input_shape=input_shape)
     elif load_weights is None:
@@ -42,3 +43,16 @@ def ResNet50_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3)
 
     return _compose_bilinear_model(base_model=base_model, nb_class=nb_class,
                                    freeze_conv=freeze_conv, name='ResNet50_bilinear')
+
+
+class BilinearConfig(ModelConfig):
+
+    def __init__(self,
+                 nb_class,
+                 input_shape,
+                 class_id='vgg',
+                 model_id='bilinear',
+                 load_weights='imagenet'
+                 ):
+        super(BilinearConfig, self).__init__(class_id, model_id)
+        self.__dict__.update(locals())

@@ -15,6 +15,8 @@ from keras.layers import Flatten, Dense, warnings, Conv2D, MaxPooling2D
 
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
+from kyu.models.bilinear import VGG16_bilinear
+from kyu.models.single_second_order import DCovConfig, VGG16_second_order
 from .generic_loader import deserialize_model_object, get_model_from_config
 
 from kyu.models.secondstat import BiLinear
@@ -141,30 +143,17 @@ def VGG16_o2_with_config(param, mode, cov_output, config, nb_class, input_shape,
                     )
 
 
-def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), last_avg=True, freeze_conv=False):
-    if load_weights == 'imagenet':
-        base_model = VGG16(include_top=False, input_shape=input_shape)
-    elif load_weights is None:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape)
-    else:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape)
-        base_model.load_weights(load_weights, by_name=True)
-
-    # Create Dense layers
-    x = base_model.output
-    x = Conv2D(256, (1,1), name='1x1_stage5')(x)
-    x = BiLinear(eps=0, activation='linear')(x)
-    x = Dense(nb_class, activation='softmax')(x)
-    if freeze_conv:
-        toggle_trainable_layers(base_model, trainable=False)
-
-    new_model = Model(base_model.input, x, name='VGG16_bilinear')
-    return new_model
-
-
 def second_order(config):
     """ Implement the original SO-VGG16 with single stream structure """
-    pass
+    if not isinstance(config, DCovConfig):
+        raise ValueError("VGG: second-order only support DCovConfig")
+
+    compulsory = ['input_shape', 'nb_class', 'cov_branch', 'cov_branch_kwargs']
+    optional = ['concat', 'mode', 'cov_branch_output', 'name',
+                'nb_branch', 'cov_output_vectorization',
+                'upsample_method', 'last_conv_kernel', 'last_conv_feature_maps',
+                'freeze_conv', 'load_weights']
+    return get_model_from_config(VGG16_second_order, config, compulsory, optional)
 
 
 def bilinear(config):
@@ -172,8 +161,8 @@ def bilinear(config):
     if not isinstance(config, ModelConfig):
         raise ValueError("VGG: get_model only support ModelConfig object")
 
-    compulsory = ['nb_class', ]
-    optional = ['load_weights', 'input_shape', 'last_avg', 'freeze_conv']
+    compulsory = ['nb_class', 'input_shape']
+    optional = ['load_weights', 'input_shape', 'freeze_conv']
 
     # Return the model
     # return VGG16_bilinear(**args)

@@ -136,7 +136,7 @@ def get_iccv_experiment(exp):
         nb_branch = 1
         params = [[],]
         mode_list = [1]
-        cov_outputs = [50]
+        cov_outputs = [256]
         cov_mode = 'channel'
         cov_branch = 'pow_o2t'
         early_stop = False
