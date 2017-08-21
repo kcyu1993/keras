@@ -8,7 +8,7 @@ from keras.optimizers import SGD
 
 def matrix_log(x, eps=1e-5):
     """
-    Define the matrix logarithm
+    Define the matrix logarithm with the gradients
 
     Parameters
     ----------

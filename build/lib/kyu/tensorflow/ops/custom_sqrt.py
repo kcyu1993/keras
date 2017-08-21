@@ -44,6 +44,19 @@ def custom_safe_sqrt_op(x):
     return custom_safe_sqrt(x)
 
 
+def truncated_sqrt(x):
+    eps = tf.zeros_like(x)
+    x = tf.where(tf.less(x, eps), eps, x)
+    # return safe_abs_sqrt(x)
+    return tf.sqrt(x)
+
+
+def truncated_safe_sqrt(x):
+    eps = tf.zeros_like(x)
+    x = tf.where(tf.less(x, eps), eps, x)
+    return safe_abs_sqrt(x)
+
 # Alias
 safe_sign_sqrt = custom_sign_sqrt_op
 safe_abs_sqrt = custom_safe_sqrt_op
+safe_truncated_sqrt = truncated_safe_sqrt
