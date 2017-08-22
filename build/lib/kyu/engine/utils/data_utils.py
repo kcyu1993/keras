@@ -263,3 +263,15 @@ class ClassificationImageData(ImageData):
                       for p in file_lists]
         label_list = [self.decode(p) for p in file_lists]
         return image_list, np.asanyarray(label_list)
+
+    def _load_dict_from_txt(self, path, decode=None):
+        if path is None:
+            path = self.category_path
+        with open(self.category_path, 'r') as f:
+            cate_list = f.read().splitlines()
+        if decode:
+            cate_list = [decode(p) for p in cate_list]
+        self.nb_class = len(cate_list)
+        return dict(zip(cate_list, range(len(cate_list))))
+
+

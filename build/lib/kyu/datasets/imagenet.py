@@ -225,7 +225,6 @@ class ImageNetLoader(object):
                                   dim_ordering=self.dim_ordering, **kwargs)
         return generator
 
-
     def decode(self, str_input, mode='train', prefix=None):
         """
         Decode the corresponding parameters
@@ -296,23 +295,4 @@ def save_list_to_h5df():
                      compression='gzip', compression_opts=9)
 
 if __name__ == '__main__':
-    # IMAGENET_PATH = '/home/kyu/.keras/datasets/ILSVRC2015'
-    # TARGET_SIZE = (224, 224)
-    # RESCALE_SMALL = 256
-    #
-    # BATCH_SIZE = 16
-    # NB_EPOCH = 70
-    # VERBOSE = 1
-    # SAVE_LOG = False
-    #
-    # # ImageNet generator
-    # imageNetLoader = ImageNetLoader(IMAGENET_PATH)
-    # gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
-    #                                  horizontal_flip=True,
-    #                                  channelwise_std_normalization=True)
-    #
-    # train = imageNetLoader.generator('train', image_data_generator=gen)
-    # valid = imageNetLoader.generator('valid', image_data_generator=gen)
-    # # test = imageNetLoader.generator('valid', image_data_generator=gen)
-    # HHA
     save_list_to_h5df()

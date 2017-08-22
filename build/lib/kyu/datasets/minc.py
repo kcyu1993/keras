@@ -2,14 +2,16 @@
 import gzip
 
 from build.lib.kyu.engine.utils.data_utils import ClassificationImageData
-from keras.utils.data_utils import get_file, get_dataset_dir
+from build.lib.kyu.utils.image import MincOriginalIterator
+from build.lib.kyu.utils.io_utils import get_dataset_dir
+from keras.utils.data_utils import get_file
 from keras.utils.io_utils import HDF5Matrix
 import numpy as np
 import cPickle
 import sys
 from PIL import Image
 import os.path
-from os import listdir
+
 import h5py
 from keras.preprocessing.image import *
 
