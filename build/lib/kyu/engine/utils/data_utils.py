@@ -8,7 +8,7 @@ import os
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
 
-from kyu.datasets.imagenet import ImageIterator
+from kyu.utils.image import ImageIterator
 
 
 class ImageData(object):

@@ -16,7 +16,7 @@ from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePool
 from keras.layers import Dense, Activation, Flatten
 from keras.layers import merge, Input
 from keras.models import Model
-from kyu.theano.general.train import toggle_trainable_layers
+from kyu.utils.train_utils import toggle_trainable_layers
 import tensorflow as tf
 
 

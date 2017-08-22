@@ -21,7 +21,8 @@ from kyu.theano.cifar.configs import get_von_with_regroup, get_experiment_settin
 from kyu.theano.general.finetune import get_tmp_weights_path, run_finetune, run_finetune_with_Stiefel_layer, \
     run_finetune_with_weight_norm
 from kyu.theano.general.model import get_so_model_from_config
-from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers
+from kyu.theano.general.train import fit_model_v2
+from kyu.utils.train_utils import toggle_trainable_layers
 from third_party.openai.weightnorm import SGDWithWeightnorm
 
 if K._BACKEND == 'tensorflow':

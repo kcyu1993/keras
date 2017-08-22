@@ -12,32 +12,11 @@ Use RunConfig to train model
 import sys
 
 from keras.optimizers import SGD
-
-from config2dataset import *
-from config2model import *
+from kyu.engine.trainer import ClassificationTrainer
+from kyu.models import get_model
 from kyu.tensorflow.ops.math import StiefelSGD
 from kyu.utils.example_engine import ExampleEngine
-
-import keras.backend as K
-
-
-def toggle_trainable_layers(model, trainable=True, keyword='', **kwargs):
-    """
-    Freeze the layers of a given model
-
-    Parameters
-    ----------
-    model
-    kwargs
-
-    Returns
-    -------
-    model : keras.Model     need to be re-compiled once toggled.
-    """
-    for layer in model.layers:
-        if keyword in layer.name:
-            layer.trainable = trainable
-    return model
+from kyu.utils.image import get_vgg_image_gen, get_resnet_image_gen
 
 
 def fit_model_v1(model, data,
@@ -152,72 +131,63 @@ def fit_model_v2(model, data,
         sys.stdout = engine.stdout.close()
 
 
-# def run_resnet_o2(exp, config, image_gen):
-#
-#     if config.mode == 'train':
-#         pass
-#     elif config.mode == 'finetune':
-#         nb_epoch_finetune = config.nb_epoch
-#         nb_epoch_after = config.nb_epoch_after
-#         cov_mode = config.cov_mode
-#         cov_branch = config.cov_branch
-#         cov_regularizer = config.cov_regularizer
-#
-#         print("Running finetune for {}, experiment {}".format(config.title, exp))
-#         for param in config.params:
-#             for mode in config.mode_list:
-#                 for cov_output in config.cov_outputs:
-#                     print("Run ResNet param {}, mode {}, covariance output {}".format(param, mode, cov_output))
-#                 sess = K.get_session()
-#                 with sess.as_default():
-#                     model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-#                                         nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-#                                         last_avg=False,
-#                                         freeze_conv=True,
-#                                         cov_regularizer=cov_regularizer,
-#                                         last_conv_feature_maps=config.last_conv_feature_maps)
-#                     minc2500_finetune(model,
-#                                       title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-#                                       nb_epoch_after=0, nb_epoch_finetune=nb_epoch_finetune,
-#                                       batch_size=config.batch_size, early_stop=early_stop, verbose=2,
-#                                       image_gen=image_gen)
-#                     model.save_weights(get_tmp_weights_path(model.name))
-#
-#                 K.clear_session()
-#                 sess2 = K.get_session()
-#                 with sess2.as_default():
-#                     model = ResNet50_o2(parametrics=param, mode=mode, cov_branch=cov_branch, cov_mode=cov_mode,
-#                                         nb_classes=nb_classes, cov_branch_output=cov_output, input_shape=input_shape,
-#                                         last_avg=False,
-#                                         freeze_conv=False,
-#                                         cov_regularizer=cov_regularizer)
-#                     model.load_weights(get_tmp_weights_path(model.name))
-#                     minc2500_finetune(model,
-#                                       title='minc2500_cov_{}_wv{}_{}'.format(cov_branch, str(cov_output), cov_mode),
-#                                       nb_epoch_after=0, nb_epoch_finetune=nb_epoch_after,
-#                                       batch_size=4, early_stop=early_stop, verbose=2)
+def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, running_config):
+    """
+    Generic training pipeline provided with data, model_config and nb_epoch_finetune
 
+    Parameters
+    ----------
+    data
+    model_config
+    nb_epoch_finetune
+    running_config
 
-# # TODO Delay to March
-# def train_with_config(modelConfig, dataConfig, runConfig):
-#     """
-#
-#     Parameters
-#     ----------
-#     runConfig
-#
-#     Returns
-#     -------
-#
-#     """
-#     # Create data sets
-#     data = config2data(dataConfig)
-#
-#     # Create model
-#     model = config2model(modelConfig)
-#
-#     # Create ExampleEngine v2
-#     engine = ExampleEnginev2(data, model, runConfig)
-#     engine.run()
+    Returns
+    -------
+
+    """
+
+    model_config.nb_class = data.nb_class
+    if model_config.class_id == 'vgg':
+        data.image_data_generator = get_vgg_image_gen(model_config.target_size,
+                                                      running_config.rescale_small,
+                                                      running_config.random_crop,
+                                                      running_config.horizontal_flip)
+    else:
+        data.image_data_generator = get_resnet_image_gen(model_config.target_size,
+                                                         running_config.rescale_small,
+                                                         running_config.random_crop,
+                                                         running_config.horizontal_flip)
+    dirhelper.build(running_config.title)
+
+    if nb_epoch_finetune > 0:
+        # model_config2 = copy.copy(model_config)
+        model_config.freeze_conv = True
+        model = get_model(model_config)
+
+        trainer = ClassificationTrainer(model, data, dirhelper,
+                                        model_config=model_config, running_config=running_config,
+                                        save_log=True,
+                                        logfile=dirhelper.get_log_path())
+
+        trainer.model.summary()
+        trainer.fit(nb_epoch=nb_epoch_finetune, verbose=2)
+        trainer.plot_result()
+        # trainer.plot_model()
+        model_config.freeze_conv = False
+        running_config.load_weights = True
+        running_config.init_weights_location = dirhelper.get_weight_path()
+
+    model = get_model(model_config)
+
+    trainer = ClassificationTrainer(model, data, dirhelper,
+                                    model_config=model_config, running_config=running_config,
+                                    save_log=True,
+                                    logfile=dirhelper.get_log_path())
+
+    trainer.build()
+
+    trainer.fit(verbose=2)
+    trainer.plot_result()
 
 

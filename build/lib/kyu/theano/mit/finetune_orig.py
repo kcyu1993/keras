@@ -18,14 +18,15 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
-from kyu.datasets.imagenet import preprocess_image_for_imagenet
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
 from kyu.models.vgg import VGG16_o1, VGG16_o2
 from kyu.models.resnet import ResNet50_o1, ResCovNet50, ResNet50_o2, ResNet50_o2_multibranch
 
 from kyu.datasets.minc import Minc2500, load_minc2500, MincOriginal
 
-from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Model
+from kyu.theano.general.train import fit_model_v2, Model
+from kyu.utils.train_utils import toggle_trainable_layers
 
 import keras.backend as K
 from keras.preprocessing.image import ImageDataGeneratorAdvanced, ImageDataGenerator

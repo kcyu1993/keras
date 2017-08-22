@@ -4,7 +4,7 @@ Design to serve as model getter like keras.loss.get(id), but switch by the confi
 """
 import six
 
-from kyu.engine.configs.model import ModelConfig
+from kyu.configs.engine_configs import ModelConfig
 from kyu.utils.sys_utils import merge_dicts
 
 

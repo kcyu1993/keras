@@ -9,10 +9,14 @@ from kyu.models.secondstat import SecondaryStatistic, O2Transform, WeightedVecto
     Correlation
 from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization
 
-from kyu.theano.general.train import toggle_trainable_layers, Model
+from keras.models import Model
+from kyu.utils.train_utils import toggle_trainable_layers
 
 import tensorflow as tf
 
+
+def get_cov_name_base(stage, block, **kwargs):
+    return 'cov-{}-br_{}'.format(str(stage), block)
 
 
 def fn_regroup(tensors):
@@ -39,12 +43,9 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
                               cov_mode='channel', cov_regularizer=None,
                               o2t_constraints=None, use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
                               **kwargs):
-    if epsilon > 0:
-        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
-    else:
-        cov_name_base = 'cov' + str(stage) + block + '_branch'
-    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
-    wp_name_base = 'wp' + str(stage) + block + '_branch'
+    cov_name_base = get_cov_name_base(stage, block)
+    o2t_name_base = 'o2t' + str(stage) + '_branch' + block
+    wp_name_base = 'wp' + str(stage) + '_branch' + block
     with tf.name_scope(cov_name_base):
         x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
                                cov_mode=cov_mode, cov_regularizer=cov_regularizer,
@@ -63,7 +64,7 @@ def covariance_block_log(input_tensor, nb_class, stage, block, epsilon=0, parame
                          o2tconstraints=None,
                          **kwargs):
     if epsilon > 0:
-        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+        cov_name_base = 'cov' + str(stage) + block
     else:
         cov_name_base = 'cov' + str(stage) + block + '_branch'
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
@@ -249,19 +250,20 @@ def covariance_block_matbp(input_tensor, nb_class, stage, block, epsilon=0, para
 
 def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                          cov_mode='channel', cov_regularizer=None, vectorization='mat_flatten',
-                         o2tconstraints=None,
+                         o2tconstraints=None, cov_beta=0.3,
                          **kwargs):
-    if epsilon > 0:
-        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
-    else:
-        cov_name_base = 'cov' + str(stage) + block + '_branch'
+    # if epsilon > 0:
+    #     cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
+    # else:
+    #     cov_name_base = 'cov' + str(stage) + block + '_branch'
+    cov_name_base = get_cov_name_base(stage, block)
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
     pow_name_base = 'pow' + str(stage) + block + '_branch'
     dense_name_base = 'fc' + str(stage) + block + '_branch'
     wp_name_base = 'wp' + str(stage) + block + '_branch'
 
-    x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
-                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+    x = SecondaryStatistic(name=cov_name_base, eps=epsilon, cov_beta=cov_beta,
+                           cov_mode=cov_mode, cov_regularizer=cov_regularizer)(input_tensor)
 
     # Try the power transform before and after.
 
@@ -850,7 +852,6 @@ def dcov_multi_out_model_wrapper(
         x = WeightedVectorization(128, activation='relu', name='wv_fuse')(x)
 
         # Merge the last matrix for matrix concat
-
 
     if freeze_conv:
         toggle_trainable_layers(base_model, not freeze_conv)

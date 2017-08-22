@@ -11,7 +11,7 @@ from keras.layers import SecondaryStatistic, O2Transform
 import keras.backend as K
 from keras.preprocessing.image import ImageDataGeneratorAdvanced
 
-from kyu.datasets.imagenet import preprocess_image_for_imagenet
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
 from kyu.models.vgg import VGG16_o1, VGG16_o2
 from kyu.models.resnet import ResNet50_o1, ResCovNet50, ResNet50_o2, ResNet50_o2_multibranch

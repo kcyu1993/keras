@@ -214,7 +214,8 @@ class SecondaryStatistic(Layer):
             if K.backend() != 'tensorflow':
                 raise RuntimeError("Not support for theano now")
             import tensorflow as tf
-            s, u = tf.self_adjoint_eig(cov_mat)
+            with tf.device('/cpu:0'):
+                s, u = tf.self_adjoint_eig(cov_mat)
             comp = tf.zeros_like(s)
             s = tf.where(tf.less(s, comp), comp, s)
             # s = tf.Print(s, [s], message='s:', summarize=self.out_dim)
@@ -1528,7 +1529,9 @@ class BiLinear(Layer):
         #     # cov = tx / (self.rows * self.cols )
         else:
             bilinear_output = tx / (self.nb_filter - 1)
-        bilinear_output = K.sign(bilinear_output) * K.sqrt(K.abs(bilinear_output))
+        from kyu.tensorflow.ops import safe_sign_sqrt
+        bilinear_output = safe_sign_sqrt(bilinear_output)
+        # bilinear_output = K.sign(bilinear_output) * K.sqrt(K.abs(bilinear_output))
         bilinear_output = Flatten()(bilinear_output)
         bilinear_output = K.l2_normalize(bilinear_output, axis=1)
         return bilinear_output

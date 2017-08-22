@@ -13,7 +13,7 @@ from keras.applications.vgg16 import VGG16_Multi
 from kyu.models.so_cnn_helper import covariance_block_original, dcov_model_wrapper_v1, \
     dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
 from kyu.models.so_cnn_helper import covariance_block_vector_space
-from kyu.theano.general.train import toggle_trainable_layers
+from kyu.utils.train_utils import toggle_trainable_layers
 
 
 def VGG16Multi_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3),

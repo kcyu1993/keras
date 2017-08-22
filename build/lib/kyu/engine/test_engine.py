@@ -4,11 +4,11 @@ Testing for the trainer built
 Use DTD and SO-VGG16 for example
 
 """
+from kyu.configs.engine_configs.configs import RunningConfig
+from kyu.configs.model_configs.bilinear import BilinearConfig
 from kyu.datasets.dtd import DTD
-from kyu.engine.configs.running import RunningConfig
 from kyu.engine.trainer import ClassificationTrainer
 from kyu.models import get_model
-from kyu.models.bilinear import BilinearConfig
 from kyu.utils.io_utils import ProjectFile
 
 

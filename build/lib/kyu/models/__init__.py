@@ -1,6 +1,6 @@
-from ..engine.configs.model import ModelConfig
-from . import vgg
+from kyu.configs.engine_configs import ModelConfig
 from . import resnet
+from . import vgg
 
 
 def get_model(config):

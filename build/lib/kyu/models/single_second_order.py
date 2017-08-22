@@ -4,11 +4,12 @@ Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 """
 from keras.applications import VGG16, ResNet50
 from keras.layers import Flatten, Dense, merge
+from keras.models import Model
 from keras.layers.merge import add, average, concatenate
-from kyu.engine.configs import ModelConfig
+
 from kyu.models.secondstat import SeparateConvolutionFeatures, MatrixConcat, WeightedVectorization, FlattenSymmetric
-from kyu.theano.general.train import toggle_trainable_layers, Model
 from kyu.utils.sys_utils import merge_dicts
+from kyu.utils.train_utils import toggle_trainable_layers
 from .so_cnn_helper import get_cov_block, upsample_wrapper_v1
 
 
@@ -120,58 +121,3 @@ def ResNet50_second_order(
     return _compose_second_order_model(base_model, nb_class, cov_branch, **kwargs)
 
 
-class DCovConfig(ModelConfig):
-
-    def __init__(self,
-                 input_shape,
-                 nb_class,
-                 cov_branch,
-                 cov_branch_kwargs,
-                 class_id='vgg',
-                 load_weights='imagenet',
-
-                 # configs for _compose_second_order_things
-                 mode=0, cov_branch_output=None,
-                 freeze_conv=False, name='default_so_model',
-                 nb_branch=1,
-                 concat='concat',
-                 cov_output_vectorization='pv',
-                 last_conv_feature_maps=[],
-                 last_conv_kernel=[1, 1],
-                 upsample_method='conv',
-                 **kwargs
-                 ):
-        model_id = 'second_order'
-        super(DCovConfig, self).__init__(class_id, model_id)
-        self.__dict__.update(locals())
-
-
-class O2TBranchConfig(DCovConfig):
-    def __init__(self,
-                 parametric=[],
-                 activation='relu',
-                 cov_mode='channel',
-                 vectorization='wv',
-                 epsilon=1e-5,
-                 use_bias=True,
-                 **kwargs
-                 ):
-        z = {}
-        z['parametric'] = parametric
-        z['activation'] = activation
-        z['cov_mode'] = cov_mode
-        z['vectorization'] = vectorization
-        z['epsilon'] = epsilon
-        z['use_bias'] = use_bias
-        super(O2TBranchConfig, self).__init__(cov_branch_kwargs=z, **kwargs)
-
-
-class NoWVBranchConfig(DCovConfig):
-    def __init__(self,
-                 parametric=[],
-                 epsilon=1e-7,
-                 activation='relu',
-                 **kwargs
-                 ):
-        z = merge_dicts(locals(), kwargs)
-        super(NoWVBranchConfig, self).__init__(**kwargs)

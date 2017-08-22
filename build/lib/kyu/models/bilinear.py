@@ -1,15 +1,15 @@
 
 from keras.applications import VGG16, ResNet50
-from keras.layers import Conv2D, Dense
-from kyu.engine.configs import ModelConfig
+from keras.layers import Dense
+from keras.models import Model
 from kyu.models.secondstat import BiLinear
-from kyu.theano.general.train import toggle_trainable_layers, Model
+from kyu.utils.train_utils import toggle_trainable_layers
 
 
 def _compose_bilinear_model(base_model, nb_class, freeze_conv=False, name='Bilinear_default'):
     # Create Dense layers
     x = base_model.output
-    x = Conv2D(256, (1, 1), name='1x1_stage5')(x)
+    # x = Conv2D(256, (1, 1), name='1x1_stage5')(x)
     x = BiLinear(eps=0, activation='linear')(x)
     x = Dense(nb_class, activation='softmax')(x)
     if freeze_conv:
@@ -45,14 +45,3 @@ def ResNet50_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3)
                                    freeze_conv=freeze_conv, name='ResNet50_bilinear')
 
 
-class BilinearConfig(ModelConfig):
-
-    def __init__(self,
-                 nb_class,
-                 input_shape,
-                 class_id='vgg',
-                 model_id='bilinear',
-                 load_weights='imagenet'
-                 ):
-        super(BilinearConfig, self).__init__(class_id, model_id)
-        self.__dict__.update(locals())

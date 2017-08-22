@@ -16,12 +16,13 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
-from kyu.datasets.imagenet import preprocess_image_for_imagenet
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
 from kyu.models.vgg import VGG16_o1, VGG16_o2, VGG16_bilinear
 from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_multibranch
 
-from kyu.theano.general.train import fit_model_v2, toggle_trainable_layers, Model
+from kyu.theano.general.train import fit_model_v2, Model
+from kyu.utils.train_utils import toggle_trainable_layers
 
 import keras.backend as K
 from kyu.utils.image import ImageDataGeneratorAdvanced
@@ -433,7 +434,7 @@ if __name__ == '__main__':
     # config = get_cov_alpha_cv(1)
     # config = get_cov_beta_cv(1)
     # config.batch_size = 32
-    # baseline_finetune_bilinear(1)
+    baseline_finetune_bilinear(1)
     # config = get_new_experiment(6)
     # config = get_aaai_experiment(1)
     # config = get_matrix_bp(1)

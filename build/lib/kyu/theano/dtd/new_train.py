@@ -2,33 +2,18 @@
 New Train pipeline with trainer
 
 """
-import copy
-
+from keras.optimizers import SGD
+from kyu.configs.engine_configs import RunningConfig
+from kyu.configs.model_configs.first_order import VggFirstOrderConfig
 from kyu.datasets.dtd import DTD
-from kyu.datasets.imagenet import preprocess_image_for_imagenet, preprocess_image_for_imagenet_without_channel_reverse
-from kyu.engine.configs import RunningConfig
-from kyu.engine.trainer import ClassificationTrainer
-from kyu.models import get_model
 from kyu.theano.dtd.configs import get_o2t_testing
-from kyu.utils.image import ImageDataGeneratorAdvanced
+from kyu.theano.general.train import finetune_with_model_data
 from kyu.utils.io_utils import ProjectFile
 
 
-def get_vgg_image_gen(target_size, rescale_small, random_crop=True, horizontal_flip=True):
-
-    return ImageDataGeneratorAdvanced(
-        target_size, rescale_small, random_crop=random_crop,
-        horizontal_flip=horizontal_flip,
-        preprocessing_function=preprocess_image_for_imagenet
-    )
-
-
-def get_resnet_image_gen(target_size, rescale_small, random_crop=True, horizontal_flip=True):
-    return ImageDataGeneratorAdvanced(
-        target_size, rescale_small, random_crop=random_crop,
-        horizontal_flip=horizontal_flip,
-        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse
-    )
+def get_test_optimizer():
+    """ Get a SGD with gradient clipping """
+    return SGD(lr=0.01, momentum=0.9, decay=1e-4, clipvalue=1e4)
 
 
 def get_running_config(title='DTD_testing', model_config=None):
@@ -56,59 +41,40 @@ def get_running_config(title='DTD_testing', model_config=None):
     )
 
 
+def get_vgg_config():
+    return VggFirstOrderConfig(
+        nb_classes=67,
+        input_shape=(224, 224, 3),
+        include_top=True,
+        freeze_conv=False
+    )
+
+
 def finetune_with_model(model_config, nb_epoch_finetune, running_config):
     data = DTD('/home/kyu/.keras/datasets/dtd', name='DTD')
-    # Update
-    model_config.nb_class = data.nb_class
-
-    if model_config.class_id == 'vgg':
-        data.image_data_generator = get_vgg_image_gen(model_config.target_size,
-                                                      running_config.rescale_small,
-                                                      running_config.random_crop,
-                                                      running_config.horizontal_flip)
-    else:
-        data.image_data_generator = get_resnet_image_gen(model_config.target_size,
-                                                         running_config.rescale_small,
-                                                         running_config.random_crop,
-                                                         running_config.horizontal_flip)
     dirhelper = ProjectFile(root_path='/home/kyu/cvkyu/secondstat', dataset=data.name, model_category='VGG16')
-    dirhelper.build(running_config.title)
-
-    if nb_epoch_finetune > 0:
-        # model_config2 = copy.copy(model_config)
-        model_config.freeze_conv = True
-        model = get_model(model_config)
-
-        trainer = ClassificationTrainer(model, data, dirhelper,
-                                        model_config=model_config, running_config=running_config,
-                                        save_log=True,
-                                        logfile=dirhelper.get_log_path())
-        trainer.model.summary()
-        trainer.fit(nb_epoch=nb_epoch_finetune, verbose=2)
-        trainer.plot_result()
-        # trainer.plot_model()
-        model_config.freeze_conv = False
-        running_config.load_weights = True
-        running_config.init_weights_location = dirhelper.get_weight_path()
-
-    model = get_model(model_config)
-
-    trainer = ClassificationTrainer(model, data, dirhelper,
-                                    model_config=model_config, running_config=running_config,
-                                    save_log=True,
-                                    logfile=dirhelper.get_log_path())
-
-    trainer.build()
-
-    trainer.fit(verbose=2)
-    trainer.plot_result()
+    finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, running_config)
 
 
-if __name__ == '__main__':
+def so_vgg_experiment(exp=1):
     title = 'DTD-Testing-o2transform'
-    model_config = get_o2t_testing(2)
+    model_config = get_o2t_testing(exp)
     running_config = get_running_config(title, model_config)
-
+    running_config.rescale_small = 256
     finetune_with_model(model_config, nb_epoch_finetune=10, running_config=running_config)
 
 
+def test_minc_experiment(exp=1):
+    pass
+
+
+def vgg_baseline(exp=1):
+    baseline_model_config = get_vgg_config()
+    running_config = get_running_config('DTD-VGG6-baseline-withtop', baseline_model_config)
+    finetune_with_model(baseline_model_config, 4, running_config)
+
+
+if __name__ == '__main__':
+    so_vgg_experiment(2)
+    # vgg_baseline()
+    # mpn_cov_baseline(1)

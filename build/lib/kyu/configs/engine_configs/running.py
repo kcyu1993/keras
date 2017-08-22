@@ -1,7 +1,6 @@
 import os
 
-from kyu.engine.configs import ModelConfig
-from kyu.engine.configs.generic import KCConfig
+from .generic import KCConfig
 from kyu.utils.io_utils import ProjectFile
 
 
@@ -59,6 +58,7 @@ class RunningConfig(KCConfig):
                  rescale_small=320,
                  random_crop=True,
                  horizontal_flip=True,
+                 comments='',
                  ):
         # self.__dict__.update(locals())
         self.model_config = model_config
@@ -85,6 +85,7 @@ class RunningConfig(KCConfig):
         self.rescale_small = rescale_small
         self.random_crop = random_crop
         self.horizontal_flip = horizontal_flip
+        self.comments = comments
 
     @property
     def title(self):
@@ -94,3 +95,4 @@ class RunningConfig(KCConfig):
     def title(self, value):
         self._title = value if value is not None else self._title
 
+    # TODO add the optimizer to property for smart update the related kwargs

@@ -13,7 +13,7 @@ import keras.backend as K
 
 from kyu.models.vgg import VGG16_o1, VGG16_o2
 from kyu.utils.example_engine import ExampleEngine
-from kyu.datasets.imagenet import preprocess_image_for_imagenet
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 from kyu.datasets.xray import XrayLoader
 
 

@@ -9,7 +9,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
-from kyu.datasets.imagenet import preprocess_image_for_imagenet
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
 from kyu.models.vgg import VGG16_o1
 from kyu.models.resnet import ResNet50_o1, ResCovNet50

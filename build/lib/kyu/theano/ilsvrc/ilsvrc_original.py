@@ -19,7 +19,8 @@ import sys
 from keras.optimizers import SGD
 import keras.backend as K
 
-from kyu.datasets.imagenet import ImageNetLoader, preprocess_image_for_imagenet
+from kyu.datasets.imagenet import ImageNetLoader
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 from keras.preprocessing.image import ImageDataGeneratorAdvanced, ImageDataGenerator
 from keras.applications.vgg16 import VGG16
 from keras.applications import ResNet50

@@ -8,7 +8,8 @@ import keras.backend as K
 import json
 import os
 import numpy as np
-from imagenet import preprocess_image_for_imagenet, ImageIterator
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
+from kyu.utils.image import ImageIterator
 
 
 def preprocess(img, crop=True, resize=True, dsize=(224, 224)):

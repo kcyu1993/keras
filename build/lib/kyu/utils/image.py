@@ -2,10 +2,14 @@ import numpy as np
 from PIL import Image
 from scipy.misc import imresize
 
+from keras import backend as K
 from keras.preprocessing.image import DirectoryIterator, ImageDataGenerator, Iterator, load_img, img_to_array, \
     array_to_img
 import keras.backend as K
 import os
+
+from kyu.utils.imagenet_utils import preprocess_image_for_imagenet_without_channel_reverse, \
+    preprocess_image_for_imagenet
 
 
 def crop(x, center_x, center_y, ratio=.23, channel_index=0):
@@ -628,3 +632,194 @@ class ImageLoader(object):
 
     def decode(self, filename):
         pass
+
+
+def get_vgg_image_gen(target_size, rescale_small, random_crop=True, horizontal_flip=True):
+
+    return ImageDataGeneratorAdvanced(
+        target_size, rescale_small, random_crop=random_crop,
+        horizontal_flip=horizontal_flip,
+        preprocessing_function=preprocess_image_for_imagenet
+    )
+
+
+def get_resnet_image_gen(target_size, rescale_small, random_crop=True, horizontal_flip=True):
+    return ImageDataGeneratorAdvanced(
+        target_size, rescale_small, random_crop=random_crop,
+        horizontal_flip=horizontal_flip,
+        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse
+    )
+
+
+class ImageIterator(Iterator):
+    """
+    Define a general iterator.
+    Given a image files, iterate through it.
+    """
+    def __init__(self, imgloc_list, cate_list, nb_class,
+                 image_data_generator=None,
+                 dir_prefix='',
+                 target_size=(224,224), color_mode='rgb',
+                 dim_ordering='default',
+                 data_format='default',
+                 class_mode='categorical',
+                 batch_size=32,
+                 shuffle=True,
+                 seed=None,
+                 category_dict=None,
+                 save_to_dir=None, save_prefix='', save_format='JPEG'):
+        """
+        Create a ImageIterator based on image locations and corresponding categories.
+        One should obtain all location regarding to the images before use the iterator.
+        Use next() to generate a batch.
+
+        Parameters
+        ----------
+        imgloc_list : list      contains image paths list
+        cate_list : list        contains the corresponding categories regarding to the
+        image_data_generator    Generator of keras
+        dir_prefix : str        Prefix of path to images
+        target_size : (int,int)
+        color_mode : str        rgb, grayscale
+        dim_ordering : str      th, tf
+        class_mode : str        category, sparse, binary
+        batch_size : int
+        shuffle : bool
+        seed : Not used here
+        save_to_dir : str       For test purpose.
+        save_prefix
+        save_format
+        """
+        assert len(imgloc_list) == len(cate_list)
+
+        # Legacy support
+        if dim_ordering == 'default':
+            dim_ordering = K.image_dim_ordering()
+
+        self.dim_ordering = dim_ordering
+        self.data_format = K.image_data_format() if data_format == 'default' else data_format
+
+        if class_mode not in {'categorical', 'binary', 'sparse', None}:
+            raise ValueError('Invalid class_mode:', class_mode,
+                             '; expected one of "categorical", '
+                             '"binary", "sparse", or None.')
+        self.class_mode = class_mode
+        self.nb_class = int(nb_class)
+        self.dir_prefix = dir_prefix
+
+        # Generator settings
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+
+        # Image settings
+        self.target_size = target_size
+        self.color_mode = color_mode
+        self.imageOpAdv = False
+        if image_data_generator is None:
+            image_data_generator = ImageDataGenerator(horizontal_flip=True)
+        elif isinstance(image_data_generator, ImageDataGeneratorAdvanced):
+            self.imageOpAdv = True
+            image_data_generator.target_size = self.target_size
+        self.image_data_generator = image_data_generator
+
+        if self.color_mode == 'rgb':
+            if self.data_format == 'channels_last':
+                self.image_shape = self.target_size + (3,)
+            else:
+                self.image_shape = (3,) + self.target_size
+        else:
+            if self.data_format == 'channels_last':
+                self.image_shape = self.target_size + (1,)
+            else:
+                self.image_shape = (1,) + self.target_size
+
+        # Test purpose
+        self.save_to_dir = save_to_dir
+        self.save_prefix = save_prefix
+        self.save_format = save_format
+
+        # Generate the image list and corresponding category
+        self.img_files_list = [self.get_image_path(i) for i in imgloc_list]
+        self.img_cate_list = cate_list.astype(np.uint32)
+        self.category_dict = category_dict
+
+        self.nb_sample = len(self.img_files_list)
+        super(ImageIterator, self).__init__(self.nb_sample, batch_size, shuffle, seed)
+        # self.index_generator = self._flow_index(self.nb_sample, batch_size, shuffle, seed)
+
+    def next(self):
+        with self.lock:
+            index_array, current_index, current_batch_size = next(self.index_generator)
+
+        batch_x = np.zeros((current_batch_size,) + self.image_shape)
+        grayscale = self.color_mode == 'grayscale'
+
+        # Build image data
+        for i, j in enumerate(index_array):
+            fname = self.img_files_list[j]
+            img = load_img(fname, grayscale=grayscale)
+            # Random crop
+            # img = random_crop_img(img, target_size=self.target_size)
+            x = img_to_array(img, data_format=self.data_format)
+
+            # x = preprocess_input(x, dim_ordering=self.dim_ordering)
+            if self.imageOpAdv:
+                x = self.image_data_generator.advancedoperation(x)
+            else:
+                x = imresize(x, self.target_size)
+                if self.dim_ordering == 'th':
+                    x = x.transpose(2,0,1)
+            x = x.astype(K.floatx())
+            x = self.image_data_generator.random_transform(x)
+            x = self.image_data_generator.standardize(x)
+
+            batch_x[i] = x
+
+        # build batch of labels
+        if self.class_mode == 'sparse':
+            raise NotImplementedError
+            # batch_y = self.classes[index_array]
+        elif self.class_mode == 'binary':
+            raise NotImplementedError
+            # batch_y = self.classes[index_array].astype('float32')
+        elif self.class_mode == 'categorical':
+            batch_y = np.zeros((len(batch_x), self.nb_class), dtype='float32')
+            for i, j in enumerate(index_array):
+                label = self.img_cate_list[j]
+                # label = self.img_cate_list[j] - 1
+                batch_y[i, label] = 1.
+        else:
+            return batch_x
+
+        # optionally save augmented images to disk for debugging purposes
+        if self.save_to_dir:
+            for i in range(current_batch_size):
+                img = array_to_img(batch_x[i], self.dim_ordering, scale=True)
+                if self.category_dict is not None:
+                    label = 'None'
+                    for (cate_name, ind) in self.category_dict.items():
+                        if ind == self.img_cate_list[index_array[i]]:
+                            label = cate_name
+                    fname = '{prefix}_{index}_{hash}-{label}.{format}'.format(
+                        prefix=self.save_prefix,
+                        index=current_index + i,
+                        hash=np.random.randint(1e4),
+                        format=self.save_format,
+                        label=label + str(self.img_cate_list[index_array[i]])
+                    )
+                else:
+                    fname = '{prefix}_{index}_{hash}.{format}'.format(
+                        prefix=self.save_prefix,
+                        index=current_index + i,
+                        hash=np.random.randint(1e4),
+                        format=self.save_format,
+                    )
+                img.save(os.path.join(self.save_to_dir, fname))
+
+        # batch_x = preprocess_input(batch_x, data_format=self.data_format)
+
+        return batch_x, batch_y
+
+    def get_image_path(self, img_file):
+        """ Get Image img_file """
+        return os.path.join(self.dir_prefix, img_file)

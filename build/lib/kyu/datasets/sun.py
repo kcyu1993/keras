@@ -4,7 +4,7 @@ SUN 397 standard dataset
 """
 import os
 import numpy as np
-from kyu.datasets.imagenet import ImageIterator
+from kyu.utils.image import ImageIterator
 from kyu.engine.utils.data_utils import ClassificationImageData
 
 

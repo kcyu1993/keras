@@ -5,7 +5,7 @@ MIT indoor scene dataset
 import os
 import numpy as np
 
-from kyu.datasets.imagenet import ImageIterator
+from kyu.utils.image import ImageIterator
 
 
 class MITLoader(object):
