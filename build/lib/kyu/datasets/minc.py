@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import gzip
+
+from build.lib.kyu.engine.utils.data_utils import ClassificationImageData
 from keras.utils.data_utils import get_file, get_dataset_dir
 from keras.utils.io_utils import HDF5Matrix
 import numpy as np
@@ -10,6 +12,41 @@ import os.path
 from os import listdir
 import h5py
 from keras.preprocessing.image import *
+
+
+class Minc2500_v2(ClassificationImageData):
+    """ Define the classification data for minc 2500 """
+
+    def __init__(self, dirpath='', category='categories.txt', image_dir='images', label_dirs='labels'):
+        super(Minc2500_v2, self).__init__(dirpath, image_dir, category=category, name='Minc2500')
+        self.label_dir = label_dirs
+        self.build_image_label_lists()
+
+    def build_image_label_lists(self):
+        # Build the image list based on Minc data structure
+        for i in range(1, 6):
+            train_file = 'train{}.txt'.format(i)
+            test_file = 'test{}.txt'.format(i)
+            train_mode = 'train'
+            test_mode = 'test'
+            train_img, train_label = self._load_image_location_from_txt(os.path.join(self.root_folder, train_file))
+            test_img, test_label = self._load_image_location_from_txt(os.path.join(self.root_folder, test_file))
+            self.image_list[train_mode + str(i)] = train_img
+            self.image_list[test_mode + str(i)] = test_img
+            self.label_list[train_mode + str(i)] = train_label
+            self.label_list[test_mode + str(i)] = test_label
+
+    def _build_category_dict(self):
+        # Load the categgory
+        with open(self.category_path, 'r') as f:
+            cate_list = f.read().splitlines()
+        self.nb_class = len(cate_list)
+        return dict(zip(cate_list, range(len(cate_list))))
+
+    def decode(self, path):
+        """ e.g. brick_01234.jpg """
+        key, ind = path.split('_')
+        return self.category_dict[key]
 
 
 def load_minc2500(index, target_size, gen=None, batch_size=16, save_dir=None):
