@@ -139,6 +139,7 @@ class DCovConfig(ModelConfig):
                  last_conv_feature_maps=[],
                  last_conv_kernel=[1, 1],
                  upsample_method='conv',
+                 **kwargs
                  ):
         model_id = 'second_order'
         super(DCovConfig, self).__init__(class_id, model_id)

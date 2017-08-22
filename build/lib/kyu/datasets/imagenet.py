@@ -22,6 +22,36 @@ IMAGENET_VALID_GROUNDTRUTH_FILE = 'ILSVRC2014_clsloc_validation_ground_truth.txt
 IMAGENET_VALID_BLACKLIST_FILE = 'ILSVRC2014_clsloc_validation_blacklist.txt'
 
 
+def preprocess_image_for_imagenet_without_channel_reverse(img):
+    """
+         Same as the original except not reversing the channel.
+        i.e. Only zero center by mean pixel.
+
+        Parameters
+        ----------
+        img : ndarray with rank 3
+
+        Returns
+        -------
+        img : ndarray with same shape
+        """
+
+    dim_ordering = K.image_dim_ordering()
+    assert dim_ordering in {'tf', 'th'}
+    x = img
+    if dim_ordering == 'th':
+        # Zero-center by mean pixel
+        x[0, :, :] -= 103.939
+        x[1, :, :] -= 116.779
+        x[2, :, :] -= 123.68
+    else:
+        # Zero-center by mean pixel
+        x[:, :, 0] -= 103.939
+        x[:, :, 1] -= 116.779
+        x[:, :, 2] -= 123.68
+    return x
+
+
 def preprocess_image_for_imagenet(img):
     """
      preprocessing_function: function that will be implied on each input.
@@ -57,69 +87,6 @@ def preprocess_image_for_imagenet(img):
         x[:, :, 1] -= 116.779
         x[:, :, 2] -= 123.68
     return x
-
-
-# class ImageDataGeneratorAdvanced(ImageDataGenerator):
-#     """
-#     Advanced operation:
-#         Support ImageNet training data.
-#
-#     """
-#     def __init__(self,
-#                  rescaleshortedgeto=None,
-#                  random_crop=False,
-#                  target_size=None,
-#                  **kwargs):
-#         self.random_crop = random_crop
-#         self.rescaleshortedgeto = rescaleshortedgeto
-#         self.target_size = target_size
-#         super(ImageDataGeneratorAdvanced, self).__init__(**kwargs)
-#
-#     def advancedoperation(self, x):
-#         if self.rescaleshortedgeto:
-#             pass
-#
-#         if self.random_crop and self.target_size is not None:
-#             # Implement random crop
-#             pass
-#
-#     # def random_crop(self, x, target_size, dim_ordering='default'):
-#     #     if dim_ordering == 'default':
-#     #         dim_ordering = K.image_dim_ordering()
-#     #     if dim_ordering == 'tf':
-#     #         if len(x.shape) == 2:
-#     #             widthchannel = 0
-#     #             heightchannel = 1
-#     #         elif len(x.shape) == 3:
-#     #             widthchannel = 0
-#     #             heightchannel = 1
-#     #         # elif len(x.shape) == 4:
-#     #         #     widthchannel = 1
-#     #         #     heightchannel = 2
-#     #         else:
-#     #             raise ValueError
-#     #     else:
-#     #         if len(x.shape) == 2:
-#     #             widthchannel = 0
-#     #             heightchannel = 1
-#     #         elif len(x.shape) == 3:
-#     #             widthchannel = 1
-#     #             heightchannel = 2
-#     #         # elif len(x.shape) == 4:
-#     #         #     widthchannel = 2
-#     #         #     heightchannel = 3
-#     #         else:
-#     #             raise ValueError
-#     #
-#     #     # Target size
-#     #     width = x.shape[widthchannel]
-#     #     height = x.shape[heightchannel]
-#     #     w_limit = width - target_size[0]
-#     #     h_limit = height - target_size[1]
-#     #     rand_w = np.random.randint(0, w_limit)
-#     #     rand_h = np.random.randint(0, h_limit)
-#     #     crop
-#     #     return
 
 
 class ImageNetTools(object):
@@ -300,7 +267,6 @@ class ImageIterator(Iterator):
 
             batch_x[i] = x
 
-
         # build batch of labels
         if self.class_mode == 'sparse':
             raise NotImplementedError
@@ -342,7 +308,7 @@ class ImageIterator(Iterator):
                     )
                 img.save(os.path.join(self.save_to_dir, fname))
 
-        batch_x = preprocess_input(batch_x, data_format=self.data_format)
+        # batch_x = preprocess_input(batch_x, data_format=self.data_format)
 
         return batch_x, batch_y
 

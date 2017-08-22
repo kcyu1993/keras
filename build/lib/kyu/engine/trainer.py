@@ -39,6 +39,7 @@ from keras.engine import Model
 from keras.losses import categorical_crossentropy
 from keras.metrics import top_k_categorical_accuracy
 from keras.preprocessing.image import ImageDataGenerator, Iterator
+from kyu.engine.configs import ModelConfig
 from kyu.engine.configs.running import RunningConfig
 from kyu.engine.configs.generic import KCConfig
 from kyu.engine.utils.data_utils import ImageData
@@ -122,7 +123,7 @@ class ClassificationTrainer(object):
         else:
             raise ValueError("dirhelper must be a ProjectFile object ")
 
-        if isinstance(model_config, KCConfig) or model_config is None:
+        if isinstance(model_config, ModelConfig) or model_config is None:
             self.model_config = model_config
         else:
             raise ValueError("Model config must be a KCConfig got {}".format(model_config))
@@ -155,6 +156,7 @@ class ClassificationTrainer(object):
 
         # Weight load and over-ride pre-load weights again
         if self.running_config.load_weights and os.path.exists(self.running_config.init_weights_location):
+            print("Weights load from {}".format(self.running_config.init_weights_location))
             self.model.load_weights(self.running_config.init_weights_location, by_name=True)
 
         # Save weights and call backs
@@ -195,8 +197,6 @@ class ClassificationTrainer(object):
 
         if nb_epoch is None:
             nb_epoch = self.running_config.nb_epoch
-        else: # update the running config
-            self.running_config.nb_epoch = nb_epoch
         if verbose is None:
             verbose = self.running_config.verbose
         if batch_size is None:
@@ -248,11 +248,12 @@ class ClassificationTrainer(object):
         return history
 
     def _fit_generator(self, batch_size=None, nb_epoch=None, verbose=None):
-        train = self.data.get_train()
+
+        train = self.data.get_train(batch_size=batch_size, target_size=self.model_config.target_size)
         if self.data.use_validation:
-            valid = self.data.get_valid()
+            valid = self.data.get_valid(batch_size=batch_size, target_size=self.model_config.target_size)
         else:
-            valid = self.data.get_test()
+            valid = self.data.get_test(batch_size=batch_size, target_size=self.model_config.target_size)
 
         if not isinstance(train, Iterator):
             raise ValueError("Only support generator for training data")
@@ -375,7 +376,7 @@ class ClassificationTrainer(object):
             history = history.history
         filename = self.dirhelper.get_history_path()
         if tmp:
-            filename = 'tmp_' + filename
+            filename = filename + '.tmp'
         if history is None:
             return
         # logging.debug("compress with gz")

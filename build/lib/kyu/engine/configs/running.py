@@ -56,6 +56,9 @@ class RunningConfig(KCConfig):
                  optimizer='SGD',
                  lr=0.01,
                  model_config=None, # possibly
+                 rescale_small=320,
+                 random_crop=True,
+                 horizontal_flip=True,
                  ):
         # self.__dict__.update(locals())
         self.model_config = model_config
@@ -78,6 +81,10 @@ class RunningConfig(KCConfig):
 
         self.optimizer = optimizer
         self.tensorboard = tensorboard
+
+        self.rescale_small = rescale_small
+        self.random_crop = random_crop
+        self.horizontal_flip = horizontal_flip
 
     @property
     def title(self):

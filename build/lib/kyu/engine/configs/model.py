@@ -16,4 +16,6 @@ class ModelConfig(KCConfig):
         self.model_id = model_id
         self.input_shape = input_shape
 
-
+    @property
+    def target_size(self):
+        return self.input_shape[0:2]

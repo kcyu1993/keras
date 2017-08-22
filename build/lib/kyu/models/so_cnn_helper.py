@@ -36,8 +36,8 @@ def fn_regroup(tensors):
 
 
 def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
-                              cov_mode='channel', cov_regularizer=None, vectorization='wv',
-                              o2t_constraints=None, use_bias=False,
+                              cov_mode='channel', cov_regularizer=None,
+                              o2t_constraints=None, use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
                               **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -47,7 +47,9 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
     wp_name_base = 'wp' + str(stage) + block + '_branch'
     with tf.name_scope(cov_name_base):
         x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
-                               cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+                               cov_mode=cov_mode, cov_regularizer=cov_regularizer,
+                               robust=robust, cov_alpha=cov_alpha,
+                               cov_beta=cov_beta)(input_tensor)
     for id, param in enumerate(parametric):
         with tf.name_scope(o2t_name_base + str(id)):
             x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
@@ -198,7 +200,7 @@ def covariance_block_aaai(input_tensor, nb_class, stage, block, epsilon=0, param
 
 def covariance_block_no_wv(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                            cov_mode='channel', cov_regularizer=None, vectorization='wv',
-                           o2t_constraints=None, normalization=True, so_mode=1
+                           o2t_constraints=None, normalization=False, so_mode=1
                            ,
                            **kwargs):
     if epsilon > 0:

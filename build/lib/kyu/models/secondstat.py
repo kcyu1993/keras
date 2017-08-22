@@ -88,17 +88,19 @@ class SecondaryStatistic(Layer):
         Fob_regularizer Fob norm regularizer
         init:           initialization of function.
         activation      test activation later
-
+        cov_alpha       Use for robust estimation
+        cov_beta        Use for parametric mean
 
     '''
     def __init__(self, eps=1e-5,
                  cov_mode='channel',
-                 init='glorot_uniform', activation='linear', weights=None,
+                 kernel_initializer='glorot_uniform', activation='linear', weights=None,
                  W_regularizer=None, dim_ordering='default',
                  normalization='mean',
                  cov_regularizer=None, cov_alpha=0.01, cov_beta=0.3,
                  robust=False,
                  **kwargs):
+
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
 
@@ -135,9 +137,9 @@ class SecondaryStatistic(Layer):
 
         self.activation = activations.get(activation)
 
-        self.init = initializers.get(init)
+        self.kernel_initializer = initializers.get(kernel_initializer)
         self.initial_weights = weights
-        self.W_regularizer = regularizers.get(W_regularizer)
+        self.kernel_regularizer = regularizers.get(W_regularizer)
 
         ## Add the fob regularizer.
         self.cov_regulairzer = cov_regularizer
@@ -242,10 +244,10 @@ class SecondaryStatistic(Layer):
         -------
 
         """
-        config = {'init': self.init,
+        config = {'kernel_initializer': initializers.serialize(self.kernel_initializer),
                   'activation': self.activation.__name__,
                   'dim_ordering': self.dim_ordering,
-                  'W_regularizer': self.W_regularizer.get_config() if self.W_regularizer else None,
+                  'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
                   'eps': self.eps,
                   'cov_mode': self.cov_mode
                   }
@@ -1073,9 +1075,8 @@ class O2Transform(Layer):
         return com
 
     def get_config(self):
-        config = {'kernel_initializer': self.kernel_initializer,
+        config = {'kernel_initializer': initializers.serialize(self.kernel_initializer),
                   'activation': activations.serialize(self.activation),
-                  'kernel_initializater': initializers.serialize(self.kernel_initializer),
                   'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
                   'kernel_constraint': constraints.serialize(self.kernel_constraint),
                   }
@@ -1226,17 +1227,17 @@ class WeightedVectorization(Layer):
             raise ValueError("Output dim must be not None")
 
         if activation_regularizer in ('l2', 'l1',None):
-            self.activation_regularizer = activation_regularizer
+            self.activation_regularizer = regularizers.get(activation_regularizer)
         else:
             raise ValueError("Activation regularizer only support l1, l2, None. Got {}".format(activation_regularizer))
 
         self.kernel_initializer = initializers.get(kernel_initializer)
-        self.kernel_constraint = kernel_constraint
-        self.kernel_regularizer = kernel_regularizer
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
         self.use_bias = use_bias
-        self.bias_initializer = bias_initializer
-        self.bias_constraint = bias_constraint
-        self.bias_regularizer = bias_regularizer
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.bias_constraint = constraints.get(bias_constraint)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
 
         self.activation = activations.get(activation)
         super(WeightedVectorization, self).__init__(**kwargs)
@@ -1318,7 +1319,7 @@ class WeightedVectorization(Layer):
                   'bias_initializer': initializers.serialize(self.bias_initializer),
                   'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
                   'bias_regularizer': regularizers.serialize(self.bias_regularizer),
-                  'activity_regularizer': regularizers.serialize(self.activity_regularizer),
+                  'activity_regularizer': regularizers.serialize(self.activation_regularizer),
                   'kernel_constraint': constraints.serialize(self.kernel_constraint),
                   'bias_constraint': constraints.serialize(self.bias_constraint),
                   }

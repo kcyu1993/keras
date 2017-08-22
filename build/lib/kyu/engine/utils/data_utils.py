@@ -225,13 +225,13 @@ class ClassificationImageData(ImageData):
 
     # Private method
     def _get_train(self, index=0, **kwargs):
-        return self.generator('train', index)
+        return self.generator('train', index, **kwargs)
 
     def _get_valid(self, index=0, **kwargs):
-        return self.generator('valid', index)
+        return self.generator('valid', index, **kwargs)
 
     def _get_test(self, index=0, **kwargs):
-        return self.generator('test', index)
+        return self.generator('test', index, **kwargs)
 
     def _set_train(self, image_list, label_list, index=0):
         self.image_list['train' + str(index)] = image_list

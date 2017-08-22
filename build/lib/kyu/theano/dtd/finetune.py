@@ -941,7 +941,7 @@ if __name__ == '__main__':
     # config = get_different_concat(1)
     # config = get_residual_cov_experiment(2)
     # config = get_von_settings(4)
-    # config = get_new_experiment(6)
+    config = get_new_experiment(6)
     # config = get_matrix_bp(1)
 
     # config = get_aaai_experiment(1)
@@ -951,8 +951,8 @@ if __name__ == '__main__':
     # config = get_experiment_settings()
     # config.batch_size = 32
 
-    # print(config.title)
-    # run_routine_vgg(config, verbose=(2,1), nb_epoch_after=200, nb_epoch_finetune=0)
+    print(config.title)
+    run_routine_vgg(config, verbose=(2,1), nb_epoch_after=200, nb_epoch_finetune=0)
 
     # run_routine_vgg()
     # test_routine_resnet(config, verbose=(2,1), nb_epoch_after=50, nb_epoch_finetune=2)
@@ -960,4 +960,4 @@ if __name__ == '__main__':
     # run_routine_resnet(config, verbose=(1,2), stiefel_observed=['o2t'], stiefel_lr=(0.01, 0.001),
     #                    nb_epoch_finetune=4, nb_epoch_after=50)
     # run_routine_resnet(config, verbose=(1,2), nb_epoch_finetune=39, nb_epoch_after=50)
-    baseline_finetune_bilinear(1)
+    # baseline_finetune_bilinear(1)
