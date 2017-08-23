@@ -51,6 +51,10 @@ class NoWVBranchConfig(DCovConfig):
                  parametric=[],
                  epsilon=1e-7,
                  activation='relu',
+                 cov_mode='channel',
+                 cov_alpha=0.3,
+                 cov_beta=0.1,
+                 robust=False,
                  **kwargs
                  ):
         z = {"parametric": parametric, "epsilon": epsilon, "activation": activation}

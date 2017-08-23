@@ -179,6 +179,8 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
         running_config.init_weights_location = dirhelper.get_weight_path()
 
     model = get_model(model_config)
+    if nb_epoch_finetune == 0:
+        model.summary()
 
     trainer = ClassificationTrainer(model, data, dirhelper,
                                     model_config=model_config, running_config=running_config,
@@ -190,4 +192,19 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
     trainer.fit(verbose=2)
     trainer.plot_result()
 
-
+#
+# def train_with_model(model, model_config, data, dirhelper, running_config):
+#
+#     model_config.nb_class = data.nb_class
+#     if model_config.class_id == 'vgg':
+#         data.image_data_generator = get_vgg_image_gen(model_config.target_size,
+#                                                       running_config.rescale_small,
+#                                                       running_config.random_crop,
+#                                                       running_config.horizontal_flip)
+#     else:
+#         data.image_data_generator = get_resnet_image_gen(model_config.target_size,
+#                                                          running_config.rescale_small,
+#                                                          running_config.random_crop,
+#                                                          running_config.horizontal_flip)
+#     dirhelper.build(running_config.title)
+#

@@ -113,12 +113,6 @@ class SecondaryStatistic(Layer):
             self.axis_row = 1
             self.axis_col = 2
 
-        # if cov_mode is 'channel':
-        #     self.axis_cov = (self.axis_filter,)
-        #     self.axis_non_cov = (self.axis_row, self.axis_col)
-        # elif cov_mode is 'feature':
-        #     self.axis_cov = (self.axis_row, self.axis_col)
-        #     self.axis_non_cov = (self.axis_filter,)
         if cov_mode not in ['channel', 'feature', 'mean', 'pmean']:
             raise ValueError('only support cov_mode across channel and features and mean, given {}'.format(cov_mode))
 
@@ -162,9 +156,6 @@ class SecondaryStatistic(Layer):
         :param input_shape:
         :return:
         """
-        # print('secondary_stat: input shape lenth', len(input_shape))
-        # print('second_stat: input shape {}'.format(input_shape))
-        # print('second_stat: axis filter {}'.format(self.axis_filter))
         self.nb_samples = input_shape[0]
         self.nb_filter = input_shape[self.axis_filter]
         self.rows = input_shape[self.axis_row]

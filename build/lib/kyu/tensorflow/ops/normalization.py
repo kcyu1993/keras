@@ -99,6 +99,8 @@ class SecondOrderBatchNormalization(BatchNormalization):
             x_norm = tf.matrix_band_part(x_norm, 0, -1)
             x_norm = x_norm + K.transpose(x_norm, [0, 2, 1]) - \
                      tf.matrix_diag(tf.matrix_diag_part(x_norm))
+        elif self.so_mode == 3:
+            pass
         else:
             raise ValueError("SecondBatchNorm: so_mode not supported {}".format(self.so_mode))
         return x_norm
