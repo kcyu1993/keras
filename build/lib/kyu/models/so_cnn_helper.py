@@ -270,10 +270,10 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
                            cov_mode=cov_mode, cov_regularizer=cov_regularizer)(input_tensor)
 
     # Try the power transform before and after.
-
+    x = PowTransform(alpha=0.5, name=pow_name_base, normalization=None)(x)
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
-    x = PowTransform(alpha=0.5, name=pow_name_base, normalization=None)(x)
+
     if vectorization == 'wv':
         x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
     elif vectorization == 'dense':

@@ -28,6 +28,8 @@ class ImageData(object):
         self.image_data_generator = image_data_generator
 
     def path_setter(self, value):
+        if value is None:
+            return self.root_folder
         if os.path.isabs(value):
             path = value if os.path.exists(value) else self.root_folder
         else:

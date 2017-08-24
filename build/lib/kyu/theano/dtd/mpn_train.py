@@ -1,5 +1,5 @@
 from kyu.configs.model_configs.iccv_pow_transform import MPNConfig
-from kyu.theano.dtd.new_train import get_running_config, finetune_with_model
+from kyu.theano.dtd.new_train import get_running_config, dtd_finetune_with_model
 
 
 def mpn_cov_baseline(exp=1):
@@ -36,14 +36,15 @@ def mpn_cov_baseline(exp=1):
             cov_beta=0.3,
             normalization=None,
             mode=1,
-            last_conv_feature_maps=[256]
+            last_conv_feature_maps=[256],
+            cov_branch_output=128
 
         )
         running_config = get_running_config('MPN-Cov-with-O2T-and-pv', mpn_config)
         running_config.comments = 'test with WV and bias enable'
     else:
         raise ValueError
-    finetune_with_model(
+    dtd_finetune_with_model(
         mpn_config,
         4,
         running_config

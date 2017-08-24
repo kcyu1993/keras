@@ -4,7 +4,8 @@ Testing for the trainer built
 Use DTD and SO-VGG16 for example
 
 """
-from kyu.configs.engine_configs.configs import RunningConfig
+from kyu.configs.engine_configs import RunningConfig
+from kyu.configs.model_configs import MPNConfig
 from kyu.configs.model_configs.bilinear import BilinearConfig
 from kyu.datasets.dtd import DTD
 from kyu.engine.trainer import ClassificationTrainer
@@ -59,6 +60,34 @@ def test_model_plot_function():
     model, data, dirhelper, model_config, running_config = get_dtd_bilinear_model()
     trainer = ClassificationTrainer(model, data, dirhelper, model_config, running_config)
     trainer.plot_model()
+
+
+def test_tfdbg_session():
+    from tensorflow.python import debug as tfdbg
+    from kyu.theano.dtd.new_train import get_running_config, dtd_finetune_with_model
+
+    model_config = MPNConfig(input_shape=(224, 224, 3),
+                             nb_class=67,
+                             parametric=[128],
+                             activation='relu',
+                             cov_mode='channel',
+                             vectorization='wv',
+                             epsilon=1e-5,
+                             use_bias=True,
+                             cov_alpha=0.1,
+                             cov_beta=0.3,
+                             normalization=None,
+                             mode=1,
+                             last_conv_feature_maps=[256],
+                             cov_branch_output=128)
+
+    running_config = get_running_config('DTD-test-with-tfdbg', model_config)
+
+    running_config.tf_debug = True
+    running_config.tf_debug_filters_func = [tfdbg.has_inf_or_nan]
+    running_config.tf_debug_filters_name = ['has_inf_or_nan']
+
+    dtd_finetune_with_model(model_config, 0, running_config)
 
 
 if __name__ == '__main__':

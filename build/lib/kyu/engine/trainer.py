@@ -37,6 +37,7 @@ import os
 
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, TensorBoard
 from keras.engine import Model
+import keras.backend as K
 from keras.losses import categorical_crossentropy
 from keras.metrics import top_k_categorical_accuracy
 from keras.preprocessing.image import Iterator
@@ -94,7 +95,8 @@ class ClassificationTrainer(object):
                  running_config=None,
                  # logger=None,
                  save_log=True,
-                 logfile=None
+                 logfile=None,
+
                  ):
         """
 
@@ -139,6 +141,11 @@ class ClassificationTrainer(object):
         self.save_log = save_log
         if self.save_log:
             self.stdout = Logger(self.logfile)
+
+        # TF debug function
+        self.tf_debug = running_config.tf_debug
+        self.tf_debug_filters_func = running_config.tf_debug_filters_func
+        self.tf_debug_filters_name = running_config.tf_debug_filters_name
 
         self.cbks = []
         self.fit_mode = 0
@@ -212,8 +219,17 @@ class ClassificationTrainer(object):
                 self.save_keras_model_config(self.dirhelper.get_config_path('keras'))
                 self.running_config.write_to_config(self.dirhelper.get_config_path('run'))
 
+                if self.tf_debug:
+                    from tensorflow.python import debug as tf_debug
+                    sess = K.get_session()
+                    sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+                    if self.tf_debug_filters_name:
+                        for name, func in zip(self.tf_debug_filters_name, self.tf_debug_filters_func):
+                            sess.add_tensor_filter(name, func)
+                    K.set_session(sess)
                 # Run the train function.
                 history = self._fit_generator(batch_size=batch_size, nb_epoch=nb_epoch, verbose=verbose)
+
             else:
                 raise NotImplementedError("Fit mode other than 0 is not handled {}".format(self.fit_mode))
 

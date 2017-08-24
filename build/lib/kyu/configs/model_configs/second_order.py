@@ -39,6 +39,7 @@ class O2TBranchConfig(DCovConfig):
                  cov_beta=0.3,
                  **kwargs
                  ):
+        cov_branch = 'o2transform'
         z = {"parametric": parametric, 'activation': activation, 'parametric': parametric, 'cov_mode': cov_mode,
              'vectorization': vectorization, 'epsilon': epsilon, 'use_bias': use_bias, 'cov_alpha': cov_alpha,
              'cov_beta': cov_beta, 'robust': robust}
@@ -55,7 +56,13 @@ class NoWVBranchConfig(DCovConfig):
                  cov_alpha=0.3,
                  cov_beta=0.1,
                  robust=False,
+                 normalization=False,
                  **kwargs
                  ):
-        z = {"parametric": parametric, "epsilon": epsilon, "activation": activation}
-        super(NoWVBranchConfig, self).__init__(cov_branch_kwargs=z, **kwargs)
+        cov_branch = 'o2t_no_wv'
+        z = {"parametric": parametric, "epsilon": epsilon, "activation": activation,
+             'cov_mode': cov_mode,
+             'epsilon': epsilon, 'cov_alpha': cov_alpha,
+             'cov_beta': cov_beta, 'robust': robust, "normalization":normalization,
+             }
+        super(NoWVBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)

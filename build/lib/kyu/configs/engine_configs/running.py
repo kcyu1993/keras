@@ -58,6 +58,9 @@ class RunningConfig(KCConfig):
                  rescale_small=320,
                  random_crop=True,
                  horizontal_flip=True,
+                 tf_debug=False,
+                 tf_debug_filters_name=None,
+                 tf_debug_filters_func=None,
                  comments='',
                  ):
         # self.__dict__.update(locals())
@@ -86,6 +89,10 @@ class RunningConfig(KCConfig):
         self.random_crop = random_crop
         self.horizontal_flip = horizontal_flip
         self.comments = comments
+
+        self.tf_debug = tf_debug
+        self.tf_debug_filters_func = tf_debug_filters_func
+        self.tf_debug_filters_name = tf_debug_filters_name
 
     @property
     def title(self):

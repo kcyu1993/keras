@@ -94,10 +94,12 @@ class SecondaryStatistic(Layer):
     '''
     def __init__(self, eps=1e-5,
                  cov_mode='channel',
-                 kernel_initializer='glorot_uniform', activation='linear', weights=None,
-                 W_regularizer=None, dim_ordering='default',
+                 kernel_initializer='glorot_uniform', activation='linear',
+                 kernel_regularizer=None, dim_ordering='default',
                  normalization='mean',
                  cov_regularizer=None, cov_alpha=0.01, cov_beta=0.3,
+                 alpha_initializer='ones',
+                 alpha_constraint=None,
                  robust=False,
                  **kwargs):
 
@@ -132,8 +134,10 @@ class SecondaryStatistic(Layer):
         self.activation = activations.get(activation)
 
         self.kernel_initializer = initializers.get(kernel_initializer)
-        self.initial_weights = weights
-        self.kernel_regularizer = regularizers.get(W_regularizer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+
+        self.alpha_initializer = initializers.get(alpha_initializer)
+        self.alpha_constraint = constraints.get(alpha_constraint)
 
         ## Add the fob regularizer.
         self.cov_regulairzer = cov_regularizer
@@ -188,6 +192,11 @@ class SecondaryStatistic(Layer):
         elif self.cov_regulairzer == 'vN':
             self.C_regularizer = VonNeumannDistanceRegularizer(self.out_dim, self.cov_alpha, self.eps)
             self.activity_regularizer = self.C_regularizer
+
+        # add the alpha
+        # self.alpha = self.add_weight(
+            # shape=d
+        # )
         self.built = True
 
     def compute_output_shape(self, input_shape):
@@ -205,8 +214,8 @@ class SecondaryStatistic(Layer):
             if K.backend() != 'tensorflow':
                 raise RuntimeError("Not support for theano now")
             import tensorflow as tf
-            with tf.device('/cpu:0'):
-                s, u = tf.self_adjoint_eig(cov_mat)
+            # with tf.device('/cpu:0'):
+            s, u = tf.self_adjoint_eig(cov_mat)
             comp = tf.zeros_like(s)
             s = tf.where(tf.less(s, comp), comp, s)
             # s = tf.Print(s, [s], message='s:', summarize=self.out_dim)
@@ -292,6 +301,7 @@ class SecondaryStatistic(Layer):
         if self.normalization == None:
             # cov /= (self.rows * self.cols - 1)
             cov /= (self.rows * self.cols )
+        cov = K.identity(cov, 'pre_cov')
         return cov, xf_mean
 
     # Deprecated method
@@ -592,6 +602,7 @@ class MatrixConcat(Layer):
         self.supports_masking = True
         self.uses_learning_phase = False
         self.input_spec = None
+        self.trainable = False
 
         if not name:
             prefix = self.__class__.__name__.lower()
@@ -638,6 +649,18 @@ class MatrixConcat(Layer):
             output_shape[1] += input_shape[i][1]
             output_shape[2] += input_shape[i][2]
         return [tuple(output_shape), ]
+
+    def get_config(self):
+        """
+        To serialize the model given and generate all related parameters
+        Returns
+        -------
+
+        """
+        config = {
+                  }
+        base_config = super(MatrixConcat, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 class Correlation(Layer):

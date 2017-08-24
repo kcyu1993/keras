@@ -21,18 +21,19 @@ class Minc2500_v2(ClassificationImageData):
 
     def __init__(self, dirpath='', category='categories.txt', image_dir='images', label_dirs='labels'):
         super(Minc2500_v2, self).__init__(dirpath, image_dir, category=category, name='Minc2500')
-        self.label_dir = label_dirs
+        self.label_dir = self.path_setter(label_dirs)
         self.build_image_label_lists()
 
     def build_image_label_lists(self):
         # Build the image list based on Minc data structure
         for i in range(1, 6):
             train_file = 'train{}.txt'.format(i)
+            validate_file = 'validate{}.txt'.format(i)
             test_file = 'test{}.txt'.format(i)
             train_mode = 'train'
             test_mode = 'test'
-            train_img, train_label = self._load_image_location_from_txt(os.path.join(self.root_folder, train_file))
-            test_img, test_label = self._load_image_location_from_txt(os.path.join(self.root_folder, test_file))
+            train_img, train_label = self._load_image_location_from_txt(os.path.join(self.label_dir, train_file))
+            test_img, test_label = self._load_image_location_from_txt(os.path.join(self.label_dir, test_file))
             self.image_list[train_mode + str(i)] = train_img
             self.image_list[test_mode + str(i)] = test_img
             self.label_list[train_mode + str(i)] = train_label
@@ -47,7 +48,7 @@ class Minc2500_v2(ClassificationImageData):
 
     def decode(self, path):
         """ e.g. brick_01234.jpg """
-        key, ind = path.split('_')
+        key = path.split('/')[1]
         return self.category_dict[key]
 
 
