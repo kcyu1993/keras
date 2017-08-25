@@ -1,3 +1,5 @@
+import argparse
+
 from kyu.engine.trainer import ClassificationTrainer
 from kyu.models import get_model
 from kyu.utils.image import get_vgg_image_gen, get_resnet_image_gen
@@ -7,6 +9,20 @@ from kyu.utils.io_utils import ProjectFile
 def get_dirhelper(dataset_name, model_category, **kwargs):
     return ProjectFile(root_path='/home/kyu/cvkyu/secondstat', dataset=dataset_name, model_category=model_category,
                        **kwargs)
+
+
+def get_argparser(description='default'):
+    """
+    Define the general arg-parser
+    Returns
+    -------
+
+    """
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-d', '--dataset', type=str, required=True, help='dataset name: support dtd, minc2500')
+    parser.add_argument('-me', '--model_exp', help='model experiment index', type=int, default=1)
+    parser.add_argument('-ef', '--nb_epoch_finetune', help='number of epoch to be finetuned', default=0, type=int)
+    return parser
 
 
 def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, running_config):

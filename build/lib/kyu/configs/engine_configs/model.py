@@ -19,3 +19,5 @@ class ModelConfig(KCConfig):
     @property
     def target_size(self):
         return self.input_shape[0:2]
+
+    # TODO add classid as property: check the avaliability.
