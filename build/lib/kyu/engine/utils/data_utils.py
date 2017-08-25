@@ -121,10 +121,11 @@ class ClassificationImageData(ImageData):
                  use_validation=False,
                  **kwargs):
         # self.root_folder = root_folder
+        self.foo = 'foo'
         # self.image_folder = image_dir
         if name is None:
             name = os.path.split(root_folder)[1]
-        super(ClassificationImageData, self).__init__(name, root_folder,
+        super(ClassificationImageData, self).__init__(name=name, root_folder=root_folder,
                                                       image_folder=image_dir, meta_folder=meta_folder,
                                                       **kwargs)
         self.category_path = os.path.join(self.root_folder, category) \

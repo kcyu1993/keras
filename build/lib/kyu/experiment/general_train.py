@@ -69,3 +69,4 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
 
     trainer.fit(verbose=2)
     trainer.plot_result()
+

@@ -41,7 +41,8 @@ def fn_regroup(tensors):
 
 def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                               cov_mode='channel', cov_regularizer=None,
-                              o2t_constraints=None, use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
+                              o2t_constraints=None, o2t_regularizer=None, o2t_activation='relu',
+                              use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
                               **kwargs):
     cov_name_base = get_cov_name_base(stage, block)
     o2t_name_base = 'o2t' + str(stage) + '_branch' + block
@@ -53,7 +54,9 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
                                cov_beta=cov_beta)(input_tensor)
     for id, param in enumerate(parametric):
         with tf.name_scope(o2t_name_base + str(id)):
-            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
+            x = O2Transform(param, activation=o2t_activation, name=o2t_name_base + str(id),
+                            kernel_constraint=o2t_constraints, kernel_regularizer=o2t_regularizer,
+                            )(x)
     with tf.name_scope(wp_name_base):
         x = WeightedVectorization(nb_class, use_bias=use_bias, activation=activation, name=wp_name_base)(x)
     return x

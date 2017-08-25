@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import gzip
 
-from build.lib.kyu.engine.utils.data_utils import ClassificationImageData
-from build.lib.kyu.utils.image import MincOriginalIterator
-from build.lib.kyu.utils.io_utils import get_dataset_dir
+from kyu.engine.utils.data_utils import ClassificationImageData
+from kyu.utils.image import MincOriginalIterator
+from kyu.utils.io_utils import get_dataset_dir
 from keras.utils.data_utils import get_file
 from keras.utils.io_utils import HDF5Matrix
 import numpy as np
@@ -16,12 +16,23 @@ import h5py
 from keras.preprocessing.image import *
 
 
+class TmpMinc(ClassificationImageData):
+    # pass
+    def __init__(self, **kwargs):
+        super(TmpMinc, self).__init__(**kwargs)
+
+    def fool(self):
+        print("FOOL")
+
+
 class Minc2500_v2(ClassificationImageData):
     """ Define the classification data for minc 2500 """
 
-    def __init__(self, dirpath='', category='categories.txt', image_dir='images', label_dirs='labels'):
-        super(Minc2500_v2, self).__init__(dirpath, image_dir, category=category, name='Minc2500')
-        self.label_dir = self.path_setter(label_dirs)
+    def __init__(self, dirpath='', category='categories.txt', image_dir=None, label_dirs='labels', **kwargs):
+        # self.root_folder = dirpath
+        super(Minc2500_v2, self).__init__(root_folder=dirpath, image_dir=image_dir,
+                                          category=category, name='Minc2500', **kwargs)
+        self.label_dir = os.path.join(self.root_folder, label_dirs)
         self.build_image_label_lists()
 
     def build_image_label_lists(self):
@@ -33,11 +44,17 @@ class Minc2500_v2(ClassificationImageData):
             train_mode = 'train'
             test_mode = 'test'
             train_img, train_label = self._load_image_location_from_txt(os.path.join(self.label_dir, train_file))
+            valid_img, valid_label = self._load_image_location_from_txt(os.path.join(self.label_dir, validate_file))
             test_img, test_label = self._load_image_location_from_txt(os.path.join(self.label_dir, test_file))
-            self.image_list[train_mode + str(i)] = train_img
-            self.image_list[test_mode + str(i)] = test_img
-            self.label_list[train_mode + str(i)] = train_label
-            self.label_list[test_mode + str(i)] = test_label
+
+            self._set_train(train_img, train_label, index=i-1)
+            self._set_valid(valid_img, valid_label, index=i-1)
+            self._set_test(test_img, test_label, index=i-1)
+
+            # self.image_list[train_mode + str(i)] = train_img
+            # self.image_list[test_mode + str(i)] = test_img
+            # self.label_list[train_mode + str(i)] = train_label
+            # self.label_list[test_mode + str(i)] = test_label
 
     def _build_category_dict(self):
         # Load the categgory
@@ -50,6 +67,15 @@ class Minc2500_v2(ClassificationImageData):
         """ e.g. brick_01234.jpg """
         key = path.split('/')[1]
         return self.category_dict[key]
+
+    def get_train(self, index=1, **kwargs):
+        return self._get_train(index=index, **kwargs)
+
+    def get_valid(self, index=1, **kwargs):
+        return self._get_valid(index=index, **kwargs)
+
+    def get_test(self, index=1, **kwargs):
+        return self._get_test(index=index, **kwargs)
 
 
 def load_minc2500(index, target_size, gen=None, batch_size=16, save_dir=None):

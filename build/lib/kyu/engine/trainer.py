@@ -272,7 +272,7 @@ class ClassificationTrainer(object):
             valid = self.data.get_test(batch_size=batch_size, target_size=self.model_config.target_size)
 
         if not isinstance(train, Iterator):
-            raise ValueError("Only support generator for training data")
+            raise ValueError("Only support generator for training data got {}".format(train))
 
         steps_per_epoch = train.n / train.batch_size
         val_steps_per_epoch = valid.n / valid.batch_size if valid is not None else 0
