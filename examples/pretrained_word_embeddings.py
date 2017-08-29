@@ -115,7 +115,7 @@ for word, i in word_index.items():
         # words not found in embedding index will be all-zeros.
         embedding_matrix[i] = embedding_vector
 
-# load pre-trained word embeddings into an Embedding layer
+# loads pre-trained word embeddings into an Embedding layer
 # note that we set trainable = False so as to keep the embeddings fixed
 embedding_layer = Embedding(num_words,
                             EMBEDDING_DIM,

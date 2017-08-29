@@ -70,7 +70,7 @@ else:
 num_class = 10  # number of class
 
 
-# load and pre-process data
+# loads and pre-process data
 def preprocess_input(x):
     return x.reshape((-1, ) + input_shape) / 255.
 

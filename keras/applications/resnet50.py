@@ -124,6 +124,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2))
 def ResNet50(include_top=True, weights='imagenet',
              input_tensor=None, input_shape=None,
              pooling=None,
+             last_avg=True,
              classes=1000):
     """Instantiates the ResNet50 architecture.
 
@@ -228,8 +229,8 @@ def ResNet50(include_top=True, weights='imagenet',
     x = conv_block(x, 3, [512, 512, 2048], stage=5, block='a')
     x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
     x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
-
-    x = AveragePooling2D((7, 7), name='avg_pool')(x)
+    if last_avg:
+        x = AveragePooling2D((7, 7), name='avg_pool')(x)
 
     if include_top:
         x = Flatten()(x)

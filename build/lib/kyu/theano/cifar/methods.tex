@@ -1,0 +1,223 @@
+
+\section{Our Approach}
+
+In this section, we first introduce the basic architecture of our second-order CNNs (SO-CNNs), including our new layer types. We then address practical issues arising when starting from pre-trained convolutional layers and when dealing with high-dimensional convolutional feature maps.
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=\textwidth]{img/cdu.eps}
+\end{center}
+   \caption{Figure of general model design}
+\label{fig:dcov}
+\end{figure*}
+
+\subsection{Basic SO-CNNs}
+\label{sec:basic}
+
+As illustrated by Fig.~\ref{fig:dcov}, an SO-CNN consists of a series of convolutions, followed by new second-order layers of different types, ending in a mapping to vector space, which then lets us predict a class label probability via a fully-connected layer and a softmax. The convolutional layers in our new SO-CNN architecture are standard ones, and we therefore focus the discussion on the new layer types that model second-order statistics. In particular, we introduce three such new layer types: Cov layers, which compute a covariance matrix from convolutional activations; O2T layers, which compute a parametric second-order transformation of an input matrix; and PV layers, which perform a parametric mapping to vector space of an input matrix. Below, we discuss these different layer types in more detail.
+
+% We dub Covariance Descriptor Unit (CDU) the series of second-order layers.
+
+%will briefly introduce the general covariance matrix, then present the proposed covariance descriptor unit, address our solution to tackle the high-dimension and low rank issue when training the network from end-to-end, and finally show the complete architecture of second-order convolution neural network.
+
+
+%\subsection{Covariance matrix in general}
+%Sample covariance matrix is computed by the outer product of normalized data matrix. In our paper, the covariance matrix is computed based on a 3D image tensor, with shape of $(W \times H \times D)$. We firstly reshape it to a 2D matrix as $ {\textbf X} = \{ {\textbf x_1}, {\textbf x_2}, ..., {\textbf x_N} | {\textbf x_k \in \mathbb{R}^d }, N=W\times H \} $. The covariance matrix $\boldsymbol{\Sigma} \in \mathbb{R}^{d \times d}$ of the image can be calculated as
+%\begin{equation} \label{eq:cov}
+%\boldmath{\Sigma} = \frac{1}{N} \sum_{k=1}^{N} ({\textbf x_k} - \boldsymbol{\mu} )
+%({\textbf x_k} - \boldsymbol{\mu} )^T \\
+%\end{equation}
+%where mean vector $\boldsymbol{\mu} = \frac{1}{N} \sum_{k=1}^{N} \mathbf{x_k}$.
+
+%\subsubsection{Covariance Descriptor Unit} \label{sec:cdu}
+
+
+%To build the second-order convolutional neural networks, we propose a novel covariance descriptor unit (CDU) which can extract the covariance based feature out of the first-order output of a convolutional layer. We will firstly introduce each layer and then the design of complete unit.
+
+\prg{Cov Layer.}
+%\subsubsection{Cov Layer}
+As suggested by the name, a Cov layer computes a covariance matrix. In particular, this type of layers typically follows a convolutional layer, and thus acts on convolutional activations.
+
+Specifically, let $\mathbb{X}$ be the $(W \times H \times D)$ tensor corresponding to a convolutional activation map. This tensor can be reshaped into a $(N \times D)$ matrix $ {\bf X} = [ {\bf x}_1, {\bf x}_2, \dots, {\bf x}_N]$, with  ${\bf x}_k \in \mathbb{R}^D$ and $N=W\cdot H$. The $(D \times D)$ covariance matrix of such features can then be expressed as
+\begin{equation} \label{eq:cov}
+\boldsymbol{\Sigma} = \frac{1}{N} \sum_{k=1}^{N} ({\bf x}_k - \boldsymbol{\mu} )
+({\bf x}_k - \boldsymbol{\mu} )^T \;,
+\end{equation}
+where $\boldsymbol{\mu} = \frac{1}{N} \sum_{k=1}^{N} \mathbf{x}_k$ is the mean of the feature vectors.
+
+While $\boldsymbol{\Sigma}$ encodes second-order statistics, it completely discards the first-order ones, which may nonetheless bring valuable information. To keep the first order information, we propose to define the output of our Cov layer as
+\begin{equation} \label{eq:cov_est}
+{\bf C} =
+\begin{bmatrix}
+\boldsymbol{\Sigma} + \beta^2 {\bf u}{\bf u}^T
+& \beta {\bf u} \\
+\beta {\bf u}^T & 1 \\
+\end{bmatrix} \;,
+\end{equation}
+which incorporates the mean of the features, via a parameter $\beta$. This parameter was set to $\beta = 0.3$ in our experiments.
+
+A key ingredient for end-to-end learning is that the operation performed by each layer is differentiable. Being continuous algebraic operations, the covariance matrix in Eq.~\ref{eq:cov} and the mean vector $\boldsymbol{\mu}$ clearly are differentiable with respect to their input ${\bf X}$. This therefore makes our Cov layer differentiable, and enables its use in an end-to-end learning framework.
+
+% Describe the cov-layer here with mean information encoded, also mentioned the robust covariance estimation
+%implements the covariance formula in Equ. \ref{eq:cov}. The input can be a general 3D tensor, like the hand-crafted image features, or the activations of a convolutional layer in modern CNN architecture.
+%By the formulation, one entry of $ \boldmath{\Sigma}$ at position $(i,j)$ corresponds the covariance of feature map $i$ and $j$.
+%To provide a robust estimation and further enrich the information encoded, we will follow the approaches in \cite{Wang:2016va} with minor modification. The covariance estimator is computed as $ \hat{ \boldsymbol{\Sigma} } = \boldsymbol{U} \mathcal{F} ( \boldsymbol{S}) \boldsymbol{U}^T$, where $\boldsymbol{\Sigma} = \boldsymbol{U}  \boldsymbol{S} \boldsymbol{U}^T$ is the eigenvalue decomposition and $\mathcal{F}$ is an element-wise function with a predefined parameter $\alpha$ applied to the eigenvalues as
+%\begin{equation} \label{eq:robust}
+%\mathcal{F}(x) = \sqrt{\bigg(\frac{1-2\alpha}{2\alpha}\bigg)^2 + \frac{x}{\alpha}} - \frac{1 - \alpha}{2\alpha}
+%\end{equation}
+%We add one more dimension to embed the mean information into the output, formualted as
+%\begin{equation} \label{eq:cov_est}
+%\begin{bmatrix}
+%\hat{ \boldsymbol{\Sigma} } + \beta^2 \boldsymbol{u}\boldsymbol{u}^T
+%& \beta \boldsymbol{u} \\
+%\beta \boldsymbol{u}^T & 1 \\
+%\end{bmatrix}
+%\end{equation}
+
+\prg{O2T Layer.}
+%\subsubsection{O2T Layer}
+The Cov layer described above is non-parametric. As a consequence, it may decrease the network capacity compared to the traditional way of exploiting the convolutional activations by passing them through a parametric fully-connected layer, and thus yield a less expressive model despite its us of second-order information. To overcome this, we introduce a parametric second-order transformation layer, which not only increases the model capacity via additional parameters, but also allows us to handle large convolutional feature maps.
+
+%The simplest way to use the covariance matrix described above consists of vectorizing it and mapping it to a class probability estimate via a fully-connected layer, which was, in essence, the procedure followed in~\cite{}.
+%This, however, has two potential drawbacks. In the presence of small convolutional feature maps (i.e., small $D$), this process involves drastically fewer parameters than standard fully-connected layers, thus making the resulting model less expressive despite its use of second-order information. By contrast, with large feature maps (i.e., large $D$), the $\mathcal{O}(D^2)$-dimensional vector resulting from flattening the matrix becomes very large (e.g., $512^2$), and making use of a fully-connected layer to map this vector to the final class probability estimate yields an intractable number of parameters. To overcome these weaknesses, we introduce a parametric second-order transformation layer, which not only increases the model capacity via additional parameters, but also allows us to handle large convolutional feature maps.
+
+%By removing the fully-connected layers, the number of parameters could be significantly reduced and resulting a less expressive model despite using second-order features.  To overcome this, we propose to introduce order 2 transform layers (O2T-layer), which increase the model capacity by relying on trainable parameters while still encoding second-order information.
+
+More specifically, given a ($D \times D$) matrix ${\bf M}$ as input, our O2T layer performs a second-order transformation of the form
+\begin{equation} \label{eq:o2t}
+{\bf Y} = {\bf W} {\bf M} {\bf W}^T\;,
+\end{equation}
+whose parameters ${\bf W}  \in \mathbb{R}^{D \times D'} $ are trainable. Note that the value $D'$ controls the size of the output matrix, and thus give more flexibility to the network than the previous Cov layer. Clearly, this second-order operation is differentiable, and can therefore be integrated in an end-to-end learning framework.
+
+The O2T layer can be applied  either to a covariance matrix computed by a Cov layer, or recursively to the output of another O2T layer. Note that, since covariance matrices are symmetric positive (semi)definite (SPD) matrices, our formulation guarantees that the output obtained by applying one or multiple recursive O2T layers also is. To prevent degeneracies and guarantee that the rank of the original covariance matrix is preserved, additional orthonormality constraints can be enforced on the parameters ${\bf W}$. To this end, we make use of the optimization method on the Stiefel manifold employed in~\cite{Harandi:2016ug}. \ky{Pragmatically}, we found these constraints to have varying but in general limited influence on the results. Altogether, our parametric O2T layers increase the capacity of the network while still modeling second-order information.
+
+%The input of this layer is the covariance estimation, a symmetric semi-definite positive (SPD) matrix \footnote{Please refers to supplimentary material for details}, and it is important to note that a SPD matrix lies on a Riemannian manifold rather than a Euclidean space. So the traditional 1-st order parametric operation does not apply. We propose a order 2 transformation operation that takes a SPD matrix $\boldsymbol{X} \in \mathbb{R}^{d \times d}$ and return a transformed SPD matrix $\boldsymbol{Y} \in \mathbb{R}^{d' \times d'}$, as follow
+%\begin{equation} \label{eq:o2t}
+%\boldsymbol{Y} = \boldsymbol{W} \boldsymbol{X} \boldsymbol{W}^T
+%\end{equation}
+%where $\boldsymbol{W} \in \mathbb{R}^{d \times d'} $ is the weights to be learnt. By controlling the parameter $d'$, we could alter the dimension of second order features, either increase by selecting a $d' > d$ or decrease.
+
+%Describe the weighted vectorization which transform a SPD manifold into Euclidean vector
+% The functionality is the same as log-transform, but we can introduce less smaller dense connections.
+
+\prg{PV Layer.}
+%\subsubsection{PV Layer}
+Since our ultimate goal is classification, we eventually need to map our second-order, matrix-based representation to a vector form, which can in turn be mapped to a class probability estimate via a fully-connected layer. In~\cite{huang2017, Ionescu:2015wa}, such a vectorization was achieved by simply flattening the matrix, after applying a logarithmic map. When working with large matrices (large $D$), this however may lead to an intractable number of parameters to map the resulting $\mathcal{O}(D^2)$-dimensional vector to the vector of class probability estimates. Here, instead of direct flattening, we introduce a parametric vectorization of the second-order representation.
+
+Specifically, given an input matrix ${\bf Y} \in \mathbb{R}^{D' \times D'}$, we compute a vector $\mathbf{v} \in \mathbb{R}^{D''}$, whose $j$-th element is defined as
+\begin{equation}
+[\mathbf{v}]_j = ([{\bf W}]_{:,j})^T {\bf Y} [{\bf W}]_{:,j}  = \sum_{i=1}^{D'}
+[{\bf W} \odot {\bf Y} {\bf W}]_{i,j}\;,
+\label{eq:wv}
+\end{equation}
+where ${\bf W} \in \mathbb{R}^{D' \times D''}$ are trainable parameters, and $[\mathbf{A}]_{i,j}$ denotes the entry in the $i$-th row and $j$-th column of matrix $\mathbf{A}$, with $[\mathbf{A}]_{:,j}$ the complete $j$-th column. Note that, while both formulations in Eq.~\ref{eq:wv} are equivalent, the first one is easier to interpret, but the second one is better suited for efficient implementation with matrix operations.
+
+Due to its formulation, this vectorization can, in essence, still be thought of as a second-order transformation. More importantly, being parametric, it increases the flexibility of the model, while preventing an explosion in the number of parameters in the following fully-connected layer. As for our other layers, this operation is differentiable, and can thus be integrated to an end-to-end learning formalism.
+%is the last layer (WV-layer) of our unit. It functions as a parametric mapping from a Riemannian manifold to a Euclidean vector space, which complies with the modern classification CNN design and enables the fully connected layer to be directly connected to create a classifier for different tasks. The layer will take a SPD matrix $\boldsymbol{Y} \in \mathbb{R}^{d \times d}$ from Cov-layer directly or one transformed by a O2T-layer to a vector $\mathbf{v} \in \mathbb{R}^{d'}$, with its $j$-th element defined as
+%\begin{equation}\label{eq:wv}
+%[\mathbf{v}]_j = \sum_{i=1}^{d}
+%[\boldsymbol{W} \odot \boldsymbol{Y} \boldsymbol{W}]_{i,j}
+%\end{equation}
+%where $\boldsymbol{W} \in \mathbb{R}^{d, d'}$, $[\mathbf{A}]_{i,j}$ denotes the i-th row and j-th column entry of matrix $\mathbf{A}$.
+
+\prg{General SO-CNN Architecture.}
+%\subsubsection{Summary of CDUs}
+We dub Covariance Descriptor Unit (CDU) a sub-network obtained by stacking our new layer types.
+In short, and as illustrated in Fig.~\ref{fig:dcov}(top), a CDU takes as input the activations of a convolutional layer and first computes a covariance matrix according to Eq.~\ref{eq:cov_est}. The resulting matrix is passed through a number of O2T layers (Eq.~\ref{eq:o2t}), including none, whose output is then mapped back to a vector via a PV layer. Each of these layers can be followed by an element-wise non-linearity. In particular, we make use of ReLUs, which have the property of maintaining the positive definiteness of SPD matrices. Importantly, the resulting CDUs are generic and can be integrated in any state-of-the-art CNN architecture.
+
+As such, our framework makes it possible to transform any traditional first-order CNN architecture into a second-order one for image classification. To this end, one can simply remove the fully-connected layers of the first-order CNN and connect the resulting output to a CDU. The output of the CDU being a vector, one can then simply pass it to a fully-convolutional layer, which, after a softmax activation, produces class probabilities. Since, as discussed above, all our new layers are differentiable, the resulting network can be trained in an end-to-end manner.
+
+%\MS{Should we be more specific and talk about SGD? We might want to briefly mention something about learning rate, or any other strategy that you used.}
+\KY{learning rate is mentioned during experiments now, as the limitation of space, maybe we just mentioned we follow the Stiefel manifold updated generalized back-prop to stabalize our training?}
+%In Fig.~\ref{fig:dcov}(top), we show our basic framework to incorporate a global covariance descriptor in a deep architecture.
+%This framework relies on the mathematical operations described in
+%Eqs.~\ref{eq:cov},~\ref{eq:o2t}, and~\ref{eq:vec} represent the covariance layer, the O2Transform layer and the weighted vectorization layer depicted in Fig. \ref{fig:dcov}, respectively.
+%This framework can be applied to any deep convolution feature maps, i.e., the output of one convolution layer, and the whole network will be trained in an end-to-end manner.
+%The aforementioned three layer types are generic, and our framework can thus be integrated in most of state-of-art CNN architectures.
+
+
+
+
+\subsection{Starting from Pre-trained Convolutions}
+\label{sec:transition}
+The basic SO-CNN architecture described above can be trained from scratch, which we will show in our experiments. To speed up training, however, one might want to leverage the availability of pre-trained first-order CNNs. We propose to first freeze the pre-trained convolutional layers to train the second-order half of the SO-CNN, and then fine-tune the entire network jointly.
+\MS{Should we say something else? Do we know why?}
+\ky{Empirically, as the training second-half finished, the SO-CNN learns about the second-order features out of the pre-trained features, but failed to fine-tune if we just un-freeze the convolutional layers. One potential reason is the pre-trained weights were obtained in a pure 1st-order CNN, however the gradients stop at the Cov-layer during the training. Thus, when fine-tuning the complete structure, the gradient from second-half is too different as what the first-part used to be updated and resulted failure of learning.}
+To address this, we therefore propose to introduce an additional transition layer, which will ease the training and give more flexibility to the model by allowing it to modify the pre-trained convolutional feature maps.
+
+%\prg{Parametric dimensionality reduction.}
+%As a second strategy, we propose to explicitly reduce the dimensionality of the convolutional feature maps.
+To this end, we apply a linear mapping to each feature vector independently. Specifically, let ${\bf x}_k$ be an original convolutional feature vector. We then learn a mapping of the form
+\begin{equation}
+h(\mathbf{x}_k) = \mathbf{Wx}_k + \mathbf{b}\;,
+\end{equation}
+where ${\bf W} \in \mathbb{R}^{\tilde{D}\times D}$ is a trainable weight matrix, and $\mathbf{b} \in \mathbb{R}^{\tilde{D}}$ a trainable bias. \ky{During experiments}, we constrain the weight matrix and bias to be the same for all the feature vectors, thus resulting in a $1 \times 1$ convolutional layer \ky{with linear activation function}. The parameter $\tilde{D}$ gives rise to a range of different models, with adapted features ranging from lower to higher dimensionalities than the original ones. As shown in our experiments, this strategy allows us to effectively exploit pre-trained convolutions in our SO-CNNs, while still learning the entire model in an end-to-end manner by unfreezing the convolutions in a second learning phase.
+
+\begin{figure}[t]
+\begin{center}
+% \fbox{\rule{0pt}{2in} \rule{0.9\linewidth}{0pt}}
+   \includegraphics[width=1.1\linewidth]{img/fuse.eps}
+\end{center}
+   \caption{
+  (Left) An example of multiple CDUs SO-CNN with convolutional layers from VGG-16.
+  (Right) Two methods to fuse information between multiple covariance descriptor units, top for Euclidean space and the bottom for Riemannian manifold. Fusion includes concatenation, summation and averaging. Note that the while-arrow indicates identity mapping, black diamond arrow for PV operation and black-arrow for other operations.
+  }
+\label{fig:fuse}
+\end{figure}
+
+\subsection{Handling High-dimensional Feature Maps}
+\label{sec:robust}
+In our basic SO-CNNs, a CDU directly follows a convolutional layer. While this transition can, in principle, be achieved seamlessly, the rapid growth in the dimensionality of the convolutional feature maps computed by modern architecture makes this problem more challenging. Indeed, with a basic architecture derived from, e.g., the ResNet~\cite{He:2015tt}, whose last convolutional activation map has size $(7 \times 7 \times 2048)$, the resulting covariance matrix would be very high-dimensional ($2048 \times 2048$), but have a low rank (at most 48). In practice, this would translate into instabilities in the learning process due to many 0 eigenvalues. While, in principle, this could be handled by using the transition strategy of Section~\ref{sec:transition} with a small $\tilde{D}$, this would incur a loss of information that reduces the network capacity too severely.  Below, we study two strategies to overcome this problem.
+
+%% Follows the architecture, discuss the high-dim and low rank issue here. Something to make sure
+%In our second-order CNN, the input to CDU is a 3D tensor of a convolutional layer. As the modern powerful CNN usually has a deep layer design, for example output's shape of last convolution layer of VGG-16 is $(7 \times 7 \times 512)$  \cite{Simonyan:2014ws}, and $(7 \times 7 \times 2048)$ for ResNet-50 \cite{He:2015tt}. It significantly increase the dimension of the resulting covariance matrix by our formulation, but the ranking of the matrix is only $48$
+%in these cases. Statistically, the high-dimension low rank matrix is more sensitive to a small numerical error especially when involving the eigen-value decomposition operation as described in \ref{sec:cdu}. In practice, the high dimension matrix is also requires more memory and time to compute.
+%
+%To remedy this, we propose two methods to reduce the dimension of our covariance descriptor, by a weighted dimension reduction which can be summarized as $1\times 1$ convolution operation, and by separation of convolutional feature maps to equal sub-groups and attach multiple CDUs. In practice, these two method can be mixed, by firstly applied weighted dimension reduction then with multiple CDU approaches, depends on different models.
+
+\prg{Robust Covariance Estimation.}
+As a first solution to overcome the low-rank problem, we make use of the robust covariance approximation introduced in~\cite{Wang:2016va} in the context of RCDs. Specifically, let $\boldsymbol{\Sigma} = {\bf U}  {\bf S} {\bf U}^T$ be the eigenvalue decomposition of the covariance matrix. A robust estimate of $\boldsymbol{\Sigma}$ can be written as
+\begin{equation}
+ \hat{ \boldsymbol{\Sigma} } = {\bf U} f({\bf S}) {\bf U}^T\;,
+\end{equation}
+where $f(\cdot)$ is applied element-wise to the values of the diagonal matrix ${\bf S}$, and is defined as
+\begin{equation} \label{eq:robust}
+f(x) = \sqrt{\bigg(\frac{1-2\alpha}{2\alpha}\bigg)^2 + \frac{x}{\alpha}} - \frac{1 - \alpha}{2\alpha}\;,
+\end{equation}
+with parameter $\alpha$ set to $0.75$ in practice. The resulting estimate $\hat{ \boldsymbol{\Sigma} }$ can then replace $\boldsymbol{\Sigma}$ in Eq.~\ref{eq:cov_est}.
+
+Thanks to the matrix backpropagation framework of~\cite{Ionescu:2015wa}, which handles eigenvalue decomposition, this robust estimate can also be differentiated, and thus incorporated in an end-to-end learning framework.
+\KY{may change the words here. This is not the case may confuse? since the previous use double negative}In practice, however, we found this strategy to be more effective when the rank of the matrix is not too low compared to its dimensionality.
+%When this is not the case
+\ky{When the rank is too low}, it can then be used in conjunction with the following strategy \ky{to provide robust estimation after the dimension is reduced}.
+
+%% Describe the math formula here, weighted subsample, which is exactly a 1x1 convolution operation.
+%It is crucial to reduce the dimension which remains the complexity to maintain representation power. As depicted in Fig. \ref{fig:dim_reduce} (left), for each feature vector in the feature maps, we applied one linear mapping function, $\mathcal{H}(\mathbf{x}) = \mathbf{Wx} + \mathbf{b}$. For the sake of simplicity, we force the weight matrix and bias to be the same for every entry thus can be abstracted as a convolutional layer with filter size $1 \times 1$. The resulting feature maps dimension is defined with the height of the weight matrix.
+
+\prg{Multiple CDUs.}
+Our second strategy to handling high-dimensional feature maps, illustrated by Fig.~\ref{fig:fuse}(left), consists of splitting the feature maps into $n$ separate groups of equal sizes. Each group will then act as input to a different CDU, whose covariance matrix will have fewer 0 eigenvalues than a covariance obtained from all the features. For example, with a ResNet, instead of computing a covariance descriptor of size $2048 \times 2048$, we create 4 groups of 512 features, and use them to compute 4 different covariance descriptors, followed by separate O2T and PV layers. In essence, this strategy still makes use of all the features, but does not consider all the possible pairwise covariances. Since the features are learned, however, the network can automatically determine which pairwise covariances are important.
+
+
+Ultimately, the information contained in the multiple CDUs needs to be fused into a single image representation. We propose two strategies,\ky{ displayed in Fig.~\ref{fig:fuse}(right) }. The first one consists of combining the CDUs output vectors by an operation such as averaging or concatenation. The second one aims at fusing the multiple branches before vectorization, which can be again achieved by averaging the respective matrices, or concatenating them into a larger block-diagonal matrix. This is then followed by a PV layer.
+
+%% Create multi-covariance descriptor by dividing the feature maps into equal sized groups.
+%%
+%The deep convolutional netowrks are designed to convolved to a feature maps with small spatial filter size but large feature map dimension to encodes sementic information rather than spatial information. Even though we use the $1\times 1$ convolutional to enable parametric dimension reduction, we hypothesize there is still a potential information loss which is shown in section \ref{exp:1x1}.
+%% Add the ref to experiment section, to support this argument.
+%We propose to separate these feature maps into $n$ equal size groups, where $n$ is usually a product of 2,  as shown in Fig. \ref{fig:dim_reduce} (right). The spatial information will not lose much since we compute "local" covariance information in terms of the feature maps and the total number of feature maps is not reduced.
+
+%\subsection{General SO-CNN Architecture}
+%To summarize, our framework makes it possible to transform a traditional first-order CNN architecture into a second-order one for image classification. To this end, once can simply remove the fully-connected layers of the first-order CNN, potentially use one of the three techniques described in Section~\ref{sec:transition} to transition from convolutional activations to second-order statistics, and connect the resulting output to one or more CDUs described in Section~\ref{sec:cdu}. The output of the CDU being a vector, one can then simply pass it to a fully-convolutional layer, which, after a softmax activation, produces class probabilities. end-to-end
+
+% Introduce the general architecture of the second order CNN
+%Combined the aforementioned covariance descriptor unit (CDU) and the dimension reduction, now it is possible to transform a first-order CNN to a second-order CNN for image classification tasks. We firstly remove the fully-connected layers in the first-order CNN, applied the dimension reduction methods if necessary and connect one or more CDUs to the end. In the end, since all the output of CDU is in vector space, we could concatenate them and attach a fully connected layer with sigmoid activation function as the classifier.
+
+%\MS{Will you actually report results with the weights constrained to be on the Stiefel manifold?}
+
+%\prg{Misc}
+%The gradients of matrix operation, like eigen-value decomposition, are studied in \cite{Ionescu:2015waa}.
+%We would also adopt the weights updating rule by \cite{Harandi:2016ug}, to enforce our weight matrix of O2T layers to be a orthonormal matrix, i.e. a Stiefel manifold, to stable our learning for the complex models.
+%
+%\prg{Fusion of multiple CDUs}
+%The methods to concatenate different second-order branches in a nerual network is never studied before. We propose two main methods to merge these units, fusion in Euclidean space and in Riemannian manifold.
+%The first method happens after the WV-layer, includes the concatenation of vectors directly, summation or averaging these vectors. And the second method applies before WV-layer, the same operations but in the last O2T layers, as shown in Fig. \ref{fig:concat}.

@@ -152,6 +152,7 @@ def get_session():
     global _SESSION
     if tf.get_default_session() is not None:
         session = tf.get_default_session()
+        print("Keras get default session from TF {}".format(session))
     else:
         if _SESSION is None:
             if not os.environ.get('OMP_NUM_THREADS'):
@@ -160,6 +161,7 @@ def get_session():
                 num_thread = int(os.environ.get('OMP_NUM_THREADS'))
                 config = tf.ConfigProto(intra_op_parallelism_threads=num_thread,
                                         allow_soft_placement=True)
+            print("Keras create new session with config {}".format(config))
             _SESSION = tf.Session(config=config)
         session = _SESSION
     if not _MANUAL_VAR_INIT:
@@ -729,7 +731,7 @@ def ones_like(x, dtype=None, name=None):
     return tf.ones_like(x, dtype=dtype, name=name)
 
 
-def identity(x):
+def identity(x, name=None):
     """Returns a tensor with the same content as the input tensor.
 
     # Arguments
@@ -738,7 +740,7 @@ def identity(x):
     # Returns
         A tensor of the same shape, type and content.
     """
-    return tf.identity(x)
+    return tf.identity(x, name=name)
 
 
 def random_uniform_variable(shape, low, high, dtype=None,
@@ -1086,7 +1088,7 @@ def batch_dot(x, y, axes=None):
     return out
 
 
-def transpose(x):
+def transpose(x, axes=None):
     """Transposes a tensor and returns it.
 
     # Arguments
@@ -1118,7 +1120,7 @@ def transpose(x):
 
     ```
     """
-    return tf.transpose(x)
+    return tf.transpose(x, perm=axes)
 
 
 def gather(reference, indices):

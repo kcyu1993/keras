@@ -19,7 +19,6 @@ from .wrappers import *
 from .convolutional_recurrent import *
 from ..legacy.layers import *
 
-
 def serialize(layer):
     """Serialize a layer.
 
@@ -52,3 +51,7 @@ def deserialize(config, custom_objects=None):
                                     module_objects=globs,
                                     custom_objects=custom_objects,
                                     printable_module_name='layer')
+
+"""
+Self Defined layers
+"""

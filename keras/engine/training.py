@@ -1827,7 +1827,7 @@ class Model(Container):
             return outputs[0]
         return outputs
 
-    @interfaces.legacy_generator_methods_support
+    # @interfaces.legacy_generator_methods_support
     def fit_generator(self, generator,
                       steps_per_epoch,
                       epochs=1,
