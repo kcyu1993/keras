@@ -1,5 +1,5 @@
 from ..engine_configs import RunningConfig
-
+from tensorflow.python import debug as tfdbg
 
 def get_running_config_no_debug_withSGD(title='general-testing', model_config=None):
     return RunningConfig(
@@ -23,6 +23,9 @@ def get_running_config_no_debug_withSGD(title='general-testing', model_config=No
         rescale_small=296,
         random_crop=True,
         horizontal_flip=True,
+        tf_debug=False,
+        tf_debug_filters_func=[tfdbg.has_inf_or_nan,],
+        tf_debug_filters_name=['has_inf_or_nan',],
     )
 
 

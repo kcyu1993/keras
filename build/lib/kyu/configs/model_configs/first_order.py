@@ -10,9 +10,10 @@ class VggFirstOrderConfig(ModelConfig):
                  weights='imagenet',
                  include_top=True,
                  freeze_conv=False,
-                 last_pooling=True
+                 last_pooling=True,
+                 **kwargs
                  ):
         class_id = 'vgg'
         model_id = 'first_order'
-        super(VggFirstOrderConfig, self).__init__(class_id, model_id)
+        super(VggFirstOrderConfig, self).__init__(class_id, model_id, **kwargs)
         self.__dict__.update(locals())

@@ -639,7 +639,8 @@ def get_vgg_image_gen(target_size, rescale_small, random_crop=True, horizontal_f
     return ImageDataGeneratorAdvanced(
         target_size, rescale_small, random_crop=random_crop,
         horizontal_flip=horizontal_flip,
-        preprocessing_function=preprocess_image_for_imagenet
+        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse
+        # preprocessing_function=preprocess_image_for_imagenet
     )
 
 

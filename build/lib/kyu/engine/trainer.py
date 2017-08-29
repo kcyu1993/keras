@@ -44,6 +44,7 @@ from keras.preprocessing.image import Iterator
 from kyu.configs.engine_configs.generic import KCConfig
 from kyu.configs.engine_configs import ModelConfig
 from kyu.configs.engine_configs import RunningConfig
+from kyu.engine.utils.callbacks import ModifiedTensorBoard
 from kyu.engine.utils.data_utils import ImageData
 from kyu.utils.callback import ReduceLROnDemand
 from kyu.utils.io_utils import ProjectFile, cpickle_load, cpickle_save
@@ -191,6 +192,16 @@ class ClassificationTrainer(object):
         if isinstance(self.running_config.tensorboard, TensorBoard):
             print("Add Tensorboard to the callbacks")
             self.cbks.append(self.running_config.tensorboard)
+        elif self.running_config.tensorboard:
+            print("Create tensorboard to the location {}".format(self.dirhelper.get_tensorboard_path()))
+            self.cbks.append(
+                ModifiedTensorBoard(log_dir=self.dirhelper.get_tensorboard_path(),
+                                    histogram_freq=1,
+                                    batch_size=self.running_config.batch_size,
+                                    write_graph=True,
+                                    write_grads=True,
+                                    write_images=True)
+            )
 
         # Compile the model (even again)
         self.model.compile(optimizer=self.running_config.optimizer, loss=categorical_crossentropy,

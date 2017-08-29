@@ -220,6 +220,7 @@ class SecondaryStatistic(Layer):
             s = tf.where(tf.less(s, comp), comp, s)
             # s = tf.Print(s, [s], message='s:', summarize=self.out_dim)
             inner = robust_estimate_eigenvalues(s, alpha=self.cov_alpha)
+            inner = tf.identity(inner, 'RobustEigen')
             # inner = tf.Print(inner, [inner], message='inner:', summarize=self.out_dim)
             cov_mat = tf.matmul(u, tf.matmul(tf.matrix_diag(inner), tf.transpose(u, [0,2,1])))
 
@@ -234,7 +235,7 @@ class SecondaryStatistic(Layer):
                 new_cov = K.concatenate([cov_mat, x_mean])
             tmp = K.concatenate([K.transpose(x_mean, axes=(0,2,1)), addition_array])
             new_cov = K.concatenate([new_cov, tmp], axis=1)
-            cov_mat = new_cov
+            cov_mat = K.identity(new_cov, 'final_cov_mat')
 
         return cov_mat
 

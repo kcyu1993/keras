@@ -21,7 +21,11 @@ def get_argparser(description='default'):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-d', '--dataset', type=str, required=True, help='dataset name: support dtd, minc2500')
     parser.add_argument('-me', '--model_exp', help='model experiment index', type=int, default=1)
+    parser.add_argument('-m', '--model_class', help='model class should be in vgg, resnet', default='vgg', type=str)
     parser.add_argument('-ef', '--nb_epoch_finetune', help='number of epoch to be finetuned', default=0, type=int)
+    parser.add_argument('-dbg', '--debug', type=bool, help='True for entering TFDbg mode', default=False)
+    parser.add_argument('-tb', '--tensorboard', type=bool, help='Enable Tensorboard monitoring', default=False)
+    parser.add_argument('-c', '--comments', help='comments if any', default='', type=str)
     return parser
 
 
@@ -52,7 +56,7 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
                                                          running_config.rescale_small,
                                                          running_config.random_crop,
                                                          running_config.horizontal_flip)
-    dirhelper.build(running_config.title)
+    dirhelper.build(running_config.title + model_config.name)
 
     if nb_epoch_finetune > 0:
         # model_config2 = copy.copy(model_config)

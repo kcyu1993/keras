@@ -179,7 +179,8 @@ class ProjectFile(object):
 
     @mkdirs_if_not_exist
     def get_tensorboard_folder(self):
-        return os.path.join(self.get_model_run_path(), 'tensorboard')
+        # return os.path.join(self.get_model_run_path(), 'tensorboard')
+        return self.get_model_run_path()
 
     @mkdirs_if_not_exist
     def get_history_folder(self):
@@ -204,8 +205,9 @@ class ProjectFile(object):
 
     @check_id_set
     def get_tensorboard_path(self):
-        path = os.path.join(self.get_tensorboard_folder(), self.run_id)
-        os.makedirs(path)
+        path = os.path.join(self.get_tensorboard_folder())
+        if not os.path.exists(path):
+            os.makedirs(path)
         return path
 
     @check_id_set
