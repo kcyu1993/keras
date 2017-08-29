@@ -23,11 +23,3 @@ def minc_finetune_with_model(model_config, nb_epoch_finetune, running_config):
     dirhelper = get_dirhelper(dataset_name=data.name, model_category=model_config.class_id)
     finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, running_config)
 
-
-def mpn_baseline(exp=1):
-
-    from kyu.configs.model_configs import MPNConfig
-    if exp == 1:
-        config = MPNConfig(
-
-        )

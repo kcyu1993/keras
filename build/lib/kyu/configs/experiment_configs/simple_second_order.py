@@ -56,12 +56,13 @@ def get_single_o2transform(exp):
             upsample_method='conv',
         )
     elif exp == 3:
-        o2t_regularizer = 'l1'
+        # o2t_regularizer = 'l1'
         # o2t_regularizer = 'l2'
-        # o2t_regularizer = 'l1_l2'
+        o2t_regularizer = 'l1_l2'
         # o2t_regularizer = None
         return O2TBranchConfig(
-            parametric=[128, 64, ],
+            parametric=[256],
+            # parametric=[256, 128, 64, ],
             activation='relu',
             cov_mode='pmean',
             cov_alpha=0.3,
@@ -75,7 +76,7 @@ def get_single_o2transform(exp):
             # input_shape=(256, 256, 3),
             input_shape=(224, 224, 3),
             nb_class=67,
-            cov_branch_output=128,
+            cov_branch_output=256,
             class_id='vgg',
             load_weights='imagenet',
             # configs for _compose_second_order_things
@@ -84,7 +85,7 @@ def get_single_o2transform(exp):
             nb_branch=1,
             concat='concat',
             cov_output_vectorization='pv',
-            last_conv_feature_maps=[512],
+            last_conv_feature_maps=[256],
             last_conv_kernel=[1, 1],
             upsample_method='conv',
 
@@ -114,6 +115,41 @@ def get_single_o2transform(exp):
             mode=1,
             freeze_conv=False, name='Original-O2T-comparing_constraints-{}'.format(o2t_constraints),
             nb_branch=1,
+            concat='concat',
+            cov_output_vectorization='pv',
+            last_conv_feature_maps=[512],
+            last_conv_kernel=[1, 1],
+            upsample_method='conv',
+
+        )
+    elif exp == 5:
+        # o2t_regularizer = 'l1'
+        # o2t_regularizer = 'l2'
+        o2t_regularizer = 'l1_l2'
+        # o2t_regularizer = None
+        return O2TBranchConfig(
+            parametric=[256],
+            # parametric=[256, 128, 64, ],
+            activation='relu',
+            cov_mode='pmean',
+            cov_alpha=0.3,
+            o2t_activation='relu',
+            o2t_constraints=None,
+            o2t_regularizer=o2t_regularizer,
+            robust=False,
+            vectorization='wv',
+            use_bias=False,
+            epsilon=1e-5,
+            # input_shape=(256, 256, 3),
+            input_shape=(224, 224, 3),
+            nb_class=67,
+            cov_branch_output=128,
+            class_id='vgg',
+            load_weights='imagenet',
+            # configs for _compose_second_order_things
+            mode=1,
+            freeze_conv=False, name='Original-O2T-comparing_regularizer_{}-branch2'.format(o2t_regularizer),
+            nb_branch=2,
             concat='concat',
             cov_output_vectorization='pv',
             last_conv_feature_maps=[512],

@@ -3,7 +3,7 @@ Finetune with MINC dataset
 """
 import os
 
-from keras.layers import SecondaryStatistic, O2Transform
+from kyu.models.secondstat import SecondaryStatistic, O2Transform
 from kyu.models.vggmulti import VGG16Multi_o2
 from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config
@@ -22,11 +22,12 @@ from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_multibranch
 
 from kyu.datasets.minc import Minc2500, load_minc2500
 
-from kyu.theano.general.train import fit_model_v2, Model
+from kyu.theano.general.train import fit_model_v2
 from kyu.utils.train_utils import toggle_trainable_layers
-
 import keras.backend as K
-from keras.preprocessing.image import ImageDataGeneratorAdvanced
+
+from keras.models import Model
+from kyu.utils.image import ImageDataGeneratorAdvanced
 
 # Some constants
 nb_classes = 23
@@ -453,12 +454,12 @@ if __name__ == '__main__':
     #                                stiefel_lr=None, nb_epoch_finetune=4, nb_epoch_after=50)
 
     # config.title = 'minc_VGG_TEST_original_exp{}'.format(exp)
-    # run_routine_vgg(config, verbose=(2, 2),
+    run_routine_vgg(config, verbose=(2, 2),
                     # stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
-                    # nb_epoch_finetune=5, nb_epoch_after=100,
-                    # )
-    run_routine_VGG_multibranch(config, verbose=(2,2),
-                                nb_epoch_finetune=5, nb_epoch_after=100,)
+                    nb_epoch_finetune=5, nb_epoch_after=100,
+                    )
+    # run_routine_VGG_multibranch(config, verbose=(2,2),
+    #                             nb_epoch_finetune=5, nb_epoch_after=100,)
 
     # run_routine_resnet(config, nb_epoch_after=200, nb_epoch_finetune=3)
 

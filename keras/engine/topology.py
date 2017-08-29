@@ -2597,6 +2597,7 @@ class Container(Layer):
         # Raises
             ImportError: If h5py is not available.
         """
+        print("Container load weights from {}".format(filepath))
         if h5py is None:
             raise ImportError('`load_weights` requires h5py.')
         f = h5py.File(filepath, mode='r')
