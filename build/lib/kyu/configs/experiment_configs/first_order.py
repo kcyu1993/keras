@@ -20,3 +20,15 @@ def get_fo_vgg_exp(exp=1):
             last_pooling=True,
             name='VGG-16-baseline'
         )
+    elif exp == 2:
+        return VggFirstOrderConfig(
+            nb_classes=0,
+            input_shape=(224, 224, 3),
+            denses=[512, 512],
+            input_tensor=None,
+            weights='imagenet',
+            include_top=False,
+            freeze_conv=False,
+            last_pooling=True,
+            name='VGG-16-notop-baseline'
+        )

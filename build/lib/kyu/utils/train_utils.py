@@ -15,3 +15,24 @@ def toggle_trainable_layers(model, trainable=True, keyword='', **kwargs):
         if keyword in layer.name:
             layer.trainable = trainable
     return model
+
+
+def toggle_trainable_layers_with_target(model, trainable=True, key_instance=[], **kwargs):
+    """
+
+    Parameters
+    ----------
+    model : Keras Model
+    trainable : True or False
+    key_instance : pass the layers
+    kwargs : Keywords
+
+    Returns
+    -------
+
+    """
+
+    for layer in model.layers:
+        if any([isinstance(layer, i) for i in key_instance]):
+            layer.trainable = trainable
+    return model

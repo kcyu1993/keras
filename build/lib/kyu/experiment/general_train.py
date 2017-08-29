@@ -1,5 +1,6 @@
 import argparse
 
+from keras.layers import Conv2D
 from kyu.engine.trainer import ClassificationTrainer
 from kyu.models import get_model
 from kyu.utils.image import get_vgg_image_gen, get_resnet_image_gen
@@ -72,14 +73,22 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
         trainer.fit(nb_epoch=nb_epoch_finetune, verbose=2)
         trainer.plot_result()
         # trainer.plot_model()
+        # model_config.freeze_conv = False
+        # running_config.load_weights = True
+        # running_config.init_weights_location = dirhelper.get_weight_path()
+
+    # model = get_model(model_config)
+    elif nb_epoch_finetune == 0:
         model_config.freeze_conv = False
-        running_config.load_weights = True
-        running_config.init_weights_location = dirhelper.get_weight_path()
+        model = get_model(model_config)
 
-    model = get_model(model_config)
-    if nb_epoch_finetune == 0:
-        model.summary()
+    else:
+        raise ValueError("nb_finetune_epoch must be non-negative {}".format(nb_epoch_finetune))
 
+    for layer in model.layers:
+        if isinstance(layer, Conv2D):
+            layer.trainable = True
+    model.summary()
     trainer = ClassificationTrainer(model, data, dirhelper,
                                     model_config=model_config, running_config=running_config,
                                     save_log=True,

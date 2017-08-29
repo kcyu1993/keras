@@ -97,16 +97,16 @@ def VGG16_first_order(
         else:
             pred_name = 'predictions'
         base_model = Model(inputs, x, name='vgg16_withtop')
-        toggle_trainable_layers(base_model, freeze_conv)
+        toggle_trainable_layers(base_model, not freeze_conv)
     else:
         base_model = Model(inputs, x, name='vgg16_notop')
-        toggle_trainable_layers(base_model, freeze_conv)
+        toggle_trainable_layers(base_model, not freeze_conv)
         x = Flatten(name='flatten')(x)
         for ind, para in enumerate(denses):
-            x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind+1)))
+            x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind+1)))(x)
         pred_name = 'new_pred'
 
-    x = base_model.output
+    # x = base_model.output
     x = Dense(nb_class, activation='softmax', name=pred_name)(x)
 
     # Create model.
