@@ -118,13 +118,15 @@ def _prepare_name(name, default):
     return prefix + '/' + name
 
 
-def variable(value, dtype=None, name=None):
+def variable(value, dtype=None, name=None, constraint=None):
     """Instantiates a variable and returns it.
 
     # Arguments
         value: Numpy array, initial value of the tensor.
         dtype: Tensor type.
         name: Optional name string for the tensor.
+        constraint: Optional projection function to be
+            applied to the variable after an optimizer update.
 
     # Returns
         A variable instance (with Keras metadata included).
@@ -147,6 +149,7 @@ def variable(value, dtype=None, name=None):
                                  strict=False)
     variable._keras_shape = value.shape
     variable._uses_learning_phase = False
+    variable.constraint = constraint
     return variable
 
 
@@ -231,7 +234,20 @@ def placeholder(shape=None, ndim=None, dtype=None, sparse=False, name=None):
         x = T.TensorType(dtype, broadcast)(name)
     x._keras_shape = shape
     x._uses_learning_phase = False
+    x._theano_placeholder = True
     return x
+
+
+def is_placeholder(x):
+    """Returns whether `x` is a placeholder.
+
+    # Arguments
+        x: A candidate placeholder.
+
+    # Returns
+        Boolean.
+    """
+    return hasattr(x, '_theano_placeholder') and x._theano_placeholder
 
 
 def shape(x):

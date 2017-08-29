@@ -276,13 +276,15 @@ def to_dense(tensor):
 name_scope = tf.name_scope
 
 
-def variable(value, dtype=None, name=None):
+def variable(value, dtype=None, name=None, constraint=None):
     """Instantiates a variable and returns it.
 
     # Arguments
         value: Numpy array, initial value of the tensor.
         dtype: Tensor type.
         name: Optional name string for the tensor.
+        constraint: Optional projection function to be
+            applied to the variable after an optimizer update.
 
     # Returns
         A variable instance (with Keras metadata included).
@@ -319,6 +321,11 @@ def variable(value, dtype=None, name=None):
     elif hasattr(value, 'get_shape'):
         v._keras_shape = int_shape(value)
     v._uses_learning_phase = False
+    # TODO: move to Variable constructor when supported in public release.
+    try:
+        v.constraint = constraint
+    except AttributeError:
+        v._constraint = constraint
     return v
 
 
@@ -438,6 +445,21 @@ def placeholder(shape=None, ndim=None, dtype=None, sparse=False, name=None):
     x._keras_shape = shape
     x._uses_learning_phase = False
     return x
+
+
+def is_placeholder(x):
+    """Returns whether `x` is a placeholder.
+
+    # Arguments
+        x: A candidate placeholder.
+
+    # Returns
+        Boolean.
+    """
+    try:
+        return x.op.type == 'Placeholder'
+    except AttributeError:
+        return False
 
 
 def shape(x):
@@ -2133,7 +2155,7 @@ def set_value(x, value):
         value: Value to set the tensor to, as a Numpy array
             (of the same shape).
     """
-    value = np.asarray(value)
+    value = np.asarray(value, dtype=dtype(x))
     tf_dtype = _convert_string_dtype(x.dtype.name.split('_')[0])
     if hasattr(x, '_assign_placeholder'):
         assign_placeholder = x._assign_placeholder
@@ -2157,7 +2179,7 @@ def batch_set_value(tuples):
         assign_ops = []
         feed_dict = {}
         for x, value in tuples:
-            value = np.asarray(value)
+            value = np.asarray(value, dtype=dtype(x))
             tf_dtype = _convert_string_dtype(x.dtype.name.split('_')[0])
             if hasattr(x, '_assign_placeholder'):
                 assign_placeholder = x._assign_placeholder
@@ -3585,7 +3607,7 @@ def ctc_label_dense_to_sparse(labels, label_lengths):
         label_lengths: length of the labels.
 
     # Returns
-        A sparse tensor representation of the lablels.
+        A sparse tensor representation of the labels.
     """
     label_shape = tf.shape(labels)
     num_batches_tns = tf.stack([label_shape[0]])
