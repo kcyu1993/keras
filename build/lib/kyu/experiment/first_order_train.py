@@ -22,7 +22,6 @@ def baseline_first_order_train(model_class, **kwargs):
 
 if __name__ == '__main__':
     parser = get_argparser(description='FO Train with different settings ')
-
     args = parser.parse_args()
 
     # Model class

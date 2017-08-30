@@ -97,7 +97,7 @@ def minc2500_finetune(model,
 
     # loader = Minc2500()
     train, test = load_minc2500(index=1, target_size=TARGET_SIZE, gen=image_gen, batch_size=batch_size)
-    model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+    # model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
     fit_model_v2(model, [train, test], batch_size=batch_size, title=title,
                  nb_epoch=nb_epoch_finetune,
                  optimizer=optimizer,
@@ -113,7 +113,7 @@ def minc2500_finetune(model,
     if nb_epoch_after > 0:
         # K.clear_session()
         toggle_trainable_layers(model, True, keyword)
-        model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+        # model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
         # model.load_weights(tmp_weights)
         fit_model_v2(model, [train, test], batch_size=batch_size, title=title,
                      nb_epoch=nb_epoch_after,
@@ -454,10 +454,10 @@ if __name__ == '__main__':
     #                                stiefel_lr=None, nb_epoch_finetune=4, nb_epoch_after=50)
 
     # config.title = 'minc_VGG_TEST_original_exp{}'.format(exp)
-    run_routine_vgg(config, verbose=(2, 2),
+    # run_routine_vgg(config, verbose=(2, 2),
                     # stiefel_observed=['o2t'], stiefel_lr=(0.001, 0.001),
-                    nb_epoch_finetune=5, nb_epoch_after=100,
-                    )
+                    # nb_epoch_finetune=5, nb_epoch_after=100,
+                    # )
     # run_routine_VGG_multibranch(config, verbose=(2,2),
     #                             nb_epoch_finetune=5, nb_epoch_after=100,)
 
@@ -466,7 +466,7 @@ if __name__ == '__main__':
     # run_residual_cov_resnet(1)
     # baseline_finetune_resnet(2)
     # run_routine_vgg(4)
-    # baseline_finetune_vgg()
+    baseline_finetune_vgg(1)
     # test_routine_vgg(4)
     # test_routine_resnet(6)
     # test_routine_resnet(config)

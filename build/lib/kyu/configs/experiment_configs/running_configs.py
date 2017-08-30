@@ -8,7 +8,7 @@ def get_running_config_no_debug_withSGD(title='general-testing', model_config=No
         _title=title,
         nb_epoch=200,
         batch_size=32,
-        verbose=1,
+        verbose=2,
         lr_decay=False,
         sequence=8,
         patience=8,

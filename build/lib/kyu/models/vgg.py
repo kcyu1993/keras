@@ -42,7 +42,7 @@ def VGG16_first_order(
                                       default_size=224,
                                       min_size=48,
                                       data_format=K.image_data_format(),
-                                      include_top=True)
+                                      require_flatten=False)
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
@@ -103,7 +103,8 @@ def VGG16_first_order(
         toggle_trainable_layers(base_model, not freeze_conv)
         x = Flatten(name='flatten')(x)
         for ind, para in enumerate(denses):
-            x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind+1)))(x)
+            x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind+1)),
+                      kernel_initializer='glorot_uniform')(x)
         pred_name = 'new_pred'
 
     # x = base_model.output
@@ -144,7 +145,6 @@ def VGG16_first_order(
                               'your Keras config '
                               'at ~/.keras/keras.json.')
     return model
-
 
 
 def VGG16_o1(denses=[], nb_classes=1000, input_shape=None, load_weights=True, freeze_conv=False, last_conv=False,

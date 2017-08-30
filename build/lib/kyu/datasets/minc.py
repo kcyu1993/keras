@@ -92,15 +92,20 @@ def load_minc2500(index, target_size, gen=None, batch_size=16, save_dir=None):
     -------
     train, valid
     """
-    loader = Minc2500()
-    tr_iterator = loader.generator(input_file='train{}.txt'.format(index),
-                                   batch_size=batch_size, target_size=target_size, gen=gen,
-                                   save_dir=save_dir)
-    va_iterator = loader.generator(input_file='validate{}.txt'.format(index),
-                                   batch_size=batch_size,target_size=target_size, gen=gen,
-                                   save_dir=save_dir)
-
-    return tr_iterator, va_iterator
+    loader = Minc2500_v2(dirpath='/home/kyu/.keras/datasets/minc-2500',
+                         image_data_generator=gen,
+                         )
+    train = loader.get_train(index, batch_size=batch_size, target_size=target_size,)
+    test = loader.get_test(index, batch_size=batch_size, target_size=target_size,)
+    return train, test
+    # tr_iterator = loader.generator(input_file='train{}.txt'.format(index),
+    #                                batch_size=batch_size, target_size=target_size, gen=gen,
+    #                                save_dir=save_dir)
+    # va_iterator = loader.generator(input_file='validate{}.txt'.format(index),
+    #                                batch_size=batch_size,target_size=target_size, gen=gen,
+    #                                save_dir=save_dir)
+    #
+    # return tr_iterator, va_iterator
 
 
 class MincLoader(object):

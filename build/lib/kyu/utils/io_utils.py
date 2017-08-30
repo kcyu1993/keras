@@ -212,7 +212,7 @@ class ProjectFile(object):
 
     @check_id_set
     def get_weight_path(self):
-        return os.path.join(self.get_weight_folder(), self.run_id + '.weights')
+        return os.path.join(self.get_weight_folder(), 'model_weights' + '.h5')
 
     @check_id_set
     def get_tmp_weight_path(self, epoch=None):

@@ -24,8 +24,11 @@ def get_fo_vgg_exp(exp=1):
         return VggFirstOrderConfig(
             nb_classes=0,
             input_shape=(224, 224, 3),
-            denses=[1024, 1024],
+            denses=[4096, 4096],
+            # denses=[1024, 1024],
             # denses=[256, 256],
+            # denses=[512, 512],
+            # denses=[],
             input_tensor=None,
             weights='imagenet',
             include_top=False,

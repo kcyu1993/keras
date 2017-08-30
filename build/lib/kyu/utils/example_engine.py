@@ -182,7 +182,7 @@ class ExampleEngine(object):
             if K._BACKEND == 'tensorflow':
                 tb_path = '/tmp/tensorflow/' + title[:30]
                 print("Creating tensorboard to save to {}".format(tb_path))
-                self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=False))
+                self.cbks.append(TensorBoard(log_dir=tb_path, histogram_freq=0, write_images=False))
 
     def fit(self, batch_size=32, nb_epoch=100, verbose=2, augmentation=True):
 
