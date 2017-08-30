@@ -166,13 +166,15 @@ def get_single_o2transform(exp):
 def get_no_wv_config(exp=1):
 
     if exp == 1:
+        o2t_regularizer = 'l1_l2'
         model_config = NoWVBranchConfig(
             parametric=[128],
             epsilon=1e-7,
             activation='relu',
-            cov_mode='channel',
+            cov_mode='pmean',
             cov_alpha=0.3,
             cov_beta=0.1,
+            o2t_regularizer=o2t_regularizer,
             robust=False,
             normalization=False,
             # input_shape=(256, 256, 3),
@@ -183,7 +185,7 @@ def get_no_wv_config(exp=1):
             load_weights='imagenet',
             # configs for _compose_second_order_things
             mode=1,
-            freeze_conv=False, name='No-PV-2branch-128-128',
+            freeze_conv=False, name='No-PV-2branch-128',
             nb_branch=2,
             concat='concat',
             cov_output_vectorization='pv',

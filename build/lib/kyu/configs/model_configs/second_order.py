@@ -64,6 +64,9 @@ class NoWVBranchConfig(DCovConfig):
                  cov_beta=0.1,
                  robust=False,
                  normalization=False,
+                 o2t_constraints=None,
+                 o2t_regularizer=None,
+                 o2t_activation='relu',
                  **kwargs
                  ):
         cov_branch = 'o2t_no_wv'
@@ -71,5 +74,8 @@ class NoWVBranchConfig(DCovConfig):
              'cov_mode': cov_mode,
              'epsilon': epsilon, 'cov_alpha': cov_alpha,
              'cov_beta': cov_beta, 'robust': robust, "normalization":normalization,
+             'o2t_regularizer': o2t_regularizer,
+             'o2t_activation': o2t_activation,
+             'o2t_constraints': o2t_constraints
              }
         super(NoWVBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)

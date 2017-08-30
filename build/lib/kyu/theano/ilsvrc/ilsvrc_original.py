@@ -27,7 +27,7 @@ from keras.applications import ResNet50
 
 from kyu.utils.example_engine import ExampleEngine
 from kyu.models.ilsvrc1000_vgg import VGG16_with_second
-from kyu.models.resnet import ResCovNet50
+from kyu.legacy.resnet50 import ResCovNet50
 
 if K.backend() == 'tensorflow':
     K.set_image_dim_ordering('tf')

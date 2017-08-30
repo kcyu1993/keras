@@ -1,6 +1,6 @@
 from keras.engine import Model
 from kyu.configs.engine_configs import ModelConfig
-from . import resnet
+from . import resnet50
 from . import vgg
 
 
@@ -23,7 +23,7 @@ def get_model(config):
     if identifier in ['vgg', 'vgg16', 'vgg19']:
         model = vgg.get_model(config)
     elif identifier in ['resnet', 'resnet50',]:
-        model = resnet.get_model(config)
+        model = resnet50.get_model(config)
     else:
         raise ValueError("Unkwown identifier {}".format(identifier))
 

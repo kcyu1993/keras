@@ -18,8 +18,9 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
-from kyu.models.vgg import VGG16_o1, VGG16_o2, VGG16_bilinear
-from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_multibranch
+from kyu.models.vgg import VGG16_bilinear
+from kyu.legacy.vgg16 import VGG16_o1, VGG16_o2
+from kyu.legacy.resnet50 import ResNet50_o1, ResNet50_o2_multibranch, ResNet50_o2
 
 from kyu.theano.general.train import fit_model_v2, Model
 from kyu.utils.train_utils import toggle_trainable_layers

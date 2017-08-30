@@ -7,10 +7,8 @@ import tensorflow as tf
 
 from keras.applications import ResNet50
 
-from kyu.models.resnet import ResCovNet50
-
 # LOG_PATH_ROOT = '/home/kyu/cvkyu/tensorboard/'
-from kyu.models.resnet import ResNet50_o2_multibranch
+from kyu.legacy.resnet50 import ResNet50_o2_multibranch, ResCovNet50
 
 LOG_PATH_ROOT = '/Users/kcyu/tensorboard/'
 

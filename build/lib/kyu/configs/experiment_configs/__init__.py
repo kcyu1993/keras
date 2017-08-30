@@ -1,1 +1,1 @@
-from .simple_second_order import NoWVBranchConfig, O2TBranchConfig
+from .simple_second_order_config import NoWVBranchConfig, O2TBranchConfig

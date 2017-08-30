@@ -7,7 +7,7 @@ import argparse
 from kyu.configs.experiment_configs.first_order import get_fo_vgg_exp
 
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD
-from kyu.configs.experiment_configs.simple_second_order import get_single_o2transform
+from kyu.configs.experiment_configs.simple_second_order_config import get_single_o2transform
 from kyu.datasets.dtd import DTD
 from kyu.datasets.minc import Minc2500_v2
 from kyu.engine.trainer import ClassificationTrainer

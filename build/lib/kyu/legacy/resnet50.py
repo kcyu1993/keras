@@ -1,23 +1,16 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import warnings
 
+from keras import backend as K, Input
+from keras.applications import ResNet50
 from keras.applications.imagenet_utils import _obtain_input_shape
-from kyu.models.so_cnn_helper import covariance_block_vector_space, covariance_block_original, dcov_model_wrapper_v1, \
-    dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
-
-import keras.backend as K
-from keras.applications.resnet50 import ResNet50, identity_block, conv_block
-
-from ..models.so_cnn_helper import covariance_block_original
-
-from keras.layers import BatchNormalization
-from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D, AveragePooling2D
-from keras.layers import Dense, Activation, Flatten
-from keras.layers import merge, Input
-from keras.models import Model
+from keras.applications.resnet50 import conv_block, identity_block
+from keras.engine import Model
+from keras.layers import Convolution2D, BatchNormalization, Activation, AveragePooling2D, Flatten, Dense, ZeroPadding2D, \
+    MaxPooling2D
+from keras.legacy.layers import merge
+from kyu.models.so_cnn_helper import dcov_multi_out_model_wrapper, dcov_model_wrapper_v1, dcov_model_wrapper_v2, \
+    covariance_block_original, covariance_block_vector_space
 from kyu.utils.train_utils import toggle_trainable_layers
-import tensorflow as tf
 
 
 def conv_block_original(input_tensor, kernel_size, filters, stage, block, strides=(2, 2),batch_norm=True):
@@ -540,7 +533,6 @@ def ResCovNet50(parametrics=[], epsilon=0., mode=0, nb_classes=23, input_shape=(
     return model
 
 
-
 def ResNet50CIFAR(include_top=True,
                   input_tensor=None,
                   input_shape=None,
@@ -765,7 +757,3 @@ def ResCovNet50CIFAR(parametrics=[], input_tensor=None, nb_class=10, mode=0):
 
     model = Model(img_input, x, name=basename + "mode_" + str(mode))
     return model
-
-
-def get_model(config):
-    pass

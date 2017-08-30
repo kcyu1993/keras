@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from third_party.openai.weightnorm import SGDWithWeightnorm
 
-from kyu.models.resnet import ResNet50_o2, ResNet50_o1
+from kyu.legacy.resnet50 import ResNet50_o1, ResNet50_o2
 
 from kyu.theano.general.finetune import get_tmp_weights_path
 
@@ -11,7 +11,7 @@ from keras.optimizers import SGD
 from keras.preprocessing.image import ImageDataGeneratorAdvanced
 import keras.backend as K
 
-from kyu.models.vgg import VGG16_o1, VGG16_o2
+from kyu.legacy.vgg16 import VGG16_o1, VGG16_o2
 from kyu.utils.example_engine import ExampleEngine
 from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 from kyu.datasets.xray import XrayLoader

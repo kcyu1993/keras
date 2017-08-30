@@ -2,10 +2,9 @@
 Define the Second-order training
 """
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD
-from kyu.configs.experiment_configs.simple_second_order import get_single_o2transform, get_no_wv_config
+from kyu.configs.experiment_configs.simple_second_order_config import get_single_o2transform, get_no_wv_config
 from kyu.experiment.general_train import get_argparser
-from kyu.experiment.minc_utils import minc_finetune_with_model
-from kyu.experiment.dtd_utils import dtd_finetune_with_model
+from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetune_with_model, sun_finetune_with_model
 
 BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv']
 
@@ -27,6 +26,11 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
         dtd_finetune_with_model(model_config, nb_epoch_finetune, running_config)
     elif dataset == 'minc2500' or dataset == 'minc-2500':
         minc_finetune_with_model(model_config, nb_epoch_finetune, running_config)
+    elif dataset == 'sun':
+        sun_finetune_with_model(
+            model_config=model_config,
+            nb_epoch_finetune=nb_epoch_finetune,
+            running_config=running_config)
 
 
 def so_o2t_original(dataset, model_class, **kwargs):
@@ -38,7 +42,7 @@ def so_o2t_original(dataset, model_class, **kwargs):
 def so_o2t_no_wv(dataset, model_class, **kwargs):
     """ Get SO-CNN architecture with o2t no wv branch """
     title = 'SO-{}_noWV'.format(str(model_class).upper())
-    so_cnn_train(model_exp_fn=get_single_o2transform, model_class=model_class, dataset=dataset, title=title, **kwargs)
+    so_cnn_train(model_exp_fn=get_no_wv_config, model_class=model_class, dataset=dataset, title=title, **kwargs)
 
 
 if __name__ == '__main__':

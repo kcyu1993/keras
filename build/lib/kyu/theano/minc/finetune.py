@@ -17,8 +17,10 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
-from kyu.models.vgg import VGG16_o1, VGG16_o2, VGG16_bilinear
-from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_multibranch
+from kyu.models.vgg import VGG16_bilinear
+from kyu.legacy.vgg16 import VGG16_o1, VGG16_o2
+from kyu.models.resnet50 import ResNet50_o1
+from kyu.legacy.resnet50 import ResNet50_o2_multibranch, ResNet50_o2
 
 from kyu.datasets.minc import Minc2500, load_minc2500
 
@@ -114,8 +116,10 @@ def minc2500_finetune(model,
         # K.clear_session()
         toggle_trainable_layers(model, True, keyword)
         # model.compile(optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
-        # model.load_weights(tmp_weights)
-        fit_model_v2(model, [train, test], batch_size=batch_size, title=title,
+        K.clear_session()
+        K.set_session(K.get_session())
+        model.load_weights(tmp_weights)
+        fit_model_v2(model, [train, test], batch_size=batch_size/2, title=title,
                      nb_epoch=nb_epoch_after,
                      optimizer=optimizer,
                      early_stop=early_stop,
@@ -438,7 +442,7 @@ if __name__ == '__main__':
 
     # config.cov_mode = 'channel'
     # config.batch_size = 16
-    config.batch_size = 64
+    config.batch_size = 32
     # config = get_residual_cov_experiment(2)
     print(config.title)
     # log_model_to_path(ResNet50_o2, input_shape, config, nb_classes, 'minc2500')

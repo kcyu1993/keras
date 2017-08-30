@@ -14,7 +14,7 @@ import keras.backend as K
 from keras.utils.data_utils import get_absolute_dir_project
 
 from kyu.models.fitnet import fitnet_o2, fitnet_o1
-from kyu.models.resnet import ResNet50_cifar_o2
+from kyu.legacy.resnet50 import ResNet50_cifar_o2
 from kyu.theano.cifar.configs import get_von_with_regroup, get_experiment_settings, get_aaai_experiment, get_matrix_bp, \
     get_cov_beta_cv, get_resnet_batch_norm, get_resnet_with_power, get_resnet_with_bn, get_resnet_experiments, \
     get_residual_cov_experiment

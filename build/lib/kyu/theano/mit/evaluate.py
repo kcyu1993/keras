@@ -12,8 +12,8 @@ import keras.backend as K
 import os
 
 # Some constants
-from kyu.models.resnet import ResNet50_o1, ResNet50_o2, ResNet50_o2_with_config
-from kyu.models.vgg import VGG16_o2, VGG16_o2_with_config, VGG16_o1
+from kyu.legacy.resnet50 import ResNet50_o1, ResNet50_o2_with_config, ResNet50_o2
+from kyu.legacy.vgg16 import VGG16_o1, VGG16_o2, VGG16_o2_with_config
 from kyu.theano.general.config import DCovConfig
 
 nb_classes = 23

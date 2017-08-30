@@ -11,8 +11,8 @@ from kyu.datasets.imagenet import ImageNetLoader
 from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
 # Some constants
-from kyu.models.resnet import ResNet50_o2_multibranch
-from kyu.models.vgg import VGG16_o2
+from kyu.legacy.resnet50 import ResNet50_o2_multibranch
+from kyu.legacy.vgg16 import VGG16_o2
 from kyu.theano.general.finetune import finetune_model_with_config
 from kyu.theano.general.train import fit_model_v2
 from kyu.utils.train_utils import toggle_trainable_layers

@@ -204,9 +204,9 @@ def covariance_block_aaai(input_tensor, nb_class, stage, block, epsilon=0, param
 
 def covariance_block_no_wv(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                            cov_mode='channel', cov_regularizer=None, vectorization='wv',
-                           o2t_constraints=None, normalization=False, so_mode=1, robust=False, cov_alpha=0.3,
+                           o2t_constraints=None, o2t_regularizer=None,
+                           normalization=False, so_mode=1, robust=False, cov_alpha=0.3,
                            cov_beta=0.1,
-
                            **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -223,7 +223,8 @@ def covariance_block_no_wv(input_tensor, nb_class, stage, block, epsilon=0, para
             if normalization:
                 x = SecondOrderBatchNormalization(so_mode=so_mode, momentum=0.8, axis=-1)(x)
             x = O2Transform(param, activation=activation, name=o2t_name_base + str(id),
-                            kernel_constraint=o2t_constraints)(x)
+                            kernel_constraint=o2t_constraints,
+                            kernel_regularizer=o2t_regularizer)(x)
     return x
 
 

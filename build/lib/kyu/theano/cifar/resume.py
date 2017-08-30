@@ -10,8 +10,7 @@ import keras.backend as K
 from keras.preprocessing.image import ImageDataGeneratorAdvanced
 from kyu.models.fitnet import fitnet_o2
 
-from kyu.models.resnet import ResNet50_o1, ResCovNet50, ResNet50_o2, ResNet50_o2_multibranch
-
+from kyu.legacy.resnet50 import ResNet50_o1, ResNet50_o2_multibranch, ResNet50_o2, ResCovNet50
 
 # Some constants
 from kyu.theano.general.finetune import resume_finetune, resume_finetune_with_Stiefel_layer
