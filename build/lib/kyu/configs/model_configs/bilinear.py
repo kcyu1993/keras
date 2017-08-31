@@ -8,7 +8,8 @@ class BilinearConfig(ModelConfig):
                  input_shape,
                  class_id='vgg',
                  model_id='bilinear',
-                 load_weights='imagenet'
+                 load_weights='imagenet',
+                 **kwargs
                  ):
-        super(BilinearConfig, self).__init__(class_id, model_id)
+        super(BilinearConfig, self).__init__(class_id, model_id, **kwargs)
         self.__dict__.update(locals())

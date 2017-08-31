@@ -2,6 +2,8 @@
 Define the DTD training pipeline
 
 """
+from kyu.datasets.mit import MitIndoor
+
 from kyu.datasets.sun import SUN397, SUN397_v2
 
 from kyu.datasets.dtd import DTD
@@ -46,7 +48,7 @@ def minc_finetune_with_model(model_config, nb_epoch_finetune, running_config):
 
 def sun_finetune_with_model(**kwargs):
     """
-    SUN397 dataset training for MINC dataset
+    SUN397 dataset training
 
     Parameters
     ----------
@@ -57,6 +59,21 @@ def sun_finetune_with_model(**kwargs):
 
     """
     data = SUN397_v2('/home/kyu/.keras/datasets/sun')
+    data_finetune_with_model(data, **kwargs)
+
+
+def mit_finetune_with_model(**kwargs):
+    """
+    MitIndoor training
+    Parameters
+    ----------
+    kwargs
+
+    Returns
+    -------
+
+    """
+    data = MitIndoor('/home/kyu/.keras/datasets/mit_indoor')
     data_finetune_with_model(data, **kwargs)
 
 

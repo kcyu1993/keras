@@ -174,7 +174,7 @@ def first_order(config):
     if not isinstance(config, ModelConfig):
         raise ValueError("VGG_first_order: only support First_order_Config")
     compulsory = ['nb_class', 'input_shape']
-    optional = ['denses', 'input_tensor', 'weights', 'include_top', 'last_pooling','freeze_conv']
+    optional = ['denses', 'input_tensor', 'weights', 'include_top', 'last_pooling', 'freeze_conv']
     return get_model_from_config(VGG16_first_order, config, compulsory, optional)
 
 

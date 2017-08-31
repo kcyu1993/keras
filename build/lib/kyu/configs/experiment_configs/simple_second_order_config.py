@@ -193,6 +193,34 @@ def get_no_wv_config(exp=1):
             last_conv_kernel=[1, 1],
             upsample_method='conv',
         )
+    elif exp == 2:
+        o2t_regularizer = 'l1_l2'
+        model_config = NoWVBranchConfig(
+            parametric=[256, 128, 64],
+            epsilon=1e-7,
+            activation='relu',
+            cov_mode='pmean',
+            cov_alpha=0.3,
+            cov_beta=0.1,
+            o2t_regularizer=o2t_regularizer,
+            robust=False,
+            normalization=False,
+            # input_shape=(256, 256, 3),
+            input_shape=(224, 224, 3),
+            nb_class=67,
+            cov_branch_output=128,
+            class_id='vgg',
+            load_weights='imagenet',
+            # configs for _compose_second_order_things
+            mode=1,
+            freeze_conv=False, name='No-PV-2branch-128',
+            nb_branch=2,
+            concat='concat',
+            cov_output_vectorization='pv',
+            last_conv_feature_maps=[512],
+            last_conv_kernel=[1, 1],
+            upsample_method='conv',
+        )
     else:
         raise ValueError("N")
 

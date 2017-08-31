@@ -1,12 +1,28 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import warnings
 
-def ResNet50(include_top=True, weights='imagenet',
-             input_tensor=None, input_shape=None,
-             pooling=None,
-             last_avg=True,
-             classes=1000):
+from keras.utils import get_file, layer_utils
+
+from keras.engine import get_source_inputs, Model
+from keras.layers import MaxPooling2D, Activation, BatchNormalization, Conv2D, AveragePooling2D, Flatten, Dense, \
+    GlobalAveragePooling2D, GlobalMaxPooling2D
+
+from keras.applications.resnet50 import conv_block, identity_block, WEIGHTS_PATH, WEIGHTS_PATH_NO_TOP
+
+from keras import Input
+import keras.backend as K
+from keras.applications.imagenet_utils import _obtain_input_shape
+
+
+def ResNet50_first_order(
+        denses=[], classes=1000,
+        include_top=True, weights='imagenet',
+        input_tensor=None, input_shape=None,
+        pooling=None,
+        last_avg=True
+        ):
     """Instantiates the ResNet50 architecture.
 
     Optionally loads weights pre-trained
@@ -129,6 +145,7 @@ def ResNet50(include_top=True, weights='imagenet',
     else:
         inputs = img_input
     # Create model.
+
     model = Model(inputs, x, name='resnet50')
 
     # load weights

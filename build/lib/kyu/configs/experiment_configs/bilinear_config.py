@@ -7,7 +7,8 @@ def get_bilinear_baseline_exp(exp=1):
         return BilinearConfig(
             nb_class=10,
             input_shape=(224,224,3),
-            load_weights='imagenet'
+            load_weights='imagenet',
+            name='BCNN-Baseline',
         )
     else:
         raise NotImplementedError

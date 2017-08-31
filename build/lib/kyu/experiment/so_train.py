@@ -4,14 +4,34 @@ Define the Second-order training
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD
 from kyu.configs.experiment_configs.simple_second_order_config import get_single_o2transform, get_no_wv_config
 from kyu.experiment.general_train import get_argparser
-from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetune_with_model, sun_finetune_with_model
+from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetune_with_model, sun_finetune_with_model, \
+    mit_finetune_with_model
 
 BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv']
 
 
 def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetune=0, title='',
                  comments='', debug=False, tensorboard=False):
+    """
+    Generic training pipeline for argument parser
 
+    Parameters
+    ----------
+    dataset : str       identifier of dataset
+    model_class : str   model class
+    model_exp_fn : func getting the model configuration based on the experiment
+    model_exp : int     model experiment index
+    nb_epoch_finetune : nb of epoch finetune running
+    title : str         title of this training (once layer can be extended.
+    comments : str      comments to be append in running config
+    debug : bool        enter tfdbg mode
+    tensorboard : bool  enable tensorboard logging.
+
+    Returns
+    -------
+
+    """
+    dataset = str(dataset).lower()
     model_config = model_exp_fn(model_exp)
     model_config.class_id = model_class
     running_config = get_running_config_no_debug_withSGD(
@@ -31,6 +51,14 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
             model_config=model_config,
             nb_epoch_finetune=nb_epoch_finetune,
             running_config=running_config)
+    elif dataset in ['mit', 'mit_indoor', 'mitindoor']:
+        mit_finetune_with_model(
+            model_config=model_config,
+            nb_epoch_finetune=nb_epoch_finetune,
+            running_config=running_config
+        )
+    else:
+        raise ValueError("Dataset not supported {}".format(dataset))
 
 
 def so_o2t_original(dataset, model_class, **kwargs):

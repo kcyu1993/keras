@@ -129,14 +129,10 @@ class SUN397_v2(ClassificationImageData):
         for i in range(1,11):
             train_file = 'Training_{:02d}.txt'.format(i)
             test_file = 'Testing_{:02d}.txt'.format(i)
-            train_mode = 'train'
-            test_mode = 'test'
             train_img, train_label = self._load_image_location_from_txt(os.path.join(self.root_folder, train_file))
             test_img, test_label = self._load_image_location_from_txt(os.path.join(self.root_folder, test_file))
-            self.image_list[train_mode + str(i)] = train_img
-            self.image_list[test_mode + str(i)] = test_img
-            self.label_list[train_mode + str(i)] = train_label
-            self.label_list[test_mode + str(i)] = test_label
+            self._set_train(train_img, train_label, index=i - 1)
+            self._set_test(test_img, test_label, index=i - 1)
 
     def _build_category_dict(self):
         # # Load the category

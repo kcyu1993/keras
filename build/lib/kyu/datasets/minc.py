@@ -41,8 +41,6 @@ class Minc2500_v2(ClassificationImageData):
             train_file = 'train{}.txt'.format(i)
             validate_file = 'validate{}.txt'.format(i)
             test_file = 'test{}.txt'.format(i)
-            train_mode = 'train'
-            test_mode = 'test'
             train_img, train_label = self._load_image_location_from_txt(os.path.join(self.label_dir, train_file))
             valid_img, valid_label = self._load_image_location_from_txt(os.path.join(self.label_dir, validate_file))
             test_img, test_label = self._load_image_location_from_txt(os.path.join(self.label_dir, test_file))
@@ -50,11 +48,6 @@ class Minc2500_v2(ClassificationImageData):
             self._set_train(train_img, train_label, index=i-1)
             self._set_valid(valid_img, valid_label, index=i-1)
             self._set_test(test_img, test_label, index=i-1)
-
-            # self.image_list[train_mode + str(i)] = train_img
-            # self.image_list[test_mode + str(i)] = test_img
-            # self.label_list[train_mode + str(i)] = train_label
-            # self.label_list[test_mode + str(i)] = test_label
 
     def _build_category_dict(self):
         # Load the categgory
