@@ -252,6 +252,7 @@ class ClassificationTrainer(object):
 
                 try:
                     history = self.model.history
+                    self.history = history
                     self.save_history(history, tmp=True)
                     self.plot_result(tmp=True)
                 except Exception as e:
@@ -334,7 +335,7 @@ class ClassificationTrainer(object):
         run_id = self.dirhelper.run_id
         filename = prefix + '-' + run_id
         if tmp:
-            filename += ".tmp"
+            filename = "tmp-" + filename
         filename += '.png'
 
         fpath = os.path.join(self.dirhelper.get_plot_folder(), filename)

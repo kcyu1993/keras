@@ -24,10 +24,12 @@ def get_argparser(description='default'):
     parser.add_argument('-d', '--dataset', type=str, required=True, help='dataset name: support dtd, minc2500')
     parser.add_argument('-me', '--model_exp', help='model experiment index', type=int, default=1)
     parser.add_argument('-m', '--model_class', help='model class should be in vgg, resnet', default='vgg', type=str)
-    parser.add_argument('-ef', '--nb_epoch_finetune', help='number of epoch to be finetuned', default=0, type=int)
+    parser.add_argument('-ef', '--nb_epoch_finetune', help='number of epoch to finetune', default=0, type=int)
+    parser.add_argument('-et', '--nb_epoch_train', help='number of epoch to retrain', default=200, type=int)
     parser.add_argument('-dbg', '--debug', type=bool, help='True for entering TFDbg mode', default=False)
     parser.add_argument('-tb', '--tensorboard', type=bool, help='Enable Tensorboard monitoring', default=True)
     parser.add_argument('-c', '--comments', help='comments if any', default='', type=str)
+    parser.add_argument('--channel_reverse', help='enable channel transform from RGB to BGR', default=False, type=bool)
     return parser
 
 

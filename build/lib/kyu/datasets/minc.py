@@ -2,7 +2,7 @@
 import gzip
 
 from kyu.engine.utils.data_utils import ClassificationImageData
-from kyu.utils.image import MincOriginalIterator
+from kyu.legacy.image import MincOriginalIterator
 from kyu.utils.io_utils import get_dataset_dir
 from keras.utils.data_utils import get_file
 from keras.utils.io_utils import HDF5Matrix

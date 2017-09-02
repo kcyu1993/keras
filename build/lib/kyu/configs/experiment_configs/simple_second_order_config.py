@@ -194,9 +194,12 @@ def get_no_wv_config(exp=1):
             upsample_method='conv',
         )
     elif exp == 2:
-        o2t_regularizer = 'l1_l2'
+        # o2t_regularizer = None
+        o2t_regularizer = 'l2'
+        # o2t_regularizer = 'l1'
+        # o2t_regularizer = 'l1_l2'
         model_config = NoWVBranchConfig(
-            parametric=[256, 128, 64],
+            parametric=[128, 64, 32],
             epsilon=1e-7,
             activation='relu',
             cov_mode='pmean',
@@ -208,7 +211,7 @@ def get_no_wv_config(exp=1):
             # input_shape=(256, 256, 3),
             input_shape=(224, 224, 3),
             nb_class=67,
-            cov_branch_output=128,
+            cov_branch_output=64,
             class_id='vgg',
             load_weights='imagenet',
             # configs for _compose_second_order_things

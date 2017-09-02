@@ -42,6 +42,7 @@ def fn_regroup(tensors):
 def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
                               cov_mode='channel', cov_regularizer=None,
                               o2t_constraints=None, o2t_regularizer=None, o2t_activation='relu',
+                              pv_constraints=None, pv_regularizer=None, pv_activation='relu',
                               use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
                               **kwargs):
     cov_name_base = get_cov_name_base(stage, block)
@@ -58,7 +59,12 @@ def covariance_block_original(input_tensor, nb_class, stage, block, epsilon=0, p
                             kernel_constraint=o2t_constraints, kernel_regularizer=o2t_regularizer,
                             )(x)
     with tf.name_scope(wp_name_base):
-        x = WeightedVectorization(nb_class, use_bias=use_bias, activation=activation, name=wp_name_base)(x)
+        x = WeightedVectorization(nb_class,
+                                  kernel_regularizer=pv_regularizer,
+                                  kernel_constraint=pv_constraints,
+                                  use_bias=use_bias,
+                                  activation=pv_activation,
+                                  name=wp_name_base)(x)
     return x
 
 

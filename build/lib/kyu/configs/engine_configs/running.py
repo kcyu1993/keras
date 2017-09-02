@@ -103,3 +103,39 @@ class RunningConfig(KCConfig):
         self._title = value if value is not None else self._title
 
     # TODO add the optimizer to property for smart update the related kwargs
+    @property
+    def init_weights_location(self):
+        return self._init_weights_location
+
+    @init_weights_location.setter
+    def init_weights_location(self, value):
+        if value is None or not os.path.exists(value):
+            self._init_weights_location = None
+            self.load_weights = False
+        else:
+            self._init_weights_location = value
+            self.load_weights = True
+
+
+def wrap_running_config(config, **kwargs):
+    """
+    Wrapper for running config
+    Parameters
+    ----------
+    config
+    kwargs
+
+    Returns
+    -------
+
+    """
+    if not isinstance(config, RunningConfig):
+        raise ValueError("Wrapper only takes RunningConfig, got {}".format(config))
+    approved_keys = dict(config.__dict__).keys()
+    for key, value in kwargs.items():
+        if key in approved_keys:
+            config.__dict__[key] = value
+        else:
+            print("RunningConfigWrapper: Key not supported {}".format(key))
+
+    return config

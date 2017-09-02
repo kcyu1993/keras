@@ -4,6 +4,8 @@ import glob
 
 import numpy as np
 import os
+from os import path
+from kyu.engine.utils.data_utils import ClassificationImageData
 from scipy.io import loadmat
 
 import keras.backend as K
@@ -14,6 +16,86 @@ from kyu.utils.image import ImageDataGeneratorAdvanced, ImageIterator
 
 IMAGENET_VALID_GROUNDTRUTH_FILE = 'ILSVRC2014_clsloc_validation_ground_truth.txt'
 IMAGENET_VALID_BLACKLIST_FILE = 'ILSVRC2014_clsloc_validation_blacklist.txt'
+
+
+class ImageNet_v2(ClassificationImageData):
+    """
+    Image Net Classification data.
+
+    """
+
+
+    def __init__(self, root_folder,
+                 use_validation=False, image_dir='Data/CLS-LOC',
+                 name='ImageNet', meta_folder='ImageSets/CLS-LOC'):
+        self.meta_file = path.join(root_folder, meta_folder, 'meta_clsloc.mat')
+        self.mat = self.load_mat()
+        super(ImageNet_v2, self).__init__(root_folder=root_folder, image_dir=image_dir,
+                                          name=name, meta_folder=meta_folder,
+                                          use_validation=use_validation)
+        # Construct the image label list
+        self.build_image_label_lists()
+
+    def load_mat(self):
+        meta_path = self.meta_file
+        mat = loadmat(meta_path)
+        return mat
+
+    def decode(self, path):
+        """ decode the image path info to string """
+        raise NotImplementedError
+
+    def build_image_label_lists(self):
+        """
+        Construct the ImageNet
+
+        Returns
+        -------
+
+        """
+        images = self.mat['images']
+
+        train_name = images['name'][0, 0][np.where(images['set'][0, 0] == 1)]
+        val_name = images['name'][0, 0][np.where(images['set'][0, 0] == 2)]
+        if not self.use_validation:
+            train_name = np.append(train_name, val_name)
+        test_name = images['name'][0, 0][np.where(images['set'][0, 0] == 3)]
+
+        y_train = images['class'][0, 0][np.where(images['set'][0, 0] == 1)]
+        y_valid = images['class'][0, 0][np.where(images['set'][0, 0] == 2)]
+        if not self.use_validation:
+            y_train = np.append(y_train, y_valid)
+        y_test = images['class'][0, 0][np.where(images['set'][0, 0] == 3)]
+
+        y_train -= 1
+        y_valid -= 1
+        y_test -= 1
+
+        self._set_train(
+            [path.join(self.image_folder, file_name[0]) for file_name in train_name],
+            y_train,
+        )
+
+        if self.use_validation:
+            self._set_valid(
+                [path.join(self.image_folder, file_name[0]) for file_name in val_name],
+                y_valid,
+            )
+
+        self._set_test(
+            [path.join(self.image_folder, file_name[0]) for file_name in test_name],
+            y_test,
+        )
+
+    def _build_category_dict(self):
+        """ Build the category dictionary by meta-file """
+        meta = self.mat['meta']
+        classes = meta['classes'][0][0][0]
+        # To python str for unified usage
+        classes_names = [str(classes[i][0]) for i in range(len(classes))]
+        category_dict = dict(zip(classes_names, range(len(classes_names))))
+        self.nb_class = len(classes_names)
+        return category_dict
 
 
 class ImageNetTools(object):
@@ -158,17 +240,17 @@ class ImageNetLoader(object):
             try:
                 self.train_list = fdata['train_list']
             except KeyError as e:
-                print (str(e))
+                print(str(e))
                 load_train = True
             try:
                 self.valid_list = fdata['valid_list']
             except KeyError as e:
-                print (str(e))
+                print(str(e))
                 load_valid = True
             try:
                 self.test_list = fdata['test_list']
             except KeyError as e:
-                print (str(e))
+                print(str(e))
                 load_test = True
         except (ImportError, IOError) as e:
             print(str(e))

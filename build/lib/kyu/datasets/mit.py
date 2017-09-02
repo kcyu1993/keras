@@ -124,3 +124,6 @@ class MITLoader(object):
                                   )
         return generator
 
+
+if __name__ == '__main__':
+    pass

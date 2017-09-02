@@ -9,46 +9,46 @@ import keras.backend as K
 class ModifiedTensorBoard(Callback):
     """Tensorboard basic visualizations.
 
-    [TensorBoard](https://www.tensorflow.org/get_started/summaries_and_tensorboard)
-    is a visualization tool provided with TensorFlow.
+        [TensorBoard](https://www.tensorflow.org/get_started/summaries_and_tensorboard)
+        is a visualization tool provided with TensorFlow.
 
-    This callback writes a log for TensorBoard, which allows
-    you to visualize dynamic graphs of your training and test
-    metrics, as well as activation histograms for the different
-    layers in your model.
+        This callback writes a log for TensorBoard, which allows
+        you to visualize dynamic graphs of your training and test
+        metrics, as well as activation histograms for the different
+        layers in your model.
 
-    If you have installed TensorFlow with pip, you should be able
-    to launch TensorBoard from the command line:
-    ```sh
-    tensorboard --logdir=/full_path_to_your_logs
-    ```
+        If you have installed TensorFlow with pip, you should be able
+        to launch TensorBoard from the command line:
+        ```sh
+        tensorboard --logdir=/full_path_to_your_logs
+        ```
 
-    # Arguments
-        log_dir: the path of the directory where to save the log
-            files to be parsed by TensorBoard.
-        histogram_freq: frequency (in epochs) at which to compute activation
-            and weight histograms for the layers of the model. If set to 0,
-            histograms won't be computed. Validation data (or split) must be
-            specified for histogram visualizations.
-        write_graph: whether to visualize the graph in TensorBoard.
-            The log file can become quite large when
-            write_graph is set to True.
-        write_grads: whether to visualize gradient histograms in TensorBoard.
-            `histogram_freq` must be greater than 0.
-        batch_size: size of batch of inputs to feed to the network
-            for histograms computation.
-        write_images: whether to write model weights to visualize as
-            image in TensorBoard.
-        embeddings_freq: frequency (in epochs) at which selected embedding
-            layers will be saved.
-        embeddings_layer_names: a list of names of layers to keep eye on. If
-            None or empty list all the embedding layer will be watched.
-        embeddings_metadata: a dictionary which maps layer name to a file name
-            in which metadata for this embedding layer is saved. See the
-            [details](https://www.tensorflow.org/how_tos/embedding_viz/#metadata_optional)
-            about metadata files format. In case if the same metadata file is
-            used for all embedding layers, string can be passed.
-    """
+        # Arguments
+            log_dir: the path of the directory where to save the log
+                files to be parsed by TensorBoard.
+            histogram_freq: frequency (in epochs) at which to compute activation
+                and weight histograms for the layers of the model. If set to 0,
+                histograms won't be computed. Validation data (or split) must be
+                specified for histogram visualizations.
+            write_graph: whether to visualize the graph in TensorBoard.
+                The log file can become quite large when
+                write_graph is set to True.
+            write_grads: whether to visualize gradient histograms in TensorBoard.
+                `histogram_freq` must be greater than 0.
+            batch_size: size of batch of inputs to feed to the network
+                for histograms computation.
+            write_images: whether to write model weights to visualize as
+                image in TensorBoard.
+            embeddings_freq: frequency (in epochs) at which selected embedding
+                layers will be saved.
+            embeddings_layer_names: a list of names of layers to keep eye on. If
+                None or empty list all the embedding layer will be watched.
+            embeddings_metadata: a dictionary which maps layer name to a file name
+                in which metadata for this embedding layer is saved. See the
+                [details](https://www.tensorflow.org/how_tos/embedding_viz/#metadata_optional)
+                about metadata files format. In case if the same metadata file is
+                used for all embedding layers, string can be passed.
+        """
 
     def __init__(self, log_dir='./logs',
                  histogram_freq=0,
@@ -86,6 +86,13 @@ class ModifiedTensorBoard(Callback):
                     if self.write_grads:
                         grads = model.optimizer.get_gradients(model.total_loss,
                                                               weight)
+
+                        def is_indexed_slices(grad):
+                            return type(grad).__name__ == 'IndexedSlices'
+
+                        grads = [
+                            grad.values if is_indexed_slices(grad) else grad
+                            for grad in grads]
                         tf.summary.histogram('{}_grad'.format(mapped_weight_name), grads)
                     if self.write_images:
                         w_img = tf.squeeze(weight)
@@ -169,6 +176,9 @@ class ModifiedTensorBoard(Callback):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
 
+        if not self.validation_data and self.histogram_freq:
+            raise ValueError('If printing histograms, validation_data must be '
+                             'provided, and cannot be a generator.')
         if self.validation_data and self.histogram_freq:
             if epoch % self.histogram_freq == 0:
 

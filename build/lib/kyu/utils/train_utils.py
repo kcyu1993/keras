@@ -1,3 +1,8 @@
+"""
+Training Utilities for Keras model
+"""
+
+
 def toggle_trainable_layers(model, trainable=True, keyword='', **kwargs):
     """
     Freeze the layers of a given model
