@@ -4,7 +4,7 @@ Experiment Configs Instances
         * VGG 16
 
 """
-from kyu.configs.model_configs import VggFirstOrderConfig
+from kyu.configs.model_configs import VggFirstOrderConfig, DenseNetFirstOrderConfig
 
 
 def get_fo_vgg_exp(exp=1):
@@ -36,3 +36,24 @@ def get_fo_vgg_exp(exp=1):
             last_pooling=True,
             name='VGG-16-notop-baseline'
         )
+
+
+def get_fo_dense_exp(exp=1):
+    if exp == 1:
+        return DenseNetFirstOrderConfig(
+            nb_class=0,
+            input_shape=(224, 224, 3),
+            nb_dense_block=4,
+            growth_rate=32,
+            nb_filter=64,
+            reduction=0.5,
+            dropout_rate=0.0,
+            weight_decay=1e-4,
+            weights_path='imagenet',
+            freeze_conv=True,
+            last_pooling=True,
+            name='DenseNet121-FO'
+        )
+    else:
+        raise ValueError("Not supported exp number {}".format(exp))
+

@@ -1,19 +1,26 @@
+import os
 import six
+
+from kyu.configs.model_configs.first_order import DenseNetFirstOrderConfig
 from kyu.utils.train_utils import toggle_trainable_layers
 
 from kyu.models.generic_loader import deserialize_model_object, get_model_from_config
 
 from kyu.configs.engine_configs import ModelConfig
+from third_party.densenet_keras.custom_layers import Scale
 
 from keras.models import Model
-from keras.layers import Input, merge, ZeroPadding2D, concatenate
+from keras.layers import Input, ZeroPadding2D, concatenate
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.convolutional import Conv2D
 from keras.layers.pooling import AveragePooling2D, GlobalAveragePooling2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 import keras.backend as K
+from keras.utils import get_file
 
-from third_party.densenet_keras.custom_layers import Scale
+
+WEIGHT_PATH_TF_121 = 'https://drive.google.com/uc?id=0Byy2AcGyEVxfSTA4SHJVOHNuTXc&export=download'
+WEIGHT_PATH_TH_121 = 'https://drive.google.com/open?id=0Byy2AcGyEVxfMlRYb3YzV210VzQ'
 
 
 def DenseNet121(
@@ -22,7 +29,7 @@ def DenseNet121(
         nb_dense_block=4,
         growth_rate=32,
         nb_filter=64,
-        reduction=0.0,
+        reduction=0.5,
         dropout_rate=0.0,
         weight_decay=1e-4,
         weights_path=None,
@@ -46,6 +53,21 @@ def DenseNet121(
 
     # compute compression factor
     compression = 1.0 - reduction
+
+    # Handle the weights_path
+    if weights_path == 'imagenet' and reduction == 0.5:
+        if K.image_data_format() == 'channels_last':
+            weights_path = get_file('densenet121_weights_tf.h5',
+                                    WEIGHT_PATH_TF_121,
+                                    cache_subdir='models')
+        else:
+            weights_path = get_file('densenet121_weights_th.h5',
+                                    WEIGHT_PATH_TH_121,
+                                    cache_subdir='models')
+    elif os.path.exists(weights_path):
+        pass
+    else:
+        weights_path = None
 
     # Handle Dimension Ordering for different backends
     global concat_axis
@@ -72,10 +94,13 @@ def DenseNet121(
     # Add dense blocks
     for block_idx in range(nb_dense_block - 1):
         stage = block_idx+2
-        x, nb_filter = dense_block(x, stage, nb_layers[block_idx], nb_filter, growth_rate, dropout_rate=dropout_rate, weight_decay=weight_decay)
+        x, nb_filter = dense_block(x, stage, nb_layers[block_idx], nb_filter, growth_rate,
+                                   dropout_rate=dropout_rate, weight_decay=weight_decay)
 
         # Add transition_block
-        x = transition_block(x, stage, nb_filter, compression=compression, dropout_rate=dropout_rate, weight_decay=weight_decay)
+        x = transition_block(x, stage, nb_filter, compression=compression,
+                             dropout_rate=dropout_rate,
+                             weight_decay=weight_decay)
         nb_filter = int(nb_filter * compression)
 
     final_stage = stage + 1
@@ -89,8 +114,8 @@ def DenseNet121(
 
     # wrap the base model with Model and load weights
     basemodel = Model(img_input, x, name='densenet121-base')
-    if weights_path is not None:
-        basemodel.load_weights(weights_path, by_name=True)
+    # if weights_path is not None:
+    #     basemodel.load_weights(weights_path, by_name=True)
 
     x = basemodel.output
     if freeze_conv:
@@ -105,8 +130,8 @@ def DenseNet121(
 
     model = Model(basemodel.input, x, name='densenet121')
     if weights_path is not None:
+        print("Load weights from {}")
         model.load_weights(weights_path, by_name=True)
-
     return model
 
 
@@ -215,24 +240,26 @@ def first_order(config):
     nb_class=1000,
     weights_path=None
     """
-    if not isinstance(config, ModelConfig):
-        raise ValueError("VGG_first_order: only support First_order_Config")
+    if not isinstance(config, DenseNetFirstOrderConfig):
+        raise ValueError("DenseNet first order: only support DenseNetFirstOrderConfig")
     compulsory = ['nb_class', 'input_shape']
-    optional = ['nb_dense_block', 'growth_rate', 'nb_filter', 'reduction', 'last_pooling', 'freeze_conv']
+    optional = ['nb_dense_block', 'growth_rate', 'nb_filter', 'reduction', 'dropout_rate',
+                'weight_decay', 'weights_path',
+                'last_pooling', 'freeze_conv']
     return get_model_from_config(DenseNet121, config, compulsory, optional)
 
 
 def deserialize(name, custom_objects=None):
     return deserialize_model_object(name,
                                     module_objects=globals(),
-                                    printable_module_name='vgg model'
+                                    printable_module_name='densenet121 model'
                                     )
 
 
 def get_model(config):
 
     if not isinstance(config, ModelConfig):
-        raise ValueError("VGG: get_model only support ModelConfig object")
+        raise ValueError("DenseNet: get_model only support ModelConfig object")
 
     model_id = config.model_id
     # Decompose the config with different files.

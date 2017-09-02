@@ -4,7 +4,7 @@ from keras.layers import Conv2D, BatchNormalization
 from keras.optimizers import SGD
 from kyu.engine.trainer import ClassificationTrainer
 from kyu.models import get_model
-from kyu.utils.image import get_vgg_image_gen, get_resnet_image_gen
+from kyu.utils.image import get_vgg_image_gen, get_resnet_image_gen, get_densenet_image_gen
 from kyu.utils.io_utils import ProjectFile
 
 
@@ -50,7 +50,7 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
     """
 
     model_config.nb_class = data.nb_class
-    if model_config.class_id == 'vgg':
+    if str(model_config.class_id).find('vgg') >= 0:
         # if model_config.model_id == 'first_order':
             # print('First order set to resnet image gen')
             # data.image_data_generator = get_resnet_image_gen(model_config.target_size,
@@ -62,6 +62,11 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
                                                       running_config.rescale_small,
                                                       running_config.random_crop,
                                                       running_config.horizontal_flip)
+    elif str(model_config.class_id).find('densenet') >= 0:
+        data.image_data_generator = get_densenet_image_gen(model_config.target_size,
+                                                           running_config.rescale_small,
+                                                           running_config.random_crop,
+                                                           running_config.horizontal_flip)
     else:
         data.image_data_generator = get_resnet_image_gen(model_config.target_size,
                                                          running_config.rescale_small,
