@@ -8,7 +8,7 @@ import keras.backend as K
 from keras.preprocessing.image import DirectoryIterator, ImageDataGenerator, Iterator, load_img, img_to_array, \
     array_to_img
 from kyu.utils.imagenet_utils import preprocess_image_for_imagenet_without_channel_reverse, \
-    preprocess_image_for_imagenet_of_densenet
+    preprocess_image_for_imagenet_of_densenet, preprocess_image_for_imagenet
 
 
 def crop(x, center_x, center_y, ratio=.23, channel_index=0):

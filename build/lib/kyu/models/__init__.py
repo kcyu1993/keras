@@ -1,8 +1,9 @@
+import kyu.models.densenet
 from keras.engine import Model
 from kyu.configs.engine_configs import ModelConfig
 from . import resnet50
 from . import vgg
-from . import densenet121
+from . import densenet
 
 def get_model(config):
     """
@@ -24,8 +25,8 @@ def get_model(config):
         model = vgg.get_model(config)
     elif identifier in ['resnet', 'resnet50',]:
         model = resnet50.get_model(config)
-    elif identifier in ['densenet121', 'densenet']:
-        model = densenet121.get_model(config)
+    elif str(identifier).find('densenet') >= 0:
+        model = kyu.models.densenet.get_model(config)
     else:
         raise ValueError("Unkwown identifier {}".format(identifier))
 

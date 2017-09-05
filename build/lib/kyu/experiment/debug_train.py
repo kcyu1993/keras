@@ -1,6 +1,9 @@
 """
-Define the Second-order training
+
+Construct the debugging session
+
 """
+
 from kyu.configs.engine_configs.running import wrap_running_config
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD
 from kyu.configs.experiment_configs.simple_second_order_config import get_single_o2transform, get_no_wv_config

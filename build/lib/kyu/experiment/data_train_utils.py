@@ -8,7 +8,7 @@ from kyu.datasets.sun import SUN397, SUN397_v2
 
 from kyu.datasets.dtd import DTD
 from kyu.datasets.minc import Minc2500_v2
-from kyu.experiment.general_train import finetune_with_model_data, get_dirhelper
+from kyu.experiment.general_train import finetune_with_model_data, get_dirhelper, get_debug_dirhelper
 from kyu.configs.experiment_configs import *
 from kyu.utils.io_utils import ProjectFile
 
@@ -77,6 +77,11 @@ def mit_finetune_with_model(**kwargs):
     data_finetune_with_model(data, **kwargs)
 
 
+def imagenet_finetune_with_model(**kwargs):
+    # data =
+    pass
+
+
 def data_finetune_with_model(data, model_config, nb_epoch_finetune, running_config):
     """
     Finetune with data passing
@@ -92,5 +97,9 @@ def data_finetune_with_model(data, model_config, nb_epoch_finetune, running_conf
     -------
 
     """
-    dirhelper = get_dirhelper(dataset_name=data.name, model_category=model_config.class_id)
+    if running_config.debug:
+        dirhelper = get_debug_dirhelper(dataset_name=data.name, model_category=model_config.class_id)
+    else:
+        dirhelper = get_dirhelper(dataset_name=data.name, model_category=model_config.class_id)
+
     finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, running_config)

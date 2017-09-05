@@ -12,6 +12,10 @@ def get_dirhelper(dataset_name, model_category, **kwargs):
     return ProjectFile(root_path='/home/kyu/cvkyu/so_updated_record', dataset=dataset_name, model_category=model_category,
                        **kwargs)
 
+def get_debug_dirhelper(dataset_name, model_category, **kwargs):
+    return ProjectFile(root_path='/home/kyu/cvkyu/debug_secondstat', dataset=dataset_name, model_category=model_category,
+                       **kwargs)
+
 
 def get_argparser(description='default'):
     """
@@ -26,10 +30,25 @@ def get_argparser(description='default'):
     parser.add_argument('-m', '--model_class', help='model class should be in vgg, resnet', default='vgg', type=str)
     parser.add_argument('-ef', '--nb_epoch_finetune', help='number of epoch to finetune', default=0, type=int)
     parser.add_argument('-et', '--nb_epoch_train', help='number of epoch to retrain', default=200, type=int)
-    parser.add_argument('-dbg', '--debug', type=bool, help='True for entering TFDbg mode', default=False)
-    parser.add_argument('-tb', '--tensorboard', type=bool, help='Enable Tensorboard monitoring', default=True)
+    parser.add_argument('-tfdbg', '--tf_dbg', type=bool, help='True for entering TFDbg mode', default=False)
+
+    parser.add_argument('-tb', '--tensorboard', action='store_true',
+                        help='Enable Tensorboard monitoring', dest='tensorboard')
+    parser.add_argument('-ntb', '--no-tensorboard', action='store_false',
+                        help='Disable tensorboard monitoring', dest='tensorboard',)
+    parser.set_defaults(tensorboard=True)
     parser.add_argument('-c', '--comments', help='comments if any', default='', type=str)
     parser.add_argument('--channel_reverse', help='enable channel transform from RGB to BGR', default=False, type=bool)
+
+    parser.add_argument('-debug', '--debug', help='set debug flag', dest='debug', action='store_true')
+    parser.set_defaults(debug=False)
+    parser.add_argument('-spe', '--save_per_epoch', help='save per epoch toggle',
+                        dest='save_per_epoch', action='store_true')
+    parser.set_defaults(save_per_epoch=False)
+    parser.add_argument('-nld', '--no_learning_decay', help='disable decay on plaetu', action='store_false',
+                        dest='lr_decay')
+    parser.set_defaults(lr_decay=True)
+
     return parser
 
 

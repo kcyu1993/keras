@@ -2,6 +2,7 @@
 from keras.applications import VGG16, ResNet50
 from keras.layers import Dense
 from keras.models import Model
+from kyu.models.densenet121 import DenseNet121
 from kyu.models.secondstat import BiLinear
 from kyu.utils.train_utils import toggle_trainable_layers
 
@@ -17,6 +18,19 @@ def _compose_bilinear_model(base_model, nb_class, freeze_conv=False, name='Bilin
 
     new_model = Model(base_model.input, x, name=name)
     return new_model
+
+
+def DenseNet121_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), freeze_conv=False):
+    if load_weights == 'imagenet':
+        base_model = DenseNet121(include_top=False, input_shape=input_shape)
+    elif load_weights is None:
+        base_model = DenseNet121(include_top=False, weights_path=None, input_shape=input_shape)
+    else:
+        base_model = DenseNet121(include_top=False, weights_path=None, input_shape=input_shape)
+        base_model.load_weights(load_weights, by_name=True)
+
+    return _compose_bilinear_model(base_model=base_model, nb_class=nb_class,
+                                   freeze_conv=freeze_conv, name='DenseNet121_bilinear')
 
 
 def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), freeze_conv=False):

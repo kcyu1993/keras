@@ -18,32 +18,93 @@ IMAGENET_VALID_GROUNDTRUTH_FILE = 'ILSVRC2014_clsloc_validation_ground_truth.txt
 IMAGENET_VALID_BLACKLIST_FILE = 'ILSVRC2014_clsloc_validation_blacklist.txt'
 
 
-class ImageNet_v2(ClassificationImageData):
+class ImageNetData(ClassificationImageData):
     """
     Image Net Classification data.
 
     """
-
-
     def __init__(self, root_folder,
-                 use_validation=False, image_dir='Data/CLS-LOC',
-                 name='ImageNet', meta_folder='ImageSets/CLS-LOC'):
-        self.meta_file = path.join(root_folder, meta_folder, 'meta_clsloc.mat')
+                 use_validation=False, image_dir='Data',
+                 name='ImageNet', meta_folder='ImageSets',
+                 mode='CLS-LOC',
+                 config_filename='imagenet_keras_pipeline_list.h5'):
+        self.meta_file = path.join(root_folder, meta_folder, mode, 'meta_clsloc.mat')
+        self.config_file = path.join(root_folder, meta_folder, mode, config_filename)
         self.mat = self.load_mat()
-        super(ImageNet_v2, self).__init__(root_folder=root_folder, image_dir=image_dir,
+        super(ImageNetData, self).__init__(root_folder=root_folder, image_dir=image_dir,
                                           name=name, meta_folder=meta_folder,
                                           use_validation=use_validation)
         # Construct the image label list
+        self.imagenettool = ImageNetTools(self.meta_file)
         self.build_image_label_lists()
-
+        self.train_name = 'train'
+        self.valid_name = 'val'
+        self.test_name = 'test'
     def load_mat(self):
         meta_path = self.meta_file
         mat = loadmat(meta_path)
         return mat
 
     def decode(self, path):
-        """ decode the image path info to string """
+        """
+        decode the image path info to string
+        For training
+            WnID/WnID_imgID.jpeg
+        For validation
+            XXXX_XXXX_ID.jpeg
+        For testing
+            No idea the real value
+
+        Parameters
+        ----------
+        path
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
+
+    def imagenet_decode(self, str_input, mode='train', prefix=None):
+        """
+                Decode the corresponding parameters
+
+                Parameters
+                ----------
+                str_input: str  one line of given txt file
+                                for training:
+                                    WnID/WnID_imgID.JPEG Index
+                                for validation and test
+                                    XXXX_XXXX_ID.JPEG Index
+                Returns
+                -------
+                index, abs_path, corresponding SynsetID (-1 for test)
+                """
+        path, index = str_input.split(' ')
+
+        if mode == 'train':
+            synset, _ = path.split('/')
+            synset_id = self.imagenettool.synset_to_id(synset)
+            name = self.train_name
+        elif mode == 'valid':
+            synset_id = self.valid_groundtruth_dict[int(index) - 1]
+            name = self.valid_name
+        elif mode == 'test':
+            synset_id = -1
+            name = self.test_name
+        else:
+            raise ValueError("Only accept test, valid, train as mode")
+
+        # if not os.path.exists(abs_path):
+        #     raise IOError('File not found ' + abs_path)
+        if prefix:
+            name = prefix
+        abs_path = os.path.join(self.data_folder, name, path + '.JPEG')
+        if synset_id == -1:
+            nnid = 0
+        else:
+            nnid = self.imagenettool.id_to_nnid(synset_id)
+        return int(index), abs_path, int(synset_id), nnid
 
     def build_image_label_lists(self):
         """
@@ -89,12 +150,16 @@ class ImageNet_v2(ClassificationImageData):
 
     def _build_category_dict(self):
         """ Build the category dictionary by meta-file """
-        meta = self.mat['meta']
-        classes = meta['classes'][0][0][0]
+        classes = self.mat['synsets']['WNID'][0]
         # To python str for unified usage
         classes_names = [str(classes[i][0]) for i in range(len(classes))]
-        category_dict = dict(zip(classes_names, range(len(classes_names))))
+        category_dict = {k:v for k,v in
+                         zip(classes_names,
+                             [self.imagenettool.synset_to_id(n)
+                              for n in classes_names])
+                         }
         self.nb_class = len(classes_names)
+        assert self.nb_class == 1000
         return category_dict
 
 
@@ -105,10 +170,8 @@ class ImageNetTools(object):
     def __init__(self, fpath):
         meta_clsloc_file = fpath
         self.synsets = loadmat(meta_clsloc_file)["synsets"][0]
-        self.synsets_imagenet_sorted = sorted([(int(s[0]), str(s[1][0]))
-                                               for s in self.synsets[:1000]],
-                                         key=lambda v: v[1])
-
+        self.synsets_imagenet_sorted = sorted(
+            [(int(s[0]), str(s[1][0])) for s in self.synsets[:1000]], key=lambda v: v[1])
         self.corr = {}
         for j in range(1000):
             self.corr[self.synsets_imagenet_sorted[j][0]] = j
@@ -351,7 +414,6 @@ class ImageNetLoader(object):
 
 def save_list_to_h5df():
     import h5py
-
     IMAGENET_PATH = '/home/kyu/.keras/datasets/ILSVRC2015'
     TARGET_SIZE = (224, 224)
     RESCALE_SMALL = 256

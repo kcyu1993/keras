@@ -58,6 +58,7 @@ class RunningConfig(KCConfig):
                  rescale_small=320,
                  random_crop=True,
                  horizontal_flip=True,
+                 debug=False,
                  tf_debug=False,
                  tf_debug_filters_name=None,
                  tf_debug_filters_func=None,
@@ -90,6 +91,7 @@ class RunningConfig(KCConfig):
         self.horizontal_flip = horizontal_flip
         self.comments = comments
 
+        self.debug = debug
         self.tf_debug = tf_debug
         self.tf_debug_filters_func = tf_debug_filters_func
         self.tf_debug_filters_name = tf_debug_filters_name

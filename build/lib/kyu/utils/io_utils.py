@@ -215,6 +215,10 @@ class ProjectFile(object):
         return os.path.join(self.get_weight_folder(), 'model_weights' + '.h5')
 
     @check_id_set
+    def get_monitor_model_save_path(self):
+        return os.path.join(self.get_weight_folder(), 'keras_model.{epoch:02d}-{val_loss:.2f}.hdf5')
+
+    @check_id_set
     def get_tmp_weight_path(self, epoch=None):
         if epoch:
             return os.path.join(self.get_weight_folder(), self.run_id + 'epoch_{}'.format(epoch) + '.tmp')

@@ -169,7 +169,8 @@ class ClassificationTrainer(object):
 
         # Save weights and call backs
         if self.running_config.save_weights and self.running_config.save_per_epoch:
-            self.cbks.append(ModelCheckpoint(self.dirhelper.get_weight_path()))
+            self.cbks.append(ModelCheckpoint(self.dirhelper.get_monitor_model_save_path(),
+                                             verbose=1, monitor='val_acc', save_best_only=True))
 
         # Add learning rate scheduler
         if isinstance(self.running_config.lr_decay, bool):
@@ -251,6 +252,7 @@ class ClassificationTrainer(object):
                 self.model.save_weights(self.dirhelper.get_tmp_weight_path())
 
                 try:
+                    # TODO Fix the tmp plot bug.
                     history = self.model.history
                     self.history = history
                     self.save_history(history, tmp=True)

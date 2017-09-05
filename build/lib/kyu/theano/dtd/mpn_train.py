@@ -31,7 +31,7 @@ def mpn_cov_baseline(exp=1):
             cov_mode='channel',
             vectorization='wv',
             epsilon=1e-5,
-            use_bias=True,
+            use_bias=False,
             cov_alpha=0.1,
             cov_beta=0.3,
             normalization=None,
@@ -50,6 +50,13 @@ def mpn_cov_baseline(exp=1):
         running_config
     )
 
-
 if __name__ == '__main__':
     mpn_cov_baseline(2)
+
+
+
+# IN PROGRESS
+# 2017/9/2 -m vgg -d dtd -me 2 -ef 1 -c 'MPN DTD with WV layer no bias Pow - O2T (128) PV (128)' [in progress]
+
+# QUEUE
+# 2017/9/2 -m vgg -d dtd -me 2 -ef 1 -c 'MPN DTD with WV layer no bias [queue]

@@ -115,8 +115,11 @@ class ClassificationImageData(ImageData):
     Version 1.
         Contains a ImageIterator for training, (potentially validation and testing)
         Add all related
+    Version 2.
 
     """
+    # TODO Version 2 support load nparray validation data for tensorboard to print histogram.
+
     def __init__(self, root_folder, image_dir=None, category=None, name=None, meta_folder=None,
                  use_validation=False,
                  **kwargs):

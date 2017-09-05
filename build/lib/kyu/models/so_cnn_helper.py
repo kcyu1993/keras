@@ -293,6 +293,8 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
         x = Flatten()(x)
     elif vectorization == 'mat_flatten':
         x = FlattenSymmetric()(x)
+    elif vectorization == 'no':
+        pass
     else:
         ValueError("vectorization parameter not recognized : {}".format(vectorization))
     return x

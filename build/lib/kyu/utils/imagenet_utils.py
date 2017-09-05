@@ -16,9 +16,9 @@ def preprocess_image_for_imagenet_of_densenet(img):
     img: ndarray with same shape
     """
     data_format = K.image_data_format()
-    assert data_format in {'channel_last', 'channel_first'}
+    assert data_format in {'channels_last', 'channels_first'}
     im = img
-    if data_format == 'channel_last':
+    if data_format == 'channels_last':
         im[:, :, 0] = (im[:, :, 0] - 103.94) * 0.017
         im[:, :, 1] = (im[:, :, 1] - 116.78) * 0.017
         im[:, :, 2] = (im[:, :, 2] - 123.68) * 0.017
