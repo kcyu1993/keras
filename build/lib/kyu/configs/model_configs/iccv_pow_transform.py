@@ -19,9 +19,9 @@ class MPNConfig(DCovConfig):
                  normalization=None,
                  **kwargs
                  ):
-        cov_branch='pow_o2t'
+        cov_branch = 'pow_o2t'
         z = {"parametric": parametric, 'activation': activation, 'parametric': parametric, 'cov_mode': cov_mode,
              'vectorization': vectorization, 'epsilon': epsilon, 'use_bias': use_bias, 'cov_alpha': cov_alpha,
              'cov_beta': cov_beta, 'normalization': normalization}
-        super(MPNConfig, self).__init__(cov_branch=cov_branch ,cov_branch_kwargs=z, **kwargs)
+        super(MPNConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
 

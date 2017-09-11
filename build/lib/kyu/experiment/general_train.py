@@ -52,6 +52,32 @@ def get_argparser(description='default'):
     return parser
 
 
+def get_data_generator(model_config, running_config):
+    if str(model_config.class_id).find('vgg') >= 0:
+        # if model_config.model_id == 'first_order':
+        # print('First order set to resnet image gen')
+        # data.image_data_generator = get_resnet_image_gen(model_config.target_size,
+        #                                                  running_config.rescale_small,
+        #                                                  running_config.random_crop,
+        #                                                  running_config.horizontal_flip)
+        # else:
+        image_data_generator = get_vgg_image_gen(model_config.target_size,
+                                                      running_config.rescale_small,
+                                                      running_config.random_crop,
+                                                      running_config.horizontal_flip)
+    elif str(model_config.class_id).find('densenet') >= 0:
+        image_data_generator = get_densenet_image_gen(model_config.target_size,
+                                                           running_config.rescale_small,
+                                                           running_config.random_crop,
+                                                           running_config.horizontal_flip)
+    else:
+        image_data_generator = get_resnet_image_gen(model_config.target_size,
+                                                         running_config.rescale_small,
+                                                         running_config.random_crop,
+                                                         running_config.horizontal_flip)
+    return image_data_generator
+
+
 def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, running_config):
     """
     Generic training pipeline provided with data, model_config and nb_epoch_finetune
@@ -69,28 +95,8 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
     """
 
     model_config.nb_class = data.nb_class
-    if str(model_config.class_id).find('vgg') >= 0:
-        # if model_config.model_id == 'first_order':
-            # print('First order set to resnet image gen')
-            # data.image_data_generator = get_resnet_image_gen(model_config.target_size,
-            #                                                  running_config.rescale_small,
-            #                                                  running_config.random_crop,
-            #                                                  running_config.horizontal_flip)
-        # else:
-        data.image_data_generator = get_vgg_image_gen(model_config.target_size,
-                                                      running_config.rescale_small,
-                                                      running_config.random_crop,
-                                                      running_config.horizontal_flip)
-    elif str(model_config.class_id).find('densenet') >= 0:
-        data.image_data_generator = get_densenet_image_gen(model_config.target_size,
-                                                           running_config.rescale_small,
-                                                           running_config.random_crop,
-                                                           running_config.horizontal_flip)
-    else:
-        data.image_data_generator = get_resnet_image_gen(model_config.target_size,
-                                                         running_config.rescale_small,
-                                                         running_config.random_crop,
-                                                         running_config.horizontal_flip)
+    # Get data generator
+    data.image_data_generator = get_data_generator(model_config, running_config)
     dirhelper.build(running_config.title + model_config.name)
 
     if nb_epoch_finetune > 0:
@@ -135,7 +141,7 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
         print("evaluation before re-training loss {} acc {}".format(history[0], history[1]))
 
     # Set the learning rate to 1/10 of original one during the finetune process.
-    running_config.optimizer = SGD(lr=running_config.lr / 10, momentum=0.9, decay=1e-5)
+    running_config.optimizer = SGD(lr=running_config.lr / 10, momentum=0.9, decay=0.)
     trainer.build()
     trainer.fit(verbose=running_config.verbose)
     trainer.plot_result()

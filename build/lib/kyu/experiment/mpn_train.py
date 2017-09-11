@@ -8,7 +8,8 @@ from kyu.configs.experiment_configs import mpn_config
 from kyu.experiment.general_train import get_argparser
 from kyu.experiment.so_train import so_cnn_train
 
-BRANCH_CHOICES=['mpn_baseline', 'multi_mpn']
+BRANCH_CHOICES = ['mpn_baseline', 'multi_mpn']
+
 
 def mpn_train(model_class, model_exp_fn, **kwargs):
     """
@@ -25,7 +26,7 @@ def mpn_train(model_class, model_exp_fn, **kwargs):
     """
 
     return so_cnn_train(model_class=model_class, model_exp_fn=model_exp_fn,
-                        title='MPN-{}-baseline'.format(str(model_class).upper()),
+                        title='MPN-{}'.format(str(model_class).upper()),
                         **kwargs)
 
 

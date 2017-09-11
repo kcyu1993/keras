@@ -17,10 +17,15 @@ import glob
 
 import argparse
 
-from kyu.configs.engine_configs import RunningConfig
+from datetime import datetime
+
+from kyu.configs.engine_configs import RunningConfig, ModelConfig
 
 from keras.models import model_from_json
+from kyu.configs.model_configs import get_model_config_by_name, MODEL_CONFIG_CLASS
+from kyu.datasets import get_dataset_by_name
 from kyu.experiment.general_inference import get_argparser
+from kyu.experiment.general_train import get_dirhelper
 from kyu.models.secondstat import get_custom_objects
 
 MODEL_FOLDER = '/cvlabdata1/home/kyu/so_updated_record/output/run/cls/ImageNet'
@@ -59,15 +64,32 @@ def recover_running_config(model_folder):
     return RunningConfig.load_config_from_file(run_config_path)
 
 
+def recover_model_config(model_folder, model_config_cls):
+    model_config_path = glob.glob(model_folder + '/*model.config')
+    return model_config_cls.load_config_from_file(model_config_path)
 
 
-def main(runid, **kwargs):
+def resume_train_with_data(
+        dataset, model_class, model_config_class, rundir,
+        comments='', tf_dbg=False, tensorboard=False, **kwargs):
+
+    dirhelper = get_dirhelper(dataset, model_class, **kwargs)
+    dirhelper.resume_runid(rundir)
+
+    rundir = dirhelper.get_model_run_path()
 
     # Write different cases with exceptions.
     model = recover_model_from_folder(rundir)
 
     # Get running configs
     running_config = recover_running_config(rundir)
+    running_config.comments += '\n {} {}'.format(datetime.now().isoformat().split('.')[0] ,comments)
+
+    # Get dataset
+    dataset = get_dataset_by_name(dataset)
+
+    # Get model config
+    model_config = recover_model_config(rundir, get_model_config_by_name(model_config_class))
 
 
 
@@ -75,3 +97,4 @@ if __name__ == '__main__':
     # Argument parser definition.
     parser = get_argparser()
     parser.add_argument('--runid', require=True, type=str)
+    parser.add_argument('--model_config_class', '-mcc', require=True, type=str, choices=MODEL_CONFIG_CLASS.keys())

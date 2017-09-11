@@ -1,6 +1,6 @@
 import os
 
-from .generic import KCConfig
+from kyu.configs.generic import KCConfig
 from kyu.utils.io_utils import ProjectFile
 
 

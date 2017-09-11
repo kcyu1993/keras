@@ -84,6 +84,40 @@ def get_multiple_branch_mpn_model(exp=1):
             concat='concat',
             name='MPN-Cov with 2 branch by mat concat'
         )
+    elif exp == 2:
+        mpn_config = MPNConfig(
+            input_shape=(224, 224, 3),
+            nb_class=67,
+            parametric=[],
+            activation='relu',
+            cov_mode='channel',
+            vectorization='no',
+            use_bias=False,
+            normalization=None,
+            mode=1,
+            last_conv_feature_maps=[],
+            nb_branch=4,
+            cov_branch_output=1024,
+            concat='concat',
+            name='MPN-Cov with 4 branch by mat concat'
+        )
+    elif exp == 3:
+        mpn_config = MPNConfig(
+            input_shape=(224, 224, 3),
+            nb_class=67,
+            parametric=[128],
+            activation='relu',
+            cov_mode='channel',
+            vectorization='no',
+            use_bias=False,
+            normalization=None,
+            mode=1,
+            last_conv_feature_maps=[],
+            nb_branch=4,
+            cov_branch_output=1024,
+            concat='concat',
+            name='MPN-Cov with 4 branch by mat concat'
+        )
     else:
         raise ValueError("Not supported")
     return mpn_config

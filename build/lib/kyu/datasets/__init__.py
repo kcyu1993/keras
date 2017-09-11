@@ -1,8 +1,27 @@
 from dtd import DTD
+from kyu.configs.dataset_config import DatasetConfig
 from sun import SUN397_v2 as SUN397
 from imagenet import ImageNetData as ImageNet
 from minc import Minc2500_v2 as Minc2500
 from mit import MitIndoor
+
+
+def get_dataset_by_name(name, dirpath=None):
+    """
+    Get dataset by the name
+
+    Parameters
+    ----------
+    name
+    dirpath
+
+    Returns
+    -------
+
+    """
+    config = DatasetConfig(name, dirpath=dirpath)
+    return get_dataset(config)
+
 
 def get_dataset(config):
     """
@@ -16,3 +35,36 @@ def get_dataset(config):
     -------
 
     """
+    if not isinstance(config, DatasetConfig):
+        raise ValueError("Get dataset must be a DatasetConfig file")
+
+    identifier = str(config.name).lower()
+    if identifier in ['dtd']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/dtd'
+        dataset = DTD(config.dirpath)
+    elif identifier in ['minc2500', 'minc-2500']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/minc-2500'
+        dataset = Minc2500(config.dirpath)
+    elif identifier in ['mit', 'mit67', 'mitinddor', 'mit-indoor']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/mit_indoor'
+        dataset = MitIndoor(config.dirpath)
+    elif identifier in ['sun', 'sun397']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/sun'
+        dataset = SUN397(config.dirpath)
+    elif identifier in ['imagenet', 'ilsvrc']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/ILSVRC2015'
+        dataset = ImageNet(config.dirpath)
+
+    else:
+        raise ValueError("Dataset Name Not recognized {}".format(identifier))
+
+    return dataset
+
+
+
+

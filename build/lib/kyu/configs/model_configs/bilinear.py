@@ -1,7 +1,7 @@
-from kyu.configs.engine_configs import ModelConfig
+from kyu.configs.model_configs.second_order import DCovConfig
 
 
-class BilinearConfig(ModelConfig):
+class BilinearConfig(DCovConfig):
 
     def __init__(self,
                  nb_class,
@@ -12,5 +12,6 @@ class BilinearConfig(ModelConfig):
                  last_conv_kernel=[],
                  **kwargs
                  ):
+
         super(BilinearConfig, self).__init__(class_id, model_id, **kwargs)
         self.__dict__.update(locals())

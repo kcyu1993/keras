@@ -2,7 +2,7 @@
 Define the model config
 
 """
-from .generic import KCConfig
+from kyu.configs.generic import KCConfig
 
 
 class ModelConfig(KCConfig):

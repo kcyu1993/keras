@@ -149,6 +149,12 @@ class ProjectFile(object):
         self._run_id_set = True if value is not None else False
         self._run_id = value + "_" + datetime.now().isoformat().split('.')[0]
 
+    def resume_runid(self, value):
+        if value is None:
+            return
+        self._run_id_set = True
+        self._run_id = value
+
     def build(self, run_id, task=None, dataset=None, model_category=None):
         if not isinstance(run_id, str):
             raise ValueError("Run id must be a valid string")
@@ -247,6 +253,7 @@ class ProjectFile(object):
     @check_id_set
     def get_log_path(self):
         return os.path.join(self.get_log_folder(), self.run_id + '.log')
+
 
 
 def save_array(array, name):

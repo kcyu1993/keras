@@ -31,19 +31,18 @@ Keras Trainer based on Example Engine
         3. Save
 
 """
+import os
 import sys
 
-import os
-
+import keras.backend as K
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, TensorBoard
 from keras.engine import Model
-import keras.backend as K
 from keras.losses import categorical_crossentropy
 from keras.metrics import top_k_categorical_accuracy
 from keras.preprocessing.image import Iterator
-from kyu.configs.engine_configs.generic import KCConfig
 from kyu.configs.engine_configs import ModelConfig
 from kyu.configs.engine_configs import RunningConfig
+from kyu.configs.generic import KCConfig
 from kyu.engine.utils.callbacks import ModifiedTensorBoard
 from kyu.engine.utils.data_utils import ImageData
 from kyu.utils.callback import ReduceLROnDemand
