@@ -2,7 +2,7 @@
 Baseline for first order tests
 
 """
-from kyu.configs.experiment_configs.first_order import get_fo_vgg_exp, get_fo_dense_exp
+from kyu.configs.experiment_configs.first_order import get_fo_vgg_exp, get_fo_dense_exp, get_fo_resnet_exp
 from kyu.experiment.general_train import get_argparser
 from kyu.experiment.so_train import so_cnn_train
 
@@ -13,6 +13,8 @@ def baseline_first_order_train(model_class, **kwargs):
         model_exp_fn = get_fo_vgg_exp
     elif str(model_class).lower() == 'densenet121':
         model_exp_fn = get_fo_dense_exp
+    elif str(model_class).lower() == 'resnet50':
+        model_exp_fn = get_fo_resnet_exp
     else:
         raise NotImplementedError
 

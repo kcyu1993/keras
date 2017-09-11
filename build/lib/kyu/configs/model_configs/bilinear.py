@@ -9,6 +9,7 @@ class BilinearConfig(ModelConfig):
                  class_id='vgg',
                  model_id='bilinear',
                  load_weights='imagenet',
+                 last_conv_kernel=[],
                  **kwargs
                  ):
         super(BilinearConfig, self).__init__(class_id, model_id, **kwargs)

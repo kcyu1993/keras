@@ -30,16 +30,18 @@ class ImageNetData(ClassificationImageData):
                  config_filename='imagenet_keras_pipeline_list.h5'):
         self.meta_file = path.join(root_folder, meta_folder, mode, 'meta_clsloc.mat')
         self.config_file = path.join(root_folder, meta_folder, mode, config_filename)
-        self.mat = self.load_mat()
-        super(ImageNetData, self).__init__(root_folder=root_folder, image_dir=image_dir,
-                                          name=name, meta_folder=meta_folder,
-                                          use_validation=use_validation)
-        # Construct the image label list
         self.imagenettool = ImageNetTools(self.meta_file)
-        self.build_image_label_lists()
         self.train_name = 'train'
         self.valid_name = 'val'
         self.test_name = 'test'
+        self.mat = self.load_mat()
+        super(ImageNetData, self).__init__(root_folder=root_folder, image_dir=os.path.join(image_dir, mode),
+                                           name=name, meta_folder=os.path.join(meta_folder, mode),
+                                           use_validation=use_validation)
+        # Construct the image label list
+
+        self.build_image_label_lists()
+
     def load_mat(self):
         meta_path = self.meta_file
         mat = loadmat(meta_path)
@@ -99,7 +101,7 @@ class ImageNetData(ClassificationImageData):
         #     raise IOError('File not found ' + abs_path)
         if prefix:
             name = prefix
-        abs_path = os.path.join(self.data_folder, name, path + '.JPEG')
+        abs_path = os.path.join(self.image_folder, name, path + '.JPEG')
         if synset_id == -1:
             nnid = 0
         else:
@@ -114,52 +116,92 @@ class ImageNetData(ClassificationImageData):
         -------
 
         """
-        images = self.mat['images']
+        load_txt = False
+        load_valid = False
+        load_train = False
+        load_test = False
+        try:
+            import h5py
+            fdata = h5py.File(os.path.join(self.meta_folder, self.config_file), 'r')
+            try:
+                self.train_list = fdata['train_list']
+            except KeyError as e:
+                print(str(e))
+                load_train = True
+            try:
+                self.valid_list = fdata['valid_list']
+            except KeyError as e:
+                print(str(e))
+                load_valid = True
+            try:
+                self.test_list = fdata['test_list']
+            except KeyError as e:
+                print(str(e))
+                load_test = True
+        except (ImportError, IOError) as e:
+            print(str(e))
+            load_txt = True
 
-        train_name = images['name'][0, 0][np.where(images['set'][0, 0] == 1)]
-        val_name = images['name'][0, 0][np.where(images['set'][0, 0] == 2)]
-        if not self.use_validation:
-            train_name = np.append(train_name, val_name)
-        test_name = images['name'][0, 0][np.where(images['set'][0, 0] == 3)]
+        if load_txt:
+            print("Loading images list from given txt file ")
+            load_train = True
+            load_valid = True
+            load_test = True
 
-        y_train = images['class'][0, 0][np.where(images['set'][0, 0] == 1)]
-        y_valid = images['class'][0, 0][np.where(images['set'][0, 0] == 2)]
-        if not self.use_validation:
-            y_train = np.append(y_train, y_valid)
-        y_test = images['class'][0, 0][np.where(images['set'][0, 0] == 3)]
+        if load_train:
+            train_txt = open(os.path.join(self.meta_folder, 'train_cls.txt'), 'r')
+            print("from train_cls.txt ...")
+            train_all = train_txt.readlines()
 
-        y_train -= 1
-        y_valid -= 1
-        y_test -= 1
+            """ Small sample settings"""
+            # shuffle(train_all)
+            # train_all = train_all[:100000]
+            self.train_list = np.asanyarray([self.imagenet_decode(l, mode='train', prefix='train') for l in train_all])
+            # self.train_list = np.asanyarray([self.decode(l, mode='train') for l in train_all[:10000]])
+        if load_valid:
+            valid_txt = open(os.path.join(self.meta_folder, 'val_cls.txt'), 'r')
+            print("from valid.txt ...")
+            self.valid_list = np.asanyarray([self.imagenet_decode(l, mode='train', prefix='val') for l in valid_txt.readlines()])
+        if load_test:
+            test_txt = open(os.path.join(self.meta_folder, 'test.txt'), 'r')
+            print('from test.txt ...')
+            self.test_list = np.asanyarray([self.imagenet_decode(l, mode='test') for l in test_txt.readlines()])
 
         self._set_train(
-            [path.join(self.image_folder, file_name[0]) for file_name in train_name],
-            y_train,
+            self.train_list[:, 1],
+            self.train_list[:, 3]
         )
-
         if self.use_validation:
             self._set_valid(
-                [path.join(self.image_folder, file_name[0]) for file_name in val_name],
-                y_valid,
+                self.valid_list[:, 1],
+                self.valid_list[:, 3]
             )
-
-        self._set_test(
-            [path.join(self.image_folder, file_name[0]) for file_name in test_name],
-            y_test,
-        )
+            self._set_test(
+                self.test_list[:, 1],
+                self.test_list[:, 3]
+            )
+        else:
+            self._set_test(
+                self.valid_list[:, 1],
+                self.valid_list[:, 3]
+            )
 
     def _build_category_dict(self):
         """ Build the category dictionary by meta-file """
-        classes = self.mat['synsets']['WNID'][0]
+        tmp_classes = glob.glob(os.path.join(self.image_folder, self.train_name, '*'))
+        classes_names = [os.path.split(l)[1] for l in tmp_classes]
+
         # To python str for unified usage
-        classes_names = [str(classes[i][0]) for i in range(len(classes))]
         category_dict = {k:v for k,v in
                          zip(classes_names,
-                             [self.imagenettool.synset_to_id(n)
+                             [self.imagenettool.synset_to_nn_id(n)
                               for n in classes_names])
                          }
         self.nb_class = len(classes_names)
         assert self.nb_class == 1000
+        valid_groundtruth_txt = open(os.path.join(self.meta_folder, IMAGENET_VALID_GROUNDTRUTH_FILE))
+        valid_groundtruth_list = [l for l in valid_groundtruth_txt.readlines()]
+        self.valid_groundtruth_dict = dict(zip(range(len(valid_groundtruth_list)), valid_groundtruth_list))
         return category_dict
 
 
@@ -437,6 +479,25 @@ def save_list_to_h5df():
                      compression='gzip', compression_opts=9)
     f.create_dataset('test_list', data=imageNetLoader.test_list,
                      compression='gzip', compression_opts=9)
+    f.create_dataset('category_dict', data=imageNetLoader.classes_indices,
+                     compression='gzip', compression_opts=9)
+    f.create_dataset('valid_groundtruth_dict', data=imageNetLoader.valid_groundtruth_dict,
+                     compression='gzip', compression_opts=9)
+
 
 if __name__ == '__main__':
-    save_list_to_h5df()
+    # save_list_to_h5df()
+    data = ImageNetData('/home/kyu/.keras/datasets/ILSVRC2015')
+    TARGET_SIZE = (224, 224)
+    RESCALE_SMALL = 230
+    gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
+                                     horizontal_flip=True,
+                                     )
+
+    def label_wrapper(label):
+        imagenettool = data.imagenettool
+        return imagenettool.id_to_words(imagenettool.synset_to_id(label))
+
+    train = data.get_train(image_data_generator=gen, save_to_dir='/home/kyu/plots',
+                           save_prefix='imagenet', save_format='JPEG', label_wrapper=label_wrapper)
+    a, b = train.next()

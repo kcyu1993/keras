@@ -63,11 +63,19 @@ class RunningConfig(KCConfig):
                  tf_debug_filters_name=None,
                  tf_debug_filters_func=None,
                  comments='',
+                 train_nb_batch_per_epoch=10000,
+                 val_nb_batch_per_epoch=1000,
+                 **kwargs
                  ):
         # self.__dict__.update(locals())
         self.model_config = model_config
         self._title = _title
         self.batch_size = batch_size
+
+        # Specify the running train nb per batch and val
+        self.train_nb_batch_per_epoch = train_nb_batch_per_epoch
+        self.val_nb_batch_per_epoch = val_nb_batch_per_epoch
+
         self.nb_epoch = nb_epoch
         self.verbose = verbose
         self.lr_decay = lr_decay

@@ -1695,3 +1695,5 @@ class BiLinear_v2(Layer):
         return output_shape
 
 
+def get_custom_objects():
+    return globals()

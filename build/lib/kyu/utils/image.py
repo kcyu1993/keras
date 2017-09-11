@@ -476,7 +476,8 @@ class ImageIterator(Iterator):
                  shuffle=True,
                  seed=None,
                  category_dict=None,
-                 save_to_dir=None, save_prefix='', save_format='JPEG'):
+                 save_to_dir=None, save_prefix='', save_format='JPEG',
+                 label_wrapper=None):
         """
         Create a ImageIterator based on image locations and corresponding categories.
         One should obtain all location regarding to the images before use the iterator.
@@ -506,6 +507,7 @@ class ImageIterator(Iterator):
             dim_ordering = K.image_dim_ordering()
 
         self.dim_ordering = dim_ordering
+
         self.data_format = K.image_data_format() if data_format == 'default' else data_format
 
         if class_mode not in {'categorical', 'binary', 'sparse', None}:
@@ -546,6 +548,7 @@ class ImageIterator(Iterator):
         self.save_to_dir = save_to_dir
         self.save_prefix = save_prefix
         self.save_format = save_format
+        self.label_wrapper = label_wrapper
 
         # Generate the image list and corresponding category
         self.img_files_list = [self.get_image_path(i) for i in imgloc_list]
@@ -603,12 +606,15 @@ class ImageIterator(Iterator):
         # optionally save augmented images to disk for debugging purposes
         if self.save_to_dir:
             for i in range(current_batch_size):
-                img = array_to_img(batch_x[i], self.dim_ordering, scale=True)
+                img = array_to_img(batch_x[i], self.data_format, scale=True)
                 if self.category_dict is not None:
                     label = 'None'
                     for (cate_name, ind) in self.category_dict.items():
                         if ind == self.img_cate_list[index_array[i]]:
                             label = cate_name
+                    # Use label wrapper
+                    if self.label_wrapper is not None:
+                        label = self.label_wrapper(label)
                     fname = '{prefix}_{index}_{hash}-{label}.{format}'.format(
                         prefix=self.save_prefix,
                         index=current_index + i,

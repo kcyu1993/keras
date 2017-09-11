@@ -1,33 +1,35 @@
 import six
 
 from kyu.configs.engine_configs import ModelConfig
-from kyu.configs.model_configs import DenseNetFirstOrderConfig
+from kyu.configs.model_configs import ResNetFirstOrderConfig
 from kyu.configs.model_configs.second_order import DCovConfig
-from kyu.models.bilinear import DenseNet121_bilinear
-from kyu.models.densenet121 import DenseNet121
+from kyu.models.bilinear import ResNet50_bilinear
+from kyu.models.resnet50 import ResNet50_v2, ResNet50_first_order
 from kyu.models.generic_loader import get_model_from_config, deserialize_model_object
-from kyu.models.single_second_order import DenseNet121_second_order
+from kyu.models.single_second_order import ResNet50_second_order
+
+RESNET_SUPPORTED_MODEL = ['resnet50']
 
 
 def second_order(config):
-    """ Implement the original SO-VGG16 with single stream structure """
+    """ Implement the original ResNet with single stream structure """
     if not isinstance(config, DCovConfig):
-        raise ValueError("DenseNet121: second-order only support DCovConfig")
+        raise ValueError("ResNet: second-order only support DCovConfig")
 
     compulsory = ['input_shape', 'nb_class', 'cov_branch', 'cov_branch_kwargs']
     optional = ['concat', 'mode', 'cov_branch_output', 'name',
                 'nb_branch', 'cov_output_vectorization',
                 'upsample_method', 'last_conv_kernel', 'last_conv_feature_maps',
                 'freeze_conv', 'load_weights']
-    if config.class_id == 'densenet121':
-        return get_model_from_config(DenseNet121_second_order, config, compulsory, optional)
+    if config.class_id == RESNET_SUPPORTED_MODEL[0]:
+        return get_model_from_config(ResNet50_second_order, config, compulsory, optional)
     else:
-        raise NotImplementedError("DenseNet model {} not supported yet".format(config.class_id))
+        raise NotImplementedError("ResNet model {} not supported yet".format(config.class_id))
 
 
 def first_order(config):
     """
-    Create for first order VGG
+    Create for first order ResNet
     nb_dense_block=4,
     growth_rate=32,
     nb_filter=64,
@@ -37,14 +39,13 @@ def first_order(config):
     nb_class=1000,
     weights_path=None
     """
-    if not isinstance(config, DenseNetFirstOrderConfig):
-        raise ValueError("DenseNet first order: only support DenseNetFirstOrderConfig")
+    if not isinstance(config, ResNetFirstOrderConfig):
+        raise ValueError("ResNet first order: only support ResNetFirstOrderConfig")
     compulsory = ['nb_class', 'input_shape']
-    optional = ['nb_dense_block', 'growth_rate', 'nb_filter', 'reduction', 'dropout_rate',
-                'weight_decay', 'weights_path',
-                'last_pooling', 'freeze_conv']
-    if config.class_id == 'densenet121':
-        return get_model_from_config(DenseNet121, config, compulsory, optional)
+    optional = ['include_top', 'weights', 'input_tensor', 'denses', 'pooling',
+                'last_avg', 'weight_decay', 'freeze_conv']
+    if config.class_id == RESNET_SUPPORTED_MODEL[0]:
+        return get_model_from_config(ResNet50_first_order, config, compulsory, optional)
     else:
         raise NotImplementedError("DenseNet model {} not supported yet".format(config.class_id))
 
@@ -52,26 +53,26 @@ def first_order(config):
 def bilinear(config):
     """ Create the bilinear model and return """
     if not isinstance(config, ModelConfig):
-        raise ValueError("DenseNet121: get_model only support ModelConfig object")
+        raise ValueError("ResNet: get_model only support ModelConfig object")
 
     compulsory = ['nb_class', 'input_shape']
-    optional = ['load_weights', 'input_shape', 'freeze_conv','last_conv_kernel']
-
+    optional = ['load_weights', 'input_shape', 'freeze_conv', 'last_conv_kernel']
     # Return the model
-    return get_model_from_config(DenseNet121_bilinear, config, compulsory, optional)
+    if config.class_id == RESNET_SUPPORTED_MODEL[0]:
+        return get_model_from_config(ResNet50_bilinear, config, compulsory, optional)
 
 
 def deserialize(name, custom_objects=None):
     return deserialize_model_object(name,
                                     module_objects=globals(),
-                                    printable_module_name='densenet121 model'
+                                    printable_module_name='ResNet model'
                                     )
 
 
 def get_model(config):
 
     if not isinstance(config, ModelConfig):
-        raise ValueError("DenseNet: get_model only support ModelConfig object")
+        raise ValueError("ResNet: get_model only support ModelConfig object")
 
     model_id = config.model_id
     # Decompose the config with different files.
@@ -85,3 +86,10 @@ def get_model(config):
         raise ValueError("Could not interpret the densenet model with {}".format(model_id))
 
     return model_function(config)
+
+
+if __name__ == '__main__':
+    from kyu.configs.model_configs import ResNetFirstOrderConfig
+    config = ResNetFirstOrderConfig(1000)
+
+    model = get_model(config)

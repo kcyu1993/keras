@@ -2,11 +2,12 @@
 Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 
 """
-from keras.applications import VGG16, ResNet50
+from keras.applications import VGG16
 from keras.layers import Flatten, Dense, merge
 from keras.models import Model
 from keras.layers.merge import add, average, concatenate
 from kyu.models.densenet121 import DenseNet121
+from kyu.models.resnet50 import ResNet50_v2
 
 from kyu.models.secondstat import SeparateConvolutionFeatures, MatrixConcat, WeightedVectorization, FlattenSymmetric
 from kyu.utils.sys_utils import merge_dicts
@@ -122,18 +123,18 @@ def DenseNet121_second_order(
     return _compose_second_order_model(base_model, nb_class, cov_branch, **kwargs)
 
 
-
 def ResNet50_second_order(
         input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None, last_avg=False, **kwargs
 ):
+
     if load_weights == 'imagenet':
-        base_model = ResNet50(include_top=False, input_shape=input_shape, last_avg=last_avg, pooling=pooling)
+        base_model = ResNet50_v2(include_top=False, input_shape=input_shape, last_avg=last_avg, pooling=pooling)
     elif load_weights is None:
-        base_model = ResNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg,
-                              pooling=pooling)
+        base_model = ResNet50_v2(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg,
+                                 pooling=pooling)
     else:
-        base_model = ResNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg,
-                              pooling=pooling)
+        base_model = ResNet50_v2(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg,
+                                 pooling=pooling)
         base_model.load_weights(load_weights, by_name=True)
 
     return _compose_second_order_model(base_model, nb_class, cov_branch, **kwargs)

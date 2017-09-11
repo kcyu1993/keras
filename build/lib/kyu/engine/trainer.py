@@ -77,6 +77,16 @@ def load_history_from_log(filename):
     return hist
 
 
+def make_valid_from_iterator(nb_steps, data):
+    import numpy as np
+    image, label = data.next()
+    for i in range(nb_steps-1):
+        img, lab = data.next()
+        image = np.concatenate((image, img), axis=0)
+        label = np.concatenate((label, lab), axis=0)
+    return image, label
+
+
 class ClassificationTrainer(object):
     """
     Add the function step by step.
@@ -285,11 +295,17 @@ class ClassificationTrainer(object):
         else:
             valid = self.data.get_test(batch_size=batch_size, target_size=self.model_config.target_size)
 
+
         if not isinstance(train, Iterator):
             raise ValueError("Only support generator for training data got {}".format(train))
 
-        steps_per_epoch = train.n / train.batch_size
-        val_steps_per_epoch = valid.n / valid.batch_size if valid is not None else 0
+        steps_per_epoch = min(train.n / train.batch_size, self.running_config.train_nb_batch_per_epoch)
+        val_steps_per_epoch = min(valid.n / valid.batch_size if valid is not None else 0,
+                                  self.running_config.val_nb_batch_per_epoch)
+        if self.running_config.tf_debug:
+            # TODO Do something for validation process the input data
+            valid = make_valid_from_iterator(10, valid)
+            val_steps_per_epoch = None
 
         print("{} fit with generator with steps per epoch training {} val {}".
               format(self.model.name, steps_per_epoch, val_steps_per_epoch))
@@ -308,7 +324,6 @@ class ClassificationTrainer(object):
             verbose=verbose,
             callbacks=self.cbks
         )
-
         return history
 
     def compile_model(self, optimizer=None, lr=None,  **kwargs):

@@ -4,7 +4,7 @@ Experiment Configs Instances
         * VGG 16
 
 """
-from kyu.configs.model_configs import VggFirstOrderConfig, DenseNetFirstOrderConfig
+from kyu.configs.model_configs import VggFirstOrderConfig, DenseNetFirstOrderConfig, ResNetFirstOrderConfig
 
 
 def get_fo_vgg_exp(exp=1):
@@ -57,3 +57,22 @@ def get_fo_dense_exp(exp=1):
     else:
         raise ValueError("Not supported exp number {}".format(exp))
 
+
+def get_fo_resnet_exp(exp=1):
+    if exp == 1:
+        return ResNetFirstOrderConfig(
+            nb_class=0,
+            denses=[],
+            include_top=False,
+            input_shape=(224, 224, 3),
+            weights='imagenet',
+            input_tensor=None,
+            pooling=None,
+            last_avg=True,
+            weight_decay=0,
+            freeze_conv=True,
+            class_id='resnet50',
+            name='ResNet50-FO'
+        )
+    else:
+        raise ValueError("FO-ResNet: Not supported exp number {}".format(exp))

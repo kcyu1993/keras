@@ -3,14 +3,12 @@ Inference
 
 """
 import argparse
-
-from kyu.configs.experiment_configs.first_order import get_fo_vgg_exp
+from keras.models import Model
 
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD
 from kyu.configs.experiment_configs.simple_second_order_config import get_single_o2transform
 from kyu.datasets.dtd import DTD
 from kyu.datasets.minc import Minc2500_v2
-from kyu.engine.trainer import ClassificationTrainer
 from kyu.models import get_model
 from kyu.utils.image import get_vgg_image_gen, get_resnet_image_gen
 from kyu.utils.io_utils import ProjectFile
@@ -61,10 +59,25 @@ def cnn_inference(dataset, model_class, model_exp_fn, model_exp, title='',
         raise NotImplementedError
     dirhelper = get_dirhelper(data.name, model_config.class_id)
 
-    inference_with_model_data(data, model_config, dirhelper, weight_path, running_config)
+    model_config.nb_class = data.nb_class
+    if model_config.class_id == 'vgg':
+        data.image_data_generator = get_vgg_image_gen(model_config.target_size,
+                                                      running_config.rescale_small,
+                                                      running_config.random_crop,
+                                                      running_config.horizontal_flip)
+    else:
+        data.image_data_generator = get_resnet_image_gen(model_config.target_size,
+                                                         running_config.rescale_small,
+                                                         running_config.random_crop,
+                                                         running_config.horizontal_flip)
+    dirhelper.build(running_config.title + model_config.name)
+
+    model = get_model(model_config)
+
+    inference_with_model_data(data, model, dirhelper, weight_path, running_config)
 
 
-def inference_with_model_data(data, model_config, dirhelper, weight_path, running_config):
+def inference_with_model_data(data, model, dirhelper, weight_path, running_config):
     """
     Inference pipeline
 
@@ -80,21 +93,8 @@ def inference_with_model_data(data, model_config, dirhelper, weight_path, runnin
     -------
 
     """
-
-    model_config.nb_class = data.nb_class
-    if model_config.class_id == 'vgg':
-        data.image_data_generator = get_vgg_image_gen(model_config.target_size,
-                                                      running_config.rescale_small,
-                                                      running_config.random_crop,
-                                                      running_config.horizontal_flip)
-    else:
-        data.image_data_generator = get_resnet_image_gen(model_config.target_size,
-                                                         running_config.rescale_small,
-                                                         running_config.random_crop,
-                                                         running_config.horizontal_flip)
-    dirhelper.build(running_config.title + model_config.name)
-
-    model = get_model(model_config)
+    if not isinstance(model, Model):
+        raise ValueError("Model must be a keras model here got {}".format(model))
     model.summary()
     model.compile('SGD', loss='categorical_crossentropy', metrics=['acc'])
     print("Load weights from {}".format(weight_path))
@@ -103,16 +103,6 @@ def inference_with_model_data(data, model_config, dirhelper, weight_path, runnin
     test_data = data.get_test()
     history = model.evaluate_generator(test_data, steps=test_data.n / running_config.batch_size)
     print("loss {} acc {}".format(history[0], history[1]))
-    # trainer = ClassificationTrainer(model, data, dirhelper,
-    #                                 model_config=model_config, running_config=running_config,
-    #                                 save_log=True,
-    #                                 logfile=dirhelper.get_log_path())
-    #
-    # trainer.model.summary()
-    # # trainer.plot_model()
-    # model_config.freeze_conv = False
-    # running_config.load_weights = True
-    # running_config.init_weights_location = dirhelper.get_weight_path()
 
 
 if __name__ == '__main__':

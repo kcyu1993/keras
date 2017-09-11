@@ -3,25 +3,121 @@ from __future__ import print_function
 
 import warnings
 
+from kyu.utils.train_utils import toggle_trainable_layers
+
 from keras.utils import get_file, layer_utils
 
 from keras.engine import get_source_inputs, Model
 from keras.layers import MaxPooling2D, Activation, BatchNormalization, Conv2D, AveragePooling2D, Flatten, Dense, \
     GlobalAveragePooling2D, GlobalMaxPooling2D
-
-from keras.applications.resnet50 import conv_block, identity_block, WEIGHTS_PATH, WEIGHTS_PATH_NO_TOP
+from keras.layers import add as merge_add
+from keras.regularizers import l2
+from keras.applications.resnet50 import WEIGHTS_PATH, WEIGHTS_PATH_NO_TOP
 
 from keras import Input
 import keras.backend as K
 from keras.applications.imagenet_utils import _obtain_input_shape
 
 
-def ResNet50_first_order(
-        denses=[], classes=1000,
+def identity_block(input_tensor, kernel_size, filters, stage, block, weight_decay=1e-4):
+    """The identity block is the block that has no conv layer at shortcut.
+
+    # Arguments
+        input_tensor: input tensor
+        kernel_size: default 3, the kernel size of middle conv layer at main path
+        filters: list of integers, the filterss of 3 conv layer at main path
+        stage: integer, current stage label, used for generating layer names
+        block: 'a','b'..., current block label, used for generating layer names
+
+    # Returns
+        Output tensor for the block.
+    """
+    filters1, filters2, filters3 = filters
+    if K.image_data_format() == 'channels_last':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    x = Conv2D(filters1, (1, 1), name=conv_name_base + '2a',
+               kernel_regularizer=l2(weight_decay))(input_tensor)
+    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(filters2, kernel_size,
+               padding='same', name=conv_name_base + '2b',
+               kernel_regularizer=l2(weight_decay))(x)
+    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c',
+               kernel_regularizer=l2(weight_decay))(x)
+    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
+
+    x = merge_add([x, input_tensor])
+    x = Activation('relu')(x)
+    return x
+
+
+def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2), weight_decay=1e-4):
+    """A block that has a conv layer at shortcut.
+
+    # Arguments
+        input_tensor: input tensor
+        kernel_size: default 3, the kernel size of middle conv layer at main path
+        filters: list of integers, the filterss of 3 conv layer at main path
+        stage: integer, current stage label, used for generating layer names
+        block: 'a','b'..., current block label, used for generating layer names
+
+    # Returns
+        Output tensor for the block.
+
+    Note that from stage 3, the first conv layer at main path is with strides=(2,2)
+    And the shortcut should have strides=(2,2) as well
+    """
+    filters1, filters2, filters3 = filters
+    if K.image_data_format() == 'channels_last':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    x = Conv2D(filters1, (1, 1), strides=strides,
+               name=conv_name_base + '2a',
+               kernel_regularizer=l2(weight_decay))(input_tensor)
+    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(filters2, kernel_size, padding='same',
+               name=conv_name_base + '2b',
+               kernel_regularizer=l2(weight_decay))(x)
+    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
+    x = Activation('relu')(x)
+
+    x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c',
+               kernel_regularizer=l2(weight_decay))(x)
+    x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
+
+    shortcut = Conv2D(filters3, (1, 1), strides=strides,
+                      name=conv_name_base + '1',
+                      kernel_regularizer=l2(weight_decay))(input_tensor)
+    shortcut = BatchNormalization(axis=bn_axis, name=bn_name_base + '1')(shortcut)
+
+    x = merge_add([x, shortcut])
+    x = Activation('relu')(x)
+    return x
+
+
+def ResNet50_v2(
+        nb_class=1000, input_shape=None,
         include_top=True, weights='imagenet',
-        input_tensor=None, input_shape=None,
+        input_tensor=None,
         pooling=None,
-        last_avg=True
+        last_avg=True,
+        weight_decay=0,
+        freeze_conv=False,
         ):
     """Instantiates the ResNet50 architecture.
 
@@ -77,7 +173,7 @@ def ResNet50_first_order(
                          '`None` (random initialization) or `imagenet` '
                          '(pre-training on ImageNet).')
 
-    if weights == 'imagenet' and include_top and classes != 1000:
+    if weights == 'imagenet' and include_top and nb_class != 1000:
         raise ValueError('If using `weights` as imagenet with `include_top`'
                          ' as true, `classes` should be 1000')
 
@@ -102,41 +198,34 @@ def ResNet50_first_order(
         bn_axis = 1
 
     x = Conv2D(
-        64, (7, 7), strides=(2, 2), padding='same', name='conv1')(img_input)
+        64, (7, 7), strides=(2, 2), padding='same', name='conv1',
+        kernel_regularizer=l2(weight_decay))(img_input)
     x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
     x = Activation('relu')(x)
     x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
     x = conv_block(x, 3, [64, 64, 256], stage=2, block='a', strides=(1, 1))
-    x = identity_block(x, 3, [64, 64, 256], stage=2, block='b')
-    x = identity_block(x, 3, [64, 64, 256], stage=2, block='c')
+    x = identity_block(x, 3, [64, 64, 256], stage=2, block='b', weight_decay=weight_decay)
+    x = identity_block(x, 3, [64, 64, 256], stage=2, block='c', weight_decay=weight_decay)
 
-    x = conv_block(x, 3, [128, 128, 512], stage=3, block='a')
-    x = identity_block(x, 3, [128, 128, 512], stage=3, block='b')
-    x = identity_block(x, 3, [128, 128, 512], stage=3, block='c')
-    x = identity_block(x, 3, [128, 128, 512], stage=3, block='d')
+    x = conv_block(x, 3, [128, 128, 512], stage=3, block='a', weight_decay=weight_decay)
+    x = identity_block(x, 3, [128, 128, 512], stage=3, block='b', weight_decay=weight_decay)
+    x = identity_block(x, 3, [128, 128, 512], stage=3, block='c', weight_decay=weight_decay)
+    x = identity_block(x, 3, [128, 128, 512], stage=3, block='d', weight_decay=weight_decay)
 
-    x = conv_block(x, 3, [256, 256, 1024], stage=4, block='a')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='b')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='c')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='d')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='e')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='f')
+    x = conv_block(x, 3, [256, 256, 1024], stage=4, block='a', weight_decay=weight_decay)
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='b', weight_decay=weight_decay)
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='c', weight_decay=weight_decay)
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='d', weight_decay=weight_decay)
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='e', weight_decay=weight_decay)
+    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='f', weight_decay=weight_decay)
 
-    x = conv_block(x, 3, [512, 512, 2048], stage=5, block='a')
-    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
-    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
+    x = conv_block(x, 3, [512, 512, 2048], stage=5, block='a', weight_decay=weight_decay)
+    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b', weight_decay=weight_decay)
+    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c', weight_decay=weight_decay)
+
     if last_avg:
         x = AveragePooling2D((7, 7), name='avg_pool')(x)
-
-    if include_top:
-        x = Flatten()(x)
-        x = Dense(classes, activation='softmax', name='fc1000')(x)
-    else:
-        if pooling == 'avg':
-            x = GlobalAveragePooling2D()(x)
-        elif pooling == 'max':
-            x = GlobalMaxPooling2D()(x)
 
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`.
@@ -144,9 +233,25 @@ def ResNet50_first_order(
         inputs = get_source_inputs(input_tensor)
     else:
         inputs = img_input
-    # Create model.
+        # Create model.
 
-    model = Model(inputs, x, name='resnet50')
+    if include_top:
+        x = Flatten()(x)
+        if nb_class != 1000:
+            pred_name = 'new_pred'
+        else:
+            pred_name = 'fc1000'
+        base_model = Model(inputs, x, name='resnet50-base')
+        toggle_trainable_layers(base_model, not freeze_conv)
+        x = Dense(nb_class, activation='softmax', name=pred_name)(x)
+        model = Model(inputs, x, name='resnet50')
+    else:
+        if pooling == 'avg':
+            x = GlobalAveragePooling2D()(x)
+        elif pooling == 'max':
+            x = GlobalMaxPooling2D()(x)
+        model = Model(inputs, x, name='resnet50-base')
+        toggle_trainable_layers(model, not freeze_conv)
 
     # load weights
     if weights == 'imagenet':
@@ -160,7 +265,7 @@ def ResNet50_first_order(
                                     WEIGHTS_PATH_NO_TOP,
                                     cache_subdir='models',
                                     md5_hash='a268eb855778b3df3c7506639542a6af')
-        model.load_weights(weights_path)
+        model.load_weights(weights_path, by_name=True)
         if K.backend() == 'theano':
             layer_utils.convert_all_kernels_in_model(model)
             if include_top:
@@ -181,5 +286,16 @@ def ResNet50_first_order(
     return model
 
 
-def get_model(config):
-    pass
+def ResNet50_first_order(nb_class, denses=[], include_top=False, **kwargs):
+    if include_top:
+        return ResNet50_v2(nb_class=nb_class, include_top=include_top, **kwargs)
+    base_model = ResNet50_v2(nb_class=nb_class, include_top=include_top, **kwargs)
+    x = base_model.output
+    x = Flatten(name='flatten')(x)
+    for ind, para in enumerate(denses):
+        x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind + 1)),
+                  kernel_initializer='glorot_uniform')(x)
+    pred_name = 'new_pred'
+    x = Dense(nb_class, activation='softmax', name=pred_name)(x)
+    model = Model(base_model.input, x, name='resnet50-fo-{}'.format(denses))
+    return model

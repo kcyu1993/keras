@@ -2,6 +2,7 @@
 Define the DTD training pipeline
 
 """
+from kyu.datasets.imagenet import ImageNetData
 from kyu.datasets.mit import MitIndoor
 
 from kyu.datasets.sun import SUN397, SUN397_v2
@@ -78,8 +79,8 @@ def mit_finetune_with_model(**kwargs):
 
 
 def imagenet_finetune_with_model(**kwargs):
-    # data =
-    pass
+    data = ImageNetData('/home/kyu/.keras/datasets/ILSVRC2015')
+    data_finetune_with_model(data, **kwargs)
 
 
 def data_finetune_with_model(data, model_config, nb_epoch_finetune, running_config):

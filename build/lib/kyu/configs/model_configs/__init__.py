@@ -1,3 +1,4 @@
 from iccv_pow_transform import MPNConfig
+from bilinear import BilinearConfig
 from second_order import NoWVBranchConfig, O2TBranchConfig
-from first_order import VggFirstOrderConfig, DenseNetFirstOrderConfig
+from first_order import VggFirstOrderConfig, DenseNetFirstOrderConfig, ResNetFirstOrderConfig

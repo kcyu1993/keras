@@ -162,7 +162,7 @@ def bilinear(config):
         raise ValueError("VGG: get_model only support ModelConfig object")
 
     compulsory = ['nb_class', 'input_shape']
-    optional = ['load_weights', 'input_shape', 'freeze_conv']
+    optional = ['load_weights', 'input_shape', 'freeze_conv', 'last_conv_kernel']
 
     # Return the model
     # return VGG16_bilinear(**args)

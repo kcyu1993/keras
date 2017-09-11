@@ -33,7 +33,33 @@ class DenseNetFirstOrderConfig(ModelConfig):
                  weights_path='imagenet',
                  freeze_conv=False,
                  last_pooling=True,
+                 class_id='densenet121',
                  **kwargs
                  ):
-        super(DenseNetFirstOrderConfig, self).__init__('densenet121', 'first_order', **kwargs)
+        if class_id.find('densenet') < 0:
+            raise ValueError("DenseNet model class id must contain densenet, got {}".
+                             format(class_id))
+        super(DenseNetFirstOrderConfig, self).__init__(class_id, 'first_order', **kwargs)
+        self.__dict__.update(locals())
+
+
+class ResNetFirstOrderConfig(ModelConfig):
+
+    def __init__(self,
+                 nb_class,
+                 denses=[],
+                 include_top=False,
+                 input_shape=(224, 224, 3),
+                 weights='imagenet',
+                 input_tensor=None,
+                 pooling=None,
+                 last_avg=True,
+                 weight_decay=1e-4,
+                 freeze_conv=False,
+                 class_id='resnet50',
+                 **kwargs
+                 ):
+        if class_id.find('resnet') < 0:
+            raise ValueError("ResNet model must contains resnet {}".format(class_id))
+        super(ResNetFirstOrderConfig, self).__init__(class_id, 'first_order', **kwargs)
         self.__dict__.update(locals())
