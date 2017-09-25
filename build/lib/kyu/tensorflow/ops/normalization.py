@@ -11,6 +11,40 @@ import numpy as np
 from kyu.tensorflow.ops.math import matrix_log, matrix_exp
 
 
+class SPDBatchNormalization(Layer):
+    """
+    Define the SPD Batch Normalization testing version
+    v0.1
+
+    """
+    def __init__(self,
+                 momentum=0.99,
+                 epsilon=1e-4,
+                 center=True,
+                 scale=True,
+                 beta_initializer='zeros',
+                 gamma_initializer='ones',
+                 moving_mean_initializer='zeros',
+                 moving_variance_initializer='ones',
+                 beta_regularizer=None,
+                 gamma_regularizer=None,
+                 trainable=True,
+                 name=None,
+                 **kwargs):
+        super(BatchNormalization, self).__init__(
+            name=name, trainable=trainable, **kwargs)
+        self.momentum = momentum
+        self.epsilon = epsilon
+        self.center = center
+        self.scale = scale
+        self.beta_initializer = beta_initializer
+        self.gamma_initializer = gamma_initializer
+        self.moving_mean_initializer = moving_mean_initializer
+        self.moving_variance_initializer = moving_variance_initializer
+        self.beta_regularizer = beta_regularizer
+        self.gamma_regularizer = gamma_regularizer
+
+
 class SecondOrderBatchNormalization(BatchNormalization):
     """
     Second-order batch normalization

@@ -88,18 +88,18 @@ def get_multiple_branch_mpn_model(exp=1):
         mpn_config = MPNConfig(
             input_shape=(224, 224, 3),
             nb_class=67,
-            parametric=[],
+            parametric=[256],
             activation='relu',
             cov_mode='channel',
             vectorization='no',
             use_bias=False,
             normalization=None,
             mode=1,
-            last_conv_feature_maps=[],
-            nb_branch=4,
+            last_conv_feature_maps=[512],
+            nb_branch=1,
             cov_branch_output=1024,
             concat='concat',
-            name='MPN-Cov with 4 branch by mat concat'
+            name='MPN-Cov with O2T'
         )
     elif exp == 3:
         mpn_config = MPNConfig(
@@ -112,12 +112,13 @@ def get_multiple_branch_mpn_model(exp=1):
             use_bias=False,
             normalization=None,
             mode=1,
-            last_conv_feature_maps=[],
-            nb_branch=4,
+            last_conv_feature_maps=[1024],
+            nb_branch=2,
             cov_branch_output=1024,
             concat='concat',
             name='MPN-Cov with 4 branch by mat concat'
         )
+
     else:
         raise ValueError("Not supported")
     return mpn_config

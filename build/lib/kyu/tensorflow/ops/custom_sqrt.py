@@ -23,11 +23,13 @@ def custom_sign_sqrt(x):
 
 @Defun(tf.float32, python_grad_func=custom_sign_sqrt_grad)
 def custom_sign_sqrt_op(x):
+    """ Wrapper for custom sign sqrt """
     y = custom_sign_sqrt(x)
     return y
 
 
 def custom_safe_sqrt_grad(op, grad):
+    """ Handle zero situations by switching to EPS. """
     x = op.inputs[0]
     eps = tf.zeros_like(x) + _EPSILON
     x = tf.where(tf.less(tf.abs(x), eps), eps, x)
@@ -41,6 +43,7 @@ def custom_safe_sqrt(x):
 
 @Defun(tf.float32, python_grad_func=custom_safe_sqrt_grad)
 def custom_safe_sqrt_op(x):
+    """ Custom for safe sqrt with gradient modification """
     return custom_safe_sqrt(x)
 
 

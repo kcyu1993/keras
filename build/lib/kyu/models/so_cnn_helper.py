@@ -1,7 +1,7 @@
 import warnings
 
 from keras.legacy.layers import merge
-from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose, MaxPooling2D
+from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose, MaxPooling2D, Reshape
 
 from kyu.models.secondstat import SecondaryStatistic, O2Transform, WeightedVectorization,  LogTransform, \
     SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, \
@@ -10,9 +10,11 @@ from kyu.models.secondstat import SecondaryStatistic, O2Transform, WeightedVecto
 from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization
 
 from keras.models import Model
+import keras.backend as K
 from kyu.utils.train_utils import toggle_trainable_layers
 
 import tensorflow as tf
+import numpy as np
 
 
 def get_cov_name_base(stage, block, **kwargs):
@@ -281,6 +283,40 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
 
     # Try the power transform before and after.
     x = PowTransform(alpha=0.5, name=pow_name_base, normalization=None)(x)
+    for id, param in enumerate(parametric):
+        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
+
+    if vectorization == 'wv':
+        x = WeightedVectorization(nb_class, activation=activation, name=wp_name_base)(x)
+    elif vectorization == 'dense':
+        x = Flatten()(x)
+        x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
+    elif vectorization == 'flatten':
+        x = Flatten()(x)
+    elif vectorization == 'mat_flatten':
+        x = FlattenSymmetric()(x)
+    elif vectorization == 'no':
+        pass
+    else:
+        ValueError("vectorization parameter not recognized : {}".format(vectorization))
+    return x
+
+
+def covariance_block_bilinear(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
+                              cov_mode='channel', cov_regularizer=None, vectorization='mat_flatten',
+                              o2tconstraints=None, cov_beta=0.3,
+                              **kwargs):
+    """ Updated bilinear block, reference to pow branch """
+    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
+    bilinear_name_base = 'bilinear' + str(stage) + block + '_branch'
+    dense_name_base = 'fc' + str(stage) + block + '_branch'
+    wp_name_base = 'wp' + str(stage) + block + '_branch'
+
+    # Try the power transform before and after.
+    x = BiLinear(eps=0., activation='linear', name=bilinear_name_base)(input_tensor)
+    dim = K.int_shape(x)[1]
+    x = Reshape(target_shape=(int(np.sqrt(dim)), int(np.sqrt(dim))))(x)
+
     for id, param in enumerate(parametric):
         x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
 
@@ -895,6 +931,8 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_matbp
     elif cov_branch == 'pow_o2t':
         covariance_block = covariance_block_pow
+    elif cov_branch == 'bilinear':
+        covariance_block = covariance_block_bilinear
     elif cov_branch == 'o2t_batch_norm':
         covariance_block = covariance_block_batch
     elif cov_branch == 'multiple_o2t':

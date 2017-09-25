@@ -396,7 +396,6 @@ class TransposeFlattenSymmetric(Layer):
         """ Call the to symmetric matrices. """
 
 
-
 class SeparateConvolutionFeatures(Layer):
     """
     SeparateConvolutionFeatures is a layer to separate previous convolution feature maps
@@ -1221,13 +1220,11 @@ class WeightedVectorization(Layer):
 
     def __init__(self, output_dim, input_dim=None, activation='linear',
                  eps=1e-8,
-                 output_sqrt=False,
+                 output_sqrt=False,     # Normalization
+                 use_bias=False,        # use bias for normalization additional
                  kernel_initializer='glorot_uniform',
                  kernel_constraint=None,
                  kernel_regularizer=None,
-                 # W_regularizer=None, b_regularizer=None, activity_regularizer=None,
-                 # W_constraint=None, b_constraint=None,
-                 use_bias=False,
                  bias_initializer='zeros',
                  bias_regularizer=None,
                  bias_constraint=None,
@@ -1304,16 +1301,18 @@ class WeightedVectorization(Layer):
             output = K.sum((self.kernel * K.dot(inputs, self.kernel)), axis=1)
         else:
             raise NotImplementedError("Not support for other backend. ")
+
+        if self.output_sqrt:
+            from kyu.tensorflow.ops import safe_sign_sqrt
+            output = safe_sign_sqrt(output)
+
         if self.use_bias:
             output = K.bias_add(output, self.bias, data_format=K.image_data_format())
 
-        if self.output_sqrt:
-            output = K.sign(output) * K.sqrt(K.abs(output) + self.eps)
-
-        if self.activation_regularizer == 'l2':
-            output = K.l2_normalize(output, axis=1)
-
-        return self.activation(output)
+        if self.activation_regularizer:
+            return self.activation_regularizer(output)
+        else:
+            return output
 
     def compute_output_shape(self, input_shape):
         # 3D tensor (nb_samples, n_cov, n_cov)

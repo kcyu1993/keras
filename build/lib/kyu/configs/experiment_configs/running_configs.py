@@ -6,7 +6,7 @@ from keras.optimizers import SGD
 def get_running_config_no_debug_withSGD(title='general-testing', model_config=None):
     return RunningConfig(
         _title=title,
-        nb_epoch=200,
+        nb_epoch=150,
         batch_size=32,
         verbose=2,
         lr_decay=False,

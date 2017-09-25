@@ -1,10 +1,11 @@
-from iccv_pow_transform import MPNConfig
+from iccv_pow_transform import MPNConfig, BilinearSOConfig
 from bilinear import BilinearConfig
 from second_order import NoWVBranchConfig, O2TBranchConfig
 from first_order import VggFirstOrderConfig, DenseNetFirstOrderConfig, ResNetFirstOrderConfig
 
 MODEL_CONFIG_CLASS = {'mpn': MPNConfig,
                       'bilinear': BilinearConfig,
+                      'sobilinear': BilinearSOConfig,
                       'nowv': NoWVBranchConfig,
                       'o2t': O2TBranchConfig,
                       'vggfo' : VggFirstOrderConfig,

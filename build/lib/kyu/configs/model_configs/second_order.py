@@ -91,7 +91,6 @@ class O2TBranchConfig(DCovConfig):
         super(O2TBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
 
 
-
 class NoWVBranchConfig(DCovConfig):
     def __init__(self,
                  parametric=[],
@@ -117,3 +116,4 @@ class NoWVBranchConfig(DCovConfig):
              'o2t_constraints': o2t_constraints
              }
         super(NoWVBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
+

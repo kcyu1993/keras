@@ -24,3 +24,4 @@ class Logger(object):
 
     def open(self):
         self.log = open(self.filename, "a")
+        return self

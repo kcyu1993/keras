@@ -231,7 +231,8 @@ class ClassificationTrainer(object):
             batch_size = self.running_config.batch_size
 
         if self.save_log:
-            sys.stdout = self.stdout
+            sys.stdout = self.stdout.open()
+
 
         try:
             if self.fit_mode == 0:

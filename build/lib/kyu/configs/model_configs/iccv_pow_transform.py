@@ -25,3 +25,11 @@ class MPNConfig(DCovConfig):
              'cov_beta': cov_beta, 'normalization': normalization}
         super(MPNConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
 
+
+class BilinearSOConfig(MPNConfig):
+    def __init__(self,
+                 **kwargs
+                 ):
+        super(BilinearSOConfig, self).__init__(**kwargs)
+        self.cov_branch = 'bilinear'
+

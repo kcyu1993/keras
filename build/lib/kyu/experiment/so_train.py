@@ -46,29 +46,6 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
     running_config.tensorboard = tensorboard
     running_config.comments = comments
     wrap_running_config(config=running_config, **kwargs)
-
-    # if dataset == 'dtd':
-    #     dtd_finetune_with_model(model_config, nb_epoch_finetune, running_config)
-    # elif dataset == 'minc2500' or dataset == 'minc-2500':
-    #     minc_finetune_with_model(model_config, nb_epoch_finetune, running_config)
-    # elif dataset == 'sun':
-    #     sun_finetune_with_model(
-    #         model_config=model_config,
-    #         nb_epoch_finetune=nb_epoch_finetune,
-    #         running_config=running_config)
-    # elif dataset in ['mit', 'mit_indoor', 'mitindoor']:
-    #     mit_finetune_with_model(
-    #         model_config=model_config,
-    #         nb_epoch_finetune=nb_epoch_finetune,
-    #         running_config=running_config
-    #     )
-    # elif dataset in ['imagenet']:
-    #     imagenet_finetune_with_model(
-    #
-    #     )
-    # else:
-    #     raise ValueError("Dataset not supported {}".format(dataset))
-    #
     data = get_dataset_by_name(dataset)
     data_finetune_with_model(data,
                              model_config=model_config,
