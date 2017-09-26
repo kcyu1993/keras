@@ -117,3 +117,48 @@ class NoWVBranchConfig(DCovConfig):
              }
         super(NoWVBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
 
+
+class NormWVBranchConfig(DCovConfig):
+    def __init__(self,
+                 parametric=[],
+                 activation='relu',
+                 cov_mode='channel',
+                 vectorization='wv',
+                 epsilon=1e-5,
+                 use_bias=False,
+                 pv_use_bias=True,
+                 pv_output_sqrt=True,
+                 robust=False,
+                 cov_alpha=0.1,
+                 cov_beta=0.3,
+                 o2t_constraints=None,
+                 o2t_regularizer=None,
+                 o2t_activation='relu',
+                 pv_constraints=None,
+                 pv_regularizer=None,
+                 pv_activation='relu',
+                 pv_normalization=False,
+                 **kwargs
+                 ):
+        cov_branch = 'norm_wv'
+        z = {"parametric": parametric,
+             'activation': activation,
+             'cov_mode': cov_mode,
+             'vectorization': vectorization,
+             'epsilon': epsilon,
+             'use_bias': use_bias,
+             'pv_use_bias': pv_use_bias,
+             'pv_output_sqrt': pv_output_sqrt,
+             'robust': robust,
+             'cov_alpha': cov_alpha,
+             'cov_beta': cov_beta,
+             'o2t_regularizer': o2t_regularizer,
+             'o2t_activation': o2t_activation,
+             'o2t_constraints': o2t_constraints,
+             'pv_regularizer': pv_regularizer,
+             'pv_activation': pv_activation,
+             'pv_constraints': pv_constraints,
+             'pv_normalization': pv_normalization,
+             }
+
+        super(NormWVBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)

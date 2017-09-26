@@ -5,6 +5,9 @@ from . import resnet
 from . import vgg
 from . import densenet
 
+# TODO unify the compulsory and optional args into this file for polymorphism
+
+
 def get_model(config):
     """
     Define the get model method from identifier

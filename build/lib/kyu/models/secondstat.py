@@ -1033,6 +1033,7 @@ class O2Transform(Layer):
                  # weights=None,
                  kernel_regularizer=None,
                  kernel_constraint=None,
+                 use_bias=False,
                  **kwargs):
 
         # Set out_dim accordingly.
@@ -1222,6 +1223,7 @@ class WeightedVectorization(Layer):
                  eps=1e-8,
                  output_sqrt=False,     # Normalization
                  use_bias=False,        # use bias for normalization additional
+                 normalization=False,   # normalize to further fit Chi-square distribution
                  kernel_initializer='glorot_uniform',
                  kernel_constraint=None,
                  kernel_regularizer=None,
@@ -1233,6 +1235,7 @@ class WeightedVectorization(Layer):
 
         # self parameters
         self.output_sqrt = output_sqrt
+        self.normalization = normalization
         self.eps = eps
         self.input_dim = input_dim  # Squared matrix input, as property of cov matrix
         self.output_dim = output_dim  # final classified categories number
@@ -1302,6 +1305,10 @@ class WeightedVectorization(Layer):
         else:
             raise NotImplementedError("Not support for other backend. ")
 
+        if self.normalization:
+            # make kernel
+            output /= K.sum(K.pow(self.kernel, 2), axis=0)
+
         if self.output_sqrt:
             from kyu.tensorflow.ops import safe_sign_sqrt
             output = safe_sign_sqrt(output)
@@ -1330,6 +1337,8 @@ class WeightedVectorization(Layer):
                   'input_dim': self.input_dim,
                   'activation': activations.serialize(self.activation),
                   'use_bias': self.use_bias,
+                  'normalization': self.normalization,
+                  'output_sqrt': self.output_sqrt,
                   'kernel_initializer': initializers.serialize(self.kernel_initializer),
                   'bias_initializer': initializers.serialize(self.bias_initializer),
                   'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),

@@ -233,6 +233,8 @@ class ClassificationTrainer(object):
         if self.save_log:
             sys.stdout = self.stdout.open()
 
+        # Log model
+        self.model.summary()
 
         try:
             if self.fit_mode == 0:

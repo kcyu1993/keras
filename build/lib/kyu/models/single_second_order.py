@@ -2,6 +2,9 @@
 Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 
 """
+
+import keras.backend as K
+
 from keras.applications import VGG16
 from keras.layers import Flatten, Dense, merge
 from keras.models import Model
@@ -78,7 +81,7 @@ def _compose_second_order_model(
     else:
         x = cov_outputs[0]
 
-    if len(x.shape) == 3:
+    if len(K.int_shape(x)) == 3:
         if cov_output_vectorization == 'pv' or cov_output_vectorization == 'wv':
             x = WeightedVectorization(cov_branch_output, activation='relu', use_bias=False)(x)
         elif cov_output_vectorization == 'mat_flatten':

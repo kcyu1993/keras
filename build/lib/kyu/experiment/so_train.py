@@ -3,13 +3,13 @@ Define the Second-order training
 """
 from kyu.configs.engine_configs.running import wrap_running_config
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD
-from kyu.configs.experiment_configs.simple_second_order_config import get_single_o2transform, get_no_wv_config
+from kyu.configs.experiment_configs import simple_second_order_config as SOConfig
 from kyu.datasets import get_dataset_by_name
 from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetune_with_model, sun_finetune_with_model, \
     mit_finetune_with_model, imagenet_finetune_with_model, data_finetune_with_model
 from kyu.experiment.general_train import get_argparser
 
-BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv']
+BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv', 'o2t_wv_norm']
 
 
 def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetune=0, title='',
@@ -56,14 +56,19 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
 def so_o2t_original(dataset, model_class, **kwargs):
     """ Get SO-VGG architecture with original o2t-branch """
     title = 'SO-{}_original'.format(str(model_class).upper())
-    so_cnn_train(model_exp_fn=get_single_o2transform, model_class=model_class, dataset=dataset, title=title, **kwargs)
+    so_cnn_train(model_exp_fn=SOConfig.get_single_o2transform, model_class=model_class, dataset=dataset, title=title, **kwargs)
 
 
 def so_o2t_no_wv(dataset, model_class, **kwargs):
     """ Get SO-CNN architecture with o2t no wv branch """
     title = 'SO-{}_noWV'.format(str(model_class).upper())
-    so_cnn_train(model_exp_fn=get_no_wv_config, model_class=model_class, dataset=dataset, title=title, **kwargs)
+    so_cnn_train(model_exp_fn=SOConfig.get_no_wv_config, model_class=model_class, dataset=dataset, title=title, **kwargs)
 
+
+def so_o2t_wv_with_norm(dataset, model_class, **kwargs):
+    """ Get SO-CNN architecture with o2t wv with norm branch """
+    title = 'SO-{}_normWV'.format(str(model_class).upper())
+    so_cnn_train(model_exp_fn=SOConfig.get_wv_norm_config, model_class=model_class, dataset=dataset, title=title, **kwargs)
 
 if __name__ == '__main__':
     parser = get_argparser(description='SO-CNN architecture testing')
@@ -78,6 +83,8 @@ if __name__ == '__main__':
         so_o2t_original(**vars(args))
     elif branch == BRANCH_CHOICES[1]:
         so_o2t_no_wv(**vars(args))
+    elif branch == BRANCH_CHOICES[2]:
+        so_o2t_wv_with_norm(**vars(args))
     else:
         raise NotImplementedError
 

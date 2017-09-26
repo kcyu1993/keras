@@ -38,10 +38,12 @@ def _compose_so_prototype_model(base_model, nb_class, freeze_conv=False, last_co
     # Assume tensorflow backend
     x = BatchNormalization(axis=3, name='last_batchnorm')(x)
 
-    # Add covariance layer
+    # Add covariance branches
     x = SecondaryStatistic()(x)
     x = WeightedVectorization(1024, output_sqrt=True, use_bias=False)(x)
 
+    # Add classifiers
+    x = Dense(nb_class, activation='softmax', name='predictions')(x)
     if freeze_conv:
         toggle_trainable_layers(base_model, trainable=False)
 
@@ -95,5 +97,4 @@ def ResNet50_so_prototype(
         base_model.load_weights(load_weights, by_name=True)
 
     return _compose_so_prototype_model(base_model, nb_class, cov_branch, **kwargs)
-
 

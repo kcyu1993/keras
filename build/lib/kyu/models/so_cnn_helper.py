@@ -1,7 +1,7 @@
 import warnings
 
 from keras.legacy.layers import merge
-from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose, MaxPooling2D, Reshape
+from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose, MaxPooling2D, Reshape, BatchNormalization
 
 from kyu.models.secondstat import SecondaryStatistic, O2Transform, WeightedVectorization,  LogTransform, \
     SeparateConvolutionFeatures, MatrixReLU, Regrouping, MatrixConcat, \
@@ -523,25 +523,47 @@ def covariance_block_corr_no_wv(input_tensor, nb_class, stage, block, epsilon=0,
     return x
 
 
-def covariance_block_new_wv(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
-                            cov_mode='channel', cov_regularizer=None, vectorization='wv',
-                            o2t_constraints=None, normalization=False, so_mode=1
-                            ,
-                            **kwargs):
+def covariance_block_norm_wv(input_tensor, nb_class, stage, block, epsilon=0, parametric=[],
+                             activation='relu',
+                             vectorization='wv',
+                             cov_mode='channel', cov_regularizer=None,
+                             o2t_constraints=None, o2t_regularizer=None, o2t_activation='relu',
+                             pv_constraints=None, pv_regularizer=None, pv_activation='relu',
+                             pv_normalization=False,
+                             use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
+                             pv_output_sqrt=True, pv_use_bias=False,
+                             **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
     else:
         cov_name_base = 'cov' + str(stage) + block + '_branch'
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
     wp_name_base = 'pv' + str(stage) + block + '_branch'
+    # Add a normalization before goinging into secondary statistics
+    x = BatchNormalization(axis=3, name='last_BN')(input_tensor)
+
     with tf.name_scope(cov_name_base):
         x = SecondaryStatistic(name=cov_name_base, eps=epsilon,
-                               cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
+                               cov_mode=cov_mode, cov_regularizer=cov_regularizer,
+                               cov_alpha=cov_alpha, cov_beta=cov_beta, robust=robust,
+                               **kwargs)(x)
     for id, param in enumerate(parametric):
         with tf.name_scope(o2t_name_base + str(id)):
-            x = O2Transform(param, activation='relu', name=o2t_name_base + str(id), kernel_constraint=o2t_constraints)(x)
-
-    x = WeightedVectorization(nb_class, output_sqrt=False, activation_regularizer=None, name=wp_name_base)(x)
+            x = O2Transform(param, activation=o2t_activation,
+                            kernel_constraint=o2t_constraints,
+                            kernel_regularizer=o2t_regularizer,
+                            use_bias=use_bias,
+                            name=o2t_name_base + str(id),
+                            )(x)
+    if vectorization == 'pv' or vectorization == 'wv':
+        x = WeightedVectorization(nb_class,
+                                  output_sqrt=pv_output_sqrt,
+                                  use_bias=pv_use_bias,
+                                  normalization=pv_normalization,
+                                  kernel_regularizer=pv_regularizer,
+                                  kernel_constraint=pv_constraints,
+                                  activation=pv_activation,
+                                  name=wp_name_base)(x)
     return x
 
 
@@ -941,8 +963,8 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_sobn_multi_o2t
     elif cov_branch == 'corr':
         covariance_block = covariance_block_corr
-    elif cov_branch == 'new_wv':
-        covariance_block = covariance_block_new_wv
+    elif cov_branch == 'norm_wv':
+        covariance_block = covariance_block_norm_wv
     else:
         raise ValueError('covariance cov_mode not supported')
 

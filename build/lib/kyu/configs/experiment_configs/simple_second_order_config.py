@@ -1,5 +1,4 @@
-from kyu.configs.model_configs import NoWVBranchConfig
-from ..model_configs import O2TBranchConfig
+from ..model_configs import O2TBranchConfig, NoWVBranchConfig, NormWVBranchConfig
 
 
 def get_single_o2transform(exp):
@@ -260,4 +259,63 @@ def get_no_wv_config(exp=1):
     else:
         raise ValueError("N")
 
+    return model_config
+
+
+def get_wv_norm_config(exp):
+    o2t_regularizer = 'l2'
+    parametric = []
+    name = None
+    nb_branch = 1
+    pv_output_bias = False
+    mode = 1
+    if exp == 1:
+        parametric = []
+        cov_branch_output = 1024
+        name = 'BN-Cov-PV{}'.format(cov_branch_output)
+        pv_output_bias = True
+        pv_normalization = True
+        mode = 2
+    elif exp == 2:
+        parametric = [256]
+        cov_branch_output = 1024
+        name = 'BN-Cov-O2T{}-PV{}'.format(parametric, cov_branch_output)
+        nb_branch = 1
+        pv_normalization = False
+
+    model_config = NormWVBranchConfig(
+        parametric=parametric,
+        activation='relu',
+        cov_mode='channel',
+        vectorization='wv',
+        epsilon=1e-5,
+        use_bias=False,
+        pv_use_bias=pv_output_bias,
+        pv_output_sqrt=True,
+        robust=False,
+        cov_alpha=0.1,
+        cov_beta=0.3,
+        o2t_constraints=None,
+        o2t_regularizer=o2t_regularizer,
+        o2t_activation='relu',
+        pv_constraints=None,
+        pv_regularizer=o2t_regularizer,
+        pv_activation='relu',
+        pv_normalization=pv_normalization,
+        # Other
+        input_shape=(224, 224, 3),
+        nb_class=67,
+        cov_branch_output=1024,
+        class_id=None,
+        load_weights='imagenet',
+        # configs for _compose_second_order_things
+        mode=mode,
+        freeze_conv=False, name=name + '-{}_branch'.format(nb_branch),
+        nb_branch=nb_branch,
+        concat='concat',
+        cov_output_vectorization='pv',
+        last_conv_feature_maps=[256],
+        last_conv_kernel=[1, 1],
+        upsample_method='conv',
+    )
     return model_config
