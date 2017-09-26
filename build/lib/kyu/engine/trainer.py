@@ -214,8 +214,19 @@ class ClassificationTrainer(object):
             )
 
         # Compile the model (even again)
-        self.model.compile(optimizer=self.running_config.optimizer, loss=categorical_crossentropy,
-                           metrics=['accuracy', top_k_categorical_accuracy])
+        # For single model
+        if len(self.model.outputs) == 1:
+            self.model.compile(optimizer=self.running_config.optimizer, loss=categorical_crossentropy,
+                               metrics=['accuracy', top_k_categorical_accuracy])
+        else:
+            # Create the loss
+            nb_loss = len(self.model.outputs)
+            loss_list = nb_loss * [categorical_crossentropy]
+            weights_list = self.model_config.loss_weights
+            self.model.compile(optimizer=self.running_config.optimizer,
+                               loss=loss_list,
+                               loss_weights=weights_list,
+                               metrics=['accuracy', top_k_categorical_accuracy])
 
         self._built = True
 

@@ -16,6 +16,8 @@ from kyu.utils.train_utils import toggle_trainable_layers
 import tensorflow as tf
 import numpy as np
 
+from layers import concatenate, add, average
+
 
 def get_cov_name_base(stage, block, **kwargs):
     return 'cov-{}-br_{}'.format(str(stage), block)
@@ -528,9 +530,9 @@ def covariance_block_norm_wv(input_tensor, nb_class, stage, block, epsilon=0, pa
                              vectorization='wv',
                              cov_mode='channel', cov_regularizer=None,
                              o2t_constraints=None, o2t_regularizer=None, o2t_activation='relu',
+                             use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
                              pv_constraints=None, pv_regularizer=None, pv_activation='relu',
                              pv_normalization=False,
-                             use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
                              pv_output_sqrt=True, pv_use_bias=False,
                              **kwargs):
     if epsilon > 0:
@@ -969,3 +971,54 @@ def get_cov_block(cov_branch):
         raise ValueError('covariance cov_mode not supported')
 
     return covariance_block
+
+
+def merge_branches_with_method(concat, cov_outputs,
+                               cov_output_vectorization=None,
+                               cov_output_dim=1024,
+                               pv_constraints=None, pv_regularizer=None, pv_activation='relu',
+                               pv_normalization=False,
+                               pv_output_sqrt=True, pv_use_bias=False,
+                               **kwargs
+                               ):
+    """
+    Helper to merge all branches with given methods.
+    Parameters
+    ----------
+    concat
+    cov_outputs
+    cov_output_vectorization
+    cov_output_dim
+    **kwargs (Passed into vectorization layer)
+    Returns
+    -------
+
+    """
+    if len(cov_outputs) < 2:
+        return cov_outputs[0]
+    else:
+        if concat == 'concat':
+            if all(len(cov_output.shape) == 3 for cov_output in cov_outputs):
+                # use matrix concat
+                x = MatrixConcat(cov_outputs)(cov_outputs)
+            else:
+                x = concatenate(cov_outputs)
+        elif concat == 'sum':
+            x = add(cov_outputs)
+        elif concat == 'ave' or concat == 'avg':
+            x = average(cov_outputs)
+        else:
+            raise ValueError("Concat mode not supported {}".format(concat))
+    if cov_output_vectorization == 'wv' or cov_output_vectorization == 'pv':
+        x = WeightedVectorization(output_dim=cov_output_dim,
+                                  output_sqrt=pv_output_sqrt,
+                                  use_bias=pv_use_bias,
+                                  normalization=pv_normalization,
+                                  kernel_regularizer=pv_regularizer,
+                                  kernel_constraint=pv_constraints,
+                                  activation=pv_activation,
+                                  )(x)
+    else:
+        raise ValueError("Merge branches with method only support pv layer now")
+
+    return x

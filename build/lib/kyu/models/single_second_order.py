@@ -20,7 +20,6 @@ from .so_cnn_helper import get_cov_block, upsample_wrapper_v1
 
 def _compose_second_order_model(
         base_model, nb_class, cov_branch, cov_branch_kwargs=None,
-
         ######## FOR DCovConfig #########
         mode=0, cov_branch_output=None,
         freeze_conv=False, name='default_so_model',
@@ -30,8 +29,8 @@ def _compose_second_order_model(
         last_conv_feature_maps=[],
         last_conv_kernel=[1,1],
         upsample_method='conv',
-
-        **kwargs # pass to the cov_branch_fn
+        # pass to the cov_branch_fn
+        **kwargs
 ):
     cov_branch_fn = get_cov_block(cov_branch)
     if cov_branch_output is None:

@@ -16,6 +16,7 @@ def toggle_trainable_layers(model, trainable=True, keyword='', **kwargs):
     -------
     model : keras.Model     need to be re-compiled once toggled.
     """
+    print('Toggle training layers {} of {} to {}'.format(keyword, model.name, trainable))
     for layer in model.layers:
         if keyword in layer.name:
             layer.trainable = trainable
