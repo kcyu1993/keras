@@ -3,14 +3,10 @@ Finetune with MINC dataset
 """
 import os
 
-from kyu.models.secondstat import SecondaryStatistic, O2Transform
 from kyu.datasets.mit import MITLoader
-from kyu.theano.general.config import DCovConfig
-from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config
-from kyu.theano.minc.configs import get_experiment_settings, get_von_settings, get_residual_cov_experiment, \
-    get_VGG_dimension_reduction, get_matrix_bp, get_VGG_testing_ideas, get_cov_alpha_cv, get_cov_beta_cv, \
-    get_aaai_experiment
-from kyu.theano.mit.configs import get_new_experiment
+from kyu.layers.secondstat import SecondaryStatistic, O2Transform
+from kyu.theano.general.finetune import run_finetune, finetune_model_with_config
+from kyu.theano.minc.configs import get_experiment_settings, get_residual_cov_experiment
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'

@@ -11,8 +11,8 @@ from keras.applications.imagenet_utils import _obtain_input_shape
 from keras.engine import Model, get_source_inputs
 from keras.layers import Flatten, Dense, warnings, Convolution2D, MaxPooling2D, AveragePooling2D
 from keras.applications.vgg16 import WEIGHTS_PATH, WEIGHTS_PATH_NO_TOP
-from kyu.models.so_cnn_helper import covariance_block_original, dcov_model_wrapper_v1, \
-    dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
+from kyu.models.so_cnn_helper import covariance_block_original
+from kyu.legacy.so_wrapper import dcov_model_wrapper_v1, dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
 
 
 def VGG16_Multi(include_top=True, weights='imagenet',

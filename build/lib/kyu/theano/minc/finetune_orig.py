@@ -10,7 +10,8 @@ from keras.layers import Flatten, SecondaryStatistic, O2Transform
 
 from keras.applications import ResNet50
 from keras.layers import Dense
-from kyu.models.so_cnn_helper import covariance_block_original, covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_original
+from kyu.legacy.so_cnn_helper import covariance_block_vector_space
 from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, log_model_to_path
 

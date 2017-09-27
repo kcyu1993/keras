@@ -2,8 +2,8 @@
 from keras.applications import VGG16, ResNet50
 from keras.layers import Dense, Conv2D, BatchNormalization
 from keras.models import Model
+from kyu.layers.secondstat import BiLinear
 from kyu.models.densenet121 import DenseNet121
-from kyu.models.secondstat import BiLinear
 from kyu.utils.train_utils import toggle_trainable_layers
 
 

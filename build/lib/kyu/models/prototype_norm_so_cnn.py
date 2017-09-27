@@ -3,18 +3,13 @@ Define the quick prototype of SO-CNN
 
 """
 from keras.applications import VGG16
+from keras.layers import BatchNormalization
+from keras.layers import Dense
 from keras.models import Model
+from kyu.layers.secondstat import WeightedVectorization, SecondaryStatistic
 from kyu.models.densenet121 import DenseNet121
 from kyu.models.resnet50 import ResNet50_v2
-
-from keras.layers import Flatten, Dense, merge
-from keras.layers.merge import add, average, concatenate
-from kyu.models.secondstat import SeparateConvolutionFeatures, MatrixConcat, \
-    WeightedVectorization, FlattenSymmetric, SecondaryStatistic
-from kyu.utils.sys_utils import merge_dicts
 from kyu.utils.train_utils import toggle_trainable_layers
-from .so_cnn_helper import get_cov_block, upsample_wrapper_v1
-from keras.layers import BatchNormalization
 
 
 def _compose_so_prototype_model(base_model, nb_class, freeze_conv=False, last_conv_kernel=[], name='Bilinear_default'):

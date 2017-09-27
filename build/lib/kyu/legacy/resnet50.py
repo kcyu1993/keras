@@ -8,8 +8,9 @@ from keras.engine import Model
 from keras.layers import Convolution2D, BatchNormalization, Activation, AveragePooling2D, Flatten, Dense, ZeroPadding2D, \
     MaxPooling2D
 from keras.legacy.layers import merge
-from kyu.models.so_cnn_helper import dcov_multi_out_model_wrapper, dcov_model_wrapper_v1, dcov_model_wrapper_v2, \
-    covariance_block_original, covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_original
+from kyu.legacy.so_cnn_helper import covariance_block_vector_space
+from kyu.legacy.so_wrapper import dcov_model_wrapper_v1, dcov_model_wrapper_v2, dcov_multi_out_model_wrapper
 from kyu.utils.train_utils import toggle_trainable_layers
 
 

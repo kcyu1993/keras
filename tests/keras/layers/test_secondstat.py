@@ -225,7 +225,7 @@ def test_logtransform():
         res[i,:,:] = logm(data[i,:,:])
 
     # log layer
-    from kyu.models.secondstat import LogTransform
+    from kyu.layers.secondstat import LogTransform
     a = layer_test(LogTransform,
                    input_data=data,
                    kwargs={

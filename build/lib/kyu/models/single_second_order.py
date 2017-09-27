@@ -4,18 +4,17 @@ Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 """
 
 import keras.backend as K
-
 from keras.applications import VGG16
 from keras.layers import Flatten, Dense, merge, MaxPooling2D, GlobalAveragePooling2D
-from keras.models import Model
 from keras.layers.merge import add, average, concatenate
+from keras.models import Model
+from kyu.layers.secondstat import WeightedVectorization
+from kyu.layers.assistants import FlattenSymmetric, SeparateConvolutionFeatures, MatrixConcat
 from kyu.models.densenet121 import DenseNet121
 from kyu.models.resnet50 import ResNet50_v2
-
-from kyu.models.secondstat import SeparateConvolutionFeatures, MatrixConcat, WeightedVectorization, FlattenSymmetric
+from kyu.models.so_cnn_helper import get_cov_block, upsample_wrapper_v1
 from kyu.utils.sys_utils import merge_dicts
 from kyu.utils.train_utils import toggle_trainable_layers
-from .so_cnn_helper import get_cov_block, upsample_wrapper_v1
 
 
 def _compose_second_order_model(

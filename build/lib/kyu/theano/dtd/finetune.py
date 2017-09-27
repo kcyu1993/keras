@@ -2,19 +2,12 @@
 Finetune with DTD dataset
 """
 import os
-import warnings
 
-import keras.backend as K
+from kyu.layers.secondstat import O2Transform, SecondaryStatistic
 from kyu.models.bilinear import ResNet50_bilinear
-from kyu.models.secondstat import O2Transform, SecondaryStatistic
-
-from keras.applications import ResNet50
-from keras.layers import Dense
-from kyu.models.so_cnn_helper import covariance_block_original, covariance_block_vector_space
 from kyu.theano.general.config import DCovConfig
 from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config, \
     get_tmp_weights_path
-from kyu.theano.mit.configs import get_aaai_experiment
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
@@ -24,14 +17,13 @@ from kyu.utils.imagenet_utils import preprocess_image_for_imagenet
 
 from kyu.models.vgg import VGG16_bilinear
 from kyu.legacy.vgg16 import VGG16_o1, VGG16_o2
-from kyu.legacy.resnet50 import ResNet50_o1, ResNet50_o2, ResCovNet50
+from kyu.legacy.resnet50 import ResNet50_o1, ResNet50_o2
 # from kyu.models.fitnet import fitnet_v1_o1, fitnet_v1_o2
 from kyu.datasets.dtd import load_dtd
 from kyu.theano.general.train import fit_model_v2, Model
 from kyu.utils.train_utils import toggle_trainable_layers
 
 import keras.backend as K
-from keras.preprocessing.image import ImageDataGenerator
 
 from kyu.utils.image import ImageDataGeneratorAdvanced
 

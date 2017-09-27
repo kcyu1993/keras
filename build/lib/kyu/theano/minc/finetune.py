@@ -3,13 +3,11 @@ Finetune with MINC dataset
 """
 import os
 
-from kyu.models.secondstat import SecondaryStatistic, O2Transform
+from kyu.layers.secondstat import SecondaryStatistic, O2Transform
 from kyu.models.vggmulti import VGG16Multi_o2
-from kyu.theano.general.config import DCovConfig
-from kyu.theano.general.finetune import run_finetune, run_finetune_with_Stiefel_layer, finetune_model_with_config
-from kyu.theano.minc.configs import get_experiment_settings, get_von_settings, get_residual_cov_experiment, \
-    get_VGG_dimension_reduction, get_matrix_bp, get_VGG_testing_ideas, get_cov_alpha_cv, get_cov_beta_cv, \
-    get_aaai_experiment, get_ResNet_testing_ideas, get_VGG_second_order_batchnorm, get_VGG_correlation
+from kyu.theano.general.finetune import run_finetune, finetune_model_with_config
+from kyu.theano.minc.configs import get_experiment_settings, get_residual_cov_experiment, \
+    get_VGG_testing_ideas
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['KERAS_BACKEND'] = 'theano'
@@ -22,7 +20,7 @@ from kyu.legacy.vgg16 import VGG16_o1, VGG16_o2
 from kyu.models.resnet50 import ResNet50_o1
 from kyu.legacy.resnet50 import ResNet50_o2_multibranch, ResNet50_o2
 
-from kyu.datasets.minc import Minc2500, load_minc2500
+from kyu.datasets.minc import load_minc2500
 
 from kyu.theano.general.train import fit_model_v2
 from kyu.utils.train_utils import toggle_trainable_layers

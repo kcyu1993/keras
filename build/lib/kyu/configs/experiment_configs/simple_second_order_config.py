@@ -1,3 +1,4 @@
+from kyu.configs.model_configs.second_order import NewNormWVBranchConfig
 from ..model_configs import O2TBranchConfig, NoWVBranchConfig, NormWVBranchConfig
 
 
@@ -339,3 +340,40 @@ def get_wv_norm_config(exp):
         upsample_method='conv',
     )
     return model_config
+
+
+def get_new_wv_norm_general(exp=1):
+    cov_branch_output = 1024
+    nb_branch = 1
+    mode = 1
+
+    if exp == 1:
+        name = 'new norm'
+
+    else:
+        raise ValueError("exp not reg {}".format(exp))
+
+    model_config = NewNormWVBranchConfig(
+        epsilon=0,
+        parametric=[],
+        vectorization='wv',
+        batch_norm=True,
+        cov_kwargs=None,
+        o2t_kwargs=None,
+        pv_kwargs=None,
+        # Other
+        input_shape=(224, 224, 3),
+        nb_class=67,
+        cov_branch_output=cov_branch_output,
+        class_id=None,
+        load_weights='imagenet',
+        # configs for _compose_second_order_things
+        mode=mode,
+        freeze_conv=False, name=name + '-{}_branch'.format(nb_branch),
+        nb_branch=nb_branch,
+        concat='concat',
+        cov_output_vectorization='pv',
+        last_conv_feature_maps=[256],
+        last_conv_kernel=[1, 1],
+        upsample_method='conv',
+    )

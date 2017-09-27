@@ -24,7 +24,7 @@ import sys
 
 from kyu.utils.example_engine import ExampleEngine
 from keras.applications.resnet50 import ResNet50CIFAR, ResCovNet50CIFAR
-from kyu.models.so_cnn_helper import covariance_block_vector_space
+from kyu.legacy.so_cnn_helper import covariance_block_vector_space
 from keras.datasets import cifar10
 from keras.datasets import cifar100
 from keras.engine import Input

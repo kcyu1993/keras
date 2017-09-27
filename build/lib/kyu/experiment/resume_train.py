@@ -12,21 +12,17 @@ Current design:
 
 """
 
-import os
 import glob
-
-import argparse
 
 from datetime import datetime
 
-from kyu.configs.engine_configs import RunningConfig, ModelConfig
-
 from keras.models import model_from_json
+from kyu.configs.engine_configs import RunningConfig
 from kyu.configs.model_configs import get_model_config_by_name, MODEL_CONFIG_CLASS
 from kyu.datasets import get_dataset_by_name
 from kyu.experiment.general_inference import get_argparser
 from kyu.experiment.general_train import get_dirhelper
-from kyu.models.secondstat import get_custom_objects
+from kyu.layers.secondstat import get_custom_objects
 
 MODEL_FOLDER = '/cvlabdata1/home/kyu/so_updated_record/output/run/cls/ImageNet'
 TESTING_DIRECTORY = 'MPN-RESNET50-baselineMPN-Cov-baseline no normalization_2017-09-07T15:14:33'

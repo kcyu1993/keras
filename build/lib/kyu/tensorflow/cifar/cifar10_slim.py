@@ -4,7 +4,8 @@ import tensorflow.contrib.slim as slim
 from tensorflow.python.ops import nn
 
 # Second layer
-from kyu.models.secondstat import SecondaryStatistic, O2Transform, LogTransform, MatrixReLU
+from kyu.layers.secondstat import SecondaryStatistic, O2Transform, LogTransform
+from kyu.layers.assistants import MatrixReLU
 
 
 def fitnet_slim(input_tensor):

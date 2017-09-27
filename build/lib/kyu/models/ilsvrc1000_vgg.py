@@ -30,7 +30,8 @@ from keras.engine.topology import get_source_inputs
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import Flatten, Dense, Input
 from keras.models import Model
-from kyu.models.so_cnn_helper import covariance_block_original, covariance_block_vector_space
+from kyu.models.so_cnn_helper import covariance_block_original
+from kyu.legacy.so_cnn_helper import covariance_block_vector_space
 
 
 def VGG16_with_second(parametrics=[], mode=0,

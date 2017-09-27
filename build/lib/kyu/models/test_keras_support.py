@@ -8,7 +8,7 @@ from keras.layers import Convolution2D
 from keras.layers import Dense
 from keras.models import Sequential
 from keras.utils import np_utils
-from kyu.models.secondstat import SecondaryStatistic, WeightedVectorization
+from kyu.layers.secondstat import SecondaryStatistic, WeightedVectorization
 
 # input image dimensions
 img_rows, img_cols = 28, 28

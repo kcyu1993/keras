@@ -1,7 +1,7 @@
 from keras.applications import VGG16
 from keras.engine import Model
 from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-from kyu.models.so_cnn_helper import dcov_model_wrapper_v1, dcov_model_wrapper_v2
+from kyu.legacy.so_wrapper import dcov_model_wrapper_v1, dcov_model_wrapper_v2
 from kyu.utils.train_utils import toggle_trainable_layers
 
 

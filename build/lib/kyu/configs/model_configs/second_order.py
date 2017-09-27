@@ -3,6 +3,18 @@ from configobj import ConfigObj
 from kyu.configs.engine_configs import ModelConfig
 
 
+def get_default_cov_kwargs(**kwargs):
+    """
+     Obtain the default cov kwargs
+     should change when the new changes
+    Parameters
+    ----------
+    kwargs
+
+    Returns
+    -------
+
+    """
 
 
 class DCovConfig(ModelConfig):
@@ -180,3 +192,27 @@ class NormWVBranchConfig(DCovConfig):
              }
 
         super(NormWVBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
+
+
+class NewNormWVBranchConfig(DCovConfig):
+    def __init__(self,
+                 # Cov branch kwargs
+                 epsilon=0,
+                 parametric=[],
+                 vectorization='wv',
+                 batch_norm=True,
+                 cov_kwargs=None,
+                 o2t_kwargs=None,
+                 pv_kwargs=None,
+                 **kwargs
+                 ):
+        cov_branch = 'new_norm_wv'
+        z = {"epsilon": epsilon,
+             "parametric": parametric,
+             "vectorization": vectorization,
+             "batch_norm": batch_norm,
+             "cov_kwargs": cov_kwargs,
+             "o2t_kwargs": o2t_kwargs,
+             "pv_kwargs": pv_kwargs
+             }
+        super(NewNormWVBranchConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
