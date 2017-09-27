@@ -3,7 +3,19 @@ from configobj import ConfigObj
 from kyu.configs.engine_configs import ModelConfig
 
 
+
+
 class DCovConfig(ModelConfig):
+    """
+    Version 1.1 Add nb-outputs for 'multiple-loss-second-order'
+    """
+    # Define the flags for everything
+    compulsoryArgs = ['input_shape', 'nb_class', 'cov_branch', 'cov_branch_kwargs']
+    optionalArgs = ['concat', 'mode', 'cov_branch_output', 'name',
+                    'nb_branch', 'cov_output_vectorization',
+                    'upsample_method', 'last_conv_kernel', 'last_conv_feature_maps',
+                    'freeze_conv', 'load_weights',
+                    'nb_outputs']
 
     def __init__(self,
                  input_shape,
@@ -23,9 +35,13 @@ class DCovConfig(ModelConfig):
                  last_conv_feature_maps=[],
                  last_conv_kernel=[1, 1],
                  upsample_method='conv',
+                 nb_outputs=1,
                  **kwargs
                  ):
-        model_id = 'second_order'
+        if nb_outputs > 1:
+            model_id = 'multiple_loss_second_order'
+        else:
+            model_id = 'second_order'
 
         super(DCovConfig, self).__init__(class_id=class_id, model_id=model_id, **kwargs)
         self.__dict__.update(locals())
@@ -126,7 +142,8 @@ class NormWVBranchConfig(DCovConfig):
                  vectorization='wv',
                  epsilon=1e-5,
                  use_bias=False,
-                 pv_use_bias=True,
+                 pv_use_bias=False,
+                 pv_use_gamma=False,
                  pv_output_sqrt=True,
                  robust=False,
                  cov_alpha=0.1,
@@ -148,6 +165,7 @@ class NormWVBranchConfig(DCovConfig):
              'epsilon': epsilon,
              'use_bias': use_bias,
              'pv_use_bias': pv_use_bias,
+             'pv_use_gamma': pv_use_gamma,
              'pv_output_sqrt': pv_output_sqrt,
              'robust': robust,
              'cov_alpha': cov_alpha,

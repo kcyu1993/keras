@@ -25,7 +25,7 @@ def bilinear_train(model_class, model_exp_fn,  **kwargs):
 
 if __name__ == '__main__':
     parser = get_argparser(description='Bilinear Train with different dataset and model settings ')
-    parser.add_argument('-b', '--branch', default='mpn_baseline', choices=BRANCH_CHOICES)
+    parser.add_argument('-b', '--branch', default='bilinear_baseline', choices=BRANCH_CHOICES)
 
     args = parser.parse_args()
     branch = args.branch

@@ -27,7 +27,7 @@ def get_model_from_config(model_fn, config, compulsory, optional):
         return None
 
     if not isinstance(config, ModelConfig):
-        raise ValueError("VGG: get_model only support ModelConfig object")
+        raise ValueError("Generic Load Model: get_model only support ModelConfig object")
 
     if not all(hasattr(config, item) for item in compulsory):
         raise ValueError("{} config is not complete. \n {}".format(config.model_id, config))
@@ -74,4 +74,50 @@ def deserialize_model_object(identifier, module_objects=None,
         return fn
 
 
+# Generic loader for all models. (basically, replace the resnet.get_model )
+def first_order():
+    """
+    Define the generic first order get model to replace individual first-order ones
+
+    Returns
+    -------
+
+    """
+    pass
+
+
+def second_order():
+    pass
+
+
+def multiple_loss_second_order():
+    pass
+
+
+def bilinear():
+    pass
+
+
+def mpn():
+    pass
+
+
+def matrix_backprop():
+    pass
+
+
+def get_model(config):
+    """
+    Generic get-model
+
+    Parameters
+    ----------
+    config: ModelConfig
+
+    Returns
+    -------
+
+    """
+    if not isinstance(config, ModelConfig):
+        raise ValueError("GenericLoader: only takes ModelConfig")
 

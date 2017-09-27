@@ -267,21 +267,40 @@ def get_wv_norm_config(exp):
     parametric = []
     name = None
     nb_branch = 1
-    pv_output_bias = False
+    pv_use_bias = False
+    pv_use_gamma = False
+    pv_output_sqrt = True
     mode = 1
     if exp == 1:
         parametric = []
         cov_branch_output = 1024
         name = 'BN-Cov-PV{}'.format(cov_branch_output)
-        pv_output_bias = True
-        pv_normalization = True
-        mode = 2
+        pv_use_bias = False
+        pv_normalization = False
+        pv_output_sqrt = False
+        mode = 1
+
     elif exp == 2:
         parametric = [256]
         cov_branch_output = 1024
         name = 'BN-Cov-O2T{}-PV{}'.format(parametric, cov_branch_output)
         nb_branch = 1
         pv_normalization = False
+
+    elif exp == 3:
+        parametric = []
+        cov_branch_output = 512
+        name = 'FOSO-BN-Cov-PV{}'.format(cov_branch_output)
+        pv_use_bias = True
+        pv_normalization = True
+        mode = 2
+    elif exp == 4:
+        cov_branch_output = 1024
+        name = 'BN-Cov-PV{}_gamma'.format(cov_branch_output)
+        pv_use_gamma = True
+        pv_normalization = True
+        pv_output_sqrt = True
+        pv_use_bias = True
 
     model_config = NormWVBranchConfig(
         parametric=parametric,
@@ -290,8 +309,9 @@ def get_wv_norm_config(exp):
         vectorization='wv',
         epsilon=1e-5,
         use_bias=False,
-        pv_use_bias=pv_output_bias,
-        pv_output_sqrt=True,
+        pv_use_bias=pv_use_bias,
+        pv_use_gamma=pv_use_gamma,
+        pv_output_sqrt=pv_output_sqrt,
         robust=False,
         cov_alpha=0.1,
         cov_beta=0.3,
@@ -305,7 +325,7 @@ def get_wv_norm_config(exp):
         # Other
         input_shape=(224, 224, 3),
         nb_class=67,
-        cov_branch_output=1024,
+        cov_branch_output=cov_branch_output,
         class_id=None,
         load_weights='imagenet',
         # configs for _compose_second_order_things

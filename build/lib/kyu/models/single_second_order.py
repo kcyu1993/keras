@@ -6,7 +6,7 @@ Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 import keras.backend as K
 
 from keras.applications import VGG16
-from keras.layers import Flatten, Dense, merge
+from keras.layers import Flatten, Dense, merge, MaxPooling2D, GlobalAveragePooling2D
 from keras.models import Model
 from keras.layers.merge import add, average, concatenate
 from kyu.models.densenet121 import DenseNet121
@@ -24,6 +24,7 @@ def _compose_second_order_model(
         mode=0, cov_branch_output=None,
         freeze_conv=False, name='default_so_model',
         nb_branch=1,
+        nb_outputs=1,
         concat='concat',
         cov_output_vectorization='pv',
         last_conv_feature_maps=[],
@@ -32,6 +33,8 @@ def _compose_second_order_model(
         # pass to the cov_branch_fn
         **kwargs
 ):
+    if nb_outputs > 1:
+        raise ValueError("Compose second order doesn't support nb_outputs larger than 1")
     cov_branch_fn = get_cov_block(cov_branch)
     if cov_branch_output is None:
         cov_branch_output = nb_class
@@ -56,8 +59,11 @@ def _compose_second_order_model(
         elif mode == 2:
             cov_branch_y = cov_branch_fn(x, cov_branch_output, stage=5, block=str(ind),
                                          ** merge_dicts(kwargs, cov_branch_kwargs))
-            fo = Flatten()(x)
-            fo = Dense(nb_class, activation='relu')(fo)
+            fo = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(base_model.output)
+            fo = GlobalAveragePooling2D()(fo)
+            # fo = Flatten()(fo)
+
+            fo = Dense(cov_branch_output, activation='relu')(fo)
             cov_branch_y = merge([fo, cov_branch_y], mode=concat)
         else:
             raise ValueError("Not supported mode {}".format(mode))
@@ -126,7 +132,9 @@ def DenseNet121_second_order(
 
 
 def ResNet50_second_order(
-        input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None, last_avg=False, **kwargs
+        input_shape, nb_class, cov_branch, load_weights='imagenet',
+        pooling=None, last_avg=False,
+        **kwargs
 ):
 
     if load_weights == 'imagenet':

@@ -1222,14 +1222,18 @@ class WeightedVectorization(Layer):
     def __init__(self, output_dim, input_dim=None, activation='linear',
                  eps=1e-8,
                  output_sqrt=False,     # Normalization
-                 use_bias=False,        # use bias for normalization additional
                  normalization=False,   # normalize to further fit Chi-square distribution
                  kernel_initializer='glorot_uniform',
                  kernel_constraint=None,
                  kernel_regularizer=None,
+                 use_bias=False,  # use bias for normalization additional
                  bias_initializer='zeros',
                  bias_regularizer=None,
                  bias_constraint=None,
+                 use_gamma=False,  # use gamma for general gaussian distribution
+                 gamma_initializer='ones',
+                 gamma_regularizer='l2',
+                 gamma_constraint=None,
                  activation_regularizer=None,
                  **kwargs):
 
@@ -1250,10 +1254,16 @@ class WeightedVectorization(Layer):
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
+
         self.use_bias = use_bias
         self.bias_initializer = initializers.get(bias_initializer)
         self.bias_constraint = constraints.get(bias_constraint)
         self.bias_regularizer = regularizers.get(bias_regularizer)
+
+        self.use_gamma = use_gamma
+        self.gamma_initializer = initializers.get(gamma_initializer)
+        self.gamma_constraint = constraints.get(gamma_constraint)
+        self.gamma_regularizer = regularizers.get(gamma_regularizer)
 
         self.activation = activations.get(activation)
         super(WeightedVectorization, self).__init__(**kwargs)
@@ -1285,8 +1295,18 @@ class WeightedVectorization(Layer):
                                         constraint=self.bias_constraint,
                                         name='bias'
                                         )
+
         else:
             self.bias = None
+        if self.use_gamma:
+            self.gamma = self.add_weight(shape=(self.output_dim,),
+                                         initializer=self.gamma_initializer,
+                                         regularizer=self.gamma_regularizer,
+                                         constraint=self.gamma_constraint,
+                                         name='gamma'
+                                         )
+        else:
+            self.gamma = None
         self.built = True
 
     def call(self, inputs):
@@ -1312,6 +1332,8 @@ class WeightedVectorization(Layer):
         if self.output_sqrt:
             from kyu.tensorflow.ops import safe_sign_sqrt
             output = safe_sign_sqrt(output)
+        if self.use_gamma:
+            output *= self.gamma
 
         if self.use_bias:
             output = K.bias_add(output, self.bias, data_format=K.image_data_format())
@@ -1337,15 +1359,19 @@ class WeightedVectorization(Layer):
                   'input_dim': self.input_dim,
                   'activation': activations.serialize(self.activation),
                   'use_bias': self.use_bias,
+                  'use_gamma': self.use_gamma,
                   'normalization': self.normalization,
                   'output_sqrt': self.output_sqrt,
                   'kernel_initializer': initializers.serialize(self.kernel_initializer),
                   'bias_initializer': initializers.serialize(self.bias_initializer),
+                  'gamma_initializer': initializers.serialize(self.gamma_initializer),
                   'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
                   'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+                  'gamma_initializer': regularizers.serialize(self.gamma_regularizer),
                   'activity_regularizer': regularizers.serialize(self.activation_regularizer),
                   'kernel_constraint': constraints.serialize(self.kernel_constraint),
                   'bias_constraint': constraints.serialize(self.bias_constraint),
+                  'gamma_constraint': constraints.serialize(self.gamma_constraint)
                   }
         base_config = super(WeightedVectorization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

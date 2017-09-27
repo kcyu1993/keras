@@ -20,6 +20,8 @@ from kyu.models.single_second_order import VGG16_second_order
 from kyu.utils.train_utils import toggle_trainable_layers
 from .generic_loader import deserialize_model_object, get_model_from_config
 
+VGG_SUPPORTED_MODEL = ['vgg16',]
+
 
 def VGG16_first_order(
         denses=[], nb_class=1000, input_shape=None,
@@ -148,11 +150,19 @@ def second_order(config):
     if not isinstance(config, DCovConfig):
         raise ValueError("VGG: second-order only support DCovConfig")
 
-    compulsory = ['input_shape', 'nb_class', 'cov_branch', 'cov_branch_kwargs']
-    optional = ['concat', 'mode', 'cov_branch_output', 'name',
-                'nb_branch', 'cov_output_vectorization',
-                'upsample_method', 'last_conv_kernel', 'last_conv_feature_maps',
-                'freeze_conv', 'load_weights']
+    compulsory = DCovConfig.compulsoryArgs
+    optional = DCovConfig.optionalArgs
+    return get_model_from_config(VGG16_second_order, config, compulsory, optional)
+
+
+def multiple_loss_second_order(config):
+    if not isinstance(config, DCovConfig) and hasattr(config, 'nb_outputs'):
+        raise ValueError("VGG: second-order only support DCovConfig has nb_outputs")
+    if not config.nb_outputs > 1:
+        raise ValueError("VGG: multiple_loss_second_order supports only nb_outputs > 1")
+    compulsory = DCovConfig.compulsoryArgs
+    optional = DCovConfig.optionalArgs
+
     return get_model_from_config(VGG16_second_order, config, compulsory, optional)
 
 

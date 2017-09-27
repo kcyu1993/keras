@@ -16,8 +16,7 @@ from kyu.utils.train_utils import toggle_trainable_layers
 import tensorflow as tf
 import numpy as np
 
-from layers import concatenate, add, average
-
+from keras.layers import concatenate, add, average
 
 def get_cov_name_base(stage, block, **kwargs):
     return 'cov-{}-br_{}'.format(str(stage), block)
@@ -280,8 +279,13 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
     dense_name_base = 'fc' + str(stage) + block + '_branch'
     wp_name_base = 'wp' + str(stage) + block + '_branch'
 
+    x = input_tensor
+
+    # add baseline test.
+    x = BatchNormalization(axis=3, name='last_BN')(input_tensor)
+
     x = SecondaryStatistic(name=cov_name_base, eps=epsilon, cov_beta=cov_beta,
-                           cov_mode=cov_mode, cov_regularizer=cov_regularizer)(input_tensor)
+                           cov_mode=cov_mode, cov_regularizer=cov_regularizer)(x)
 
     # Try the power transform before and after.
     x = PowTransform(alpha=0.5, name=pow_name_base, normalization=None)(x)
@@ -533,7 +537,12 @@ def covariance_block_norm_wv(input_tensor, nb_class, stage, block, epsilon=0, pa
                              use_bias=False, robust=False, cov_alpha=0.1, cov_beta=0.3,
                              pv_constraints=None, pv_regularizer=None, pv_activation='relu',
                              pv_normalization=False,
-                             pv_output_sqrt=True, pv_use_bias=False,
+                             pv_output_sqrt=True,
+                             pv_use_bias=False,
+                             pv_use_gamma=False,
+                             # pv_gamma_constraints=None,
+                             # pv_gamma_initializer='ones',
+                             # pv_gamma_regularizer=None,
                              **kwargs):
     if epsilon > 0:
         cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
@@ -541,7 +550,9 @@ def covariance_block_norm_wv(input_tensor, nb_class, stage, block, epsilon=0, pa
         cov_name_base = 'cov' + str(stage) + block + '_branch'
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
     wp_name_base = 'pv' + str(stage) + block + '_branch'
+
     # Add a normalization before goinging into secondary statistics
+    # x = input_tensor
     x = BatchNormalization(axis=3, name='last_BN')(input_tensor)
 
     with tf.name_scope(cov_name_base):
@@ -564,6 +575,10 @@ def covariance_block_norm_wv(input_tensor, nb_class, stage, block, epsilon=0, pa
                                   normalization=pv_normalization,
                                   kernel_regularizer=pv_regularizer,
                                   kernel_constraint=pv_constraints,
+                                  use_gamma=pv_use_gamma,
+                                  # gamma_constraint=pv_gamma_constraints,
+                                  # gamma_initializer=pv_gamma_initializer,
+                                  # gamma_regularizer=pv_gamma_regularizer,
                                   activation=pv_activation,
                                   name=wp_name_base)(x)
     return x

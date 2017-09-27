@@ -118,6 +118,7 @@ def ResNet50_v2(
         last_avg=True,
         weight_decay=0,
         freeze_conv=False,
+        nb_outputs=1,
         ):
     """Instantiates the ResNet50 architecture.
 
@@ -197,6 +198,8 @@ def ResNet50_v2(
     else:
         bn_axis = 1
 
+    model_outputs = []
+
     x = Conv2D(
         64, (7, 7), strides=(2, 2), padding='same', name='conv1',
         kernel_regularizer=l2(weight_decay))(img_input)
@@ -207,11 +210,13 @@ def ResNet50_v2(
     x = conv_block(x, 3, [64, 64, 256], stage=2, block='a', strides=(1, 1))
     x = identity_block(x, 3, [64, 64, 256], stage=2, block='b', weight_decay=weight_decay)
     x = identity_block(x, 3, [64, 64, 256], stage=2, block='c', weight_decay=weight_decay)
+    model_outputs.append(x)
 
     x = conv_block(x, 3, [128, 128, 512], stage=3, block='a', weight_decay=weight_decay)
     x = identity_block(x, 3, [128, 128, 512], stage=3, block='b', weight_decay=weight_decay)
     x = identity_block(x, 3, [128, 128, 512], stage=3, block='c', weight_decay=weight_decay)
     x = identity_block(x, 3, [128, 128, 512], stage=3, block='d', weight_decay=weight_decay)
+    model_outputs.append(x)
 
     x = conv_block(x, 3, [256, 256, 1024], stage=4, block='a', weight_decay=weight_decay)
     x = identity_block(x, 3, [256, 256, 1024], stage=4, block='b', weight_decay=weight_decay)
@@ -219,6 +224,7 @@ def ResNet50_v2(
     x = identity_block(x, 3, [256, 256, 1024], stage=4, block='d', weight_decay=weight_decay)
     x = identity_block(x, 3, [256, 256, 1024], stage=4, block='e', weight_decay=weight_decay)
     x = identity_block(x, 3, [256, 256, 1024], stage=4, block='f', weight_decay=weight_decay)
+    model_outputs.append(x)
 
     x = conv_block(x, 3, [512, 512, 2048], stage=5, block='a', weight_decay=weight_decay)
     x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b', weight_decay=weight_decay)
@@ -246,11 +252,17 @@ def ResNet50_v2(
         x = Dense(nb_class, activation='softmax', name=pred_name)(x)
         model = Model(inputs, x, name='resnet50')
     else:
+        # Handle multiple-outputs only here.
+        nb_outputs = 1 if nb_outputs <= 1 else nb_outputs
         if pooling == 'avg':
             x = GlobalAveragePooling2D()(x)
         elif pooling == 'max':
             x = GlobalMaxPooling2D()(x)
-        model = Model(inputs, x, name='resnet50-base')
+        model_outputs.append(x)
+        model_outputs.reverse()
+
+        model = Model(inputs, model_outputs[:nb_outputs],
+                      name='resnet50-base-{}_out'.format(nb_outputs))
         toggle_trainable_layers(model, not freeze_conv)
 
     # load weights
