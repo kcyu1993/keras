@@ -2,20 +2,19 @@
 from __future__ import absolute_import
 
 import logging
-
 import tensorflow as tf
 
-from keras import activations
 from keras import backend as K
-from keras import constraints
-from keras import initializers, regularizers
+from keras import activations, constraints, initializers, regularizers
 from keras.engine import Layer, InputSpec
 from keras.layers import BatchNormalization, Flatten
+
 from kyu.utils.cov_reg import FrobNormRegularizer, VonNeumannDistanceRegularizer, robust_estimate_eigenvalues
 
 
 # TODO Remove this theano import to prevent any usage in tensorflow backend
 # Potentially check Keras backend then import relevant libraries
+from kyu.utils.inspect_util import get_default_args
 
 
 class SecondaryStatistic(Layer):
@@ -43,14 +42,19 @@ class SecondaryStatistic(Layer):
         activation      test activation later
         cov_alpha       Use for robust estimation
         cov_beta        Use for parametric mean
-
+        kwargs          goes into Layer construction
     '''
-    def __init__(self, eps=1e-5,
+    def __init__(self,
+                 eps=1e-5,
                  cov_mode='channel',
-                 kernel_initializer='glorot_uniform', activation='linear',
-                 kernel_regularizer=None, dim_ordering='default',
+                 kernel_initializer='glorot_uniform',
+                 activation='linear',
+                 kernel_regularizer=None,
+                 dim_ordering='default',
                  normalization='mean',
-                 cov_regularizer=None, cov_alpha=0.01, cov_beta=0.3,
+                 cov_regularizer=None,
+                 cov_alpha=0.01,
+                 cov_beta=0.3,
                  alpha_initializer='ones',
                  alpha_constraint=None,
                  robust=False,
@@ -565,9 +569,10 @@ class O2Transform(Layer):
     """
 
     def __init__(self, output_dim=None,
-                 kernel_initializer='glorot_uniform', activation='relu',
+                 activation='relu',
                  activation_regularizer=None,
                  # weights=None,
+                 kernel_initializer='glorot_uniform',
                  kernel_regularizer=None,
                  kernel_constraint=None,
                  use_bias=False,
@@ -1181,6 +1186,7 @@ class BiLinear_v2(Layer):
                             "tensor, Got: " + str(inputs))
         # Case: 'mode' is a lambda function or function
         if callable(self.mode):
+            import inspect
             arguments = self.arguments
             arg_spec = inspect.getargspec(self.mode)
             if 'mask' in arg_spec.args:
@@ -1228,6 +1234,39 @@ class BiLinear_v2(Layer):
             # output_shape.append(tmp_shape)
         return output_shape
 
+# Alias
+Cov = SecondaryStatistic
+O2T = O2Transform
+PV = WeightedVectorization
+
 
 def get_custom_objects():
+    """
+    Get custom objects for Keras pipeline
+
+    Returns
+    -------
+
+    """
     return globals()
+
+
+def get_default_secondstat_args(identifier, custom_object=None, method_name='__init__'):
+    """
+    Obtain the default second_stat layers args
+
+    Parameters
+    ----------
+    identifier
+    custom_object
+    method_name
+
+    Returns
+    -------
+
+    """
+    return get_default_args(identifier,
+                            module_object=get_custom_objects(),
+                            custom_object=custom_object,
+                            method_name=method_name)
+

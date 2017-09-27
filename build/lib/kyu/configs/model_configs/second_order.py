@@ -17,6 +17,7 @@ def get_default_cov_kwargs(**kwargs):
     """
 
 
+
 class DCovConfig(ModelConfig):
     """
     Version 1.1 Add nb-outputs for 'multiple-loss-second-order'
