@@ -35,16 +35,15 @@ import logging
 
 import numpy as np
 
-from kyu.utils.example_engine import ExampleEngine
+from kyu.legacy.example_engine import ExampleEngine
 
 np.random.seed(1337)  # for reproducibility
 
 from keras.datasets import mnist
-from keras.models import Sequential, Model
-from keras.layers import Dense, Dropout, Activation, Flatten, Input, merge
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation, Flatten, Input
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import SecondaryStatistic, WeightedVectorization, O2Transform
-from keras.layers import PReLU
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from keras import backend as K

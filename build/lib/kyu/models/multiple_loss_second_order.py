@@ -13,7 +13,7 @@ Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 import keras.layers.merge as merge
 from keras.layers import Dense
 from keras.models import Model
-from kyu.utils.sys_utils import merge_dicts
+from kyu.utils.dict_utils import merge_dicts
 from kyu.utils.train_utils import toggle_trainable_layers
 from .so_cnn_helper import get_cov_block, upsample_wrapper_v1, merge_branches_with_method
 

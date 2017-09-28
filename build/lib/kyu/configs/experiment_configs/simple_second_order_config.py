@@ -1,6 +1,6 @@
 from kyu.configs.model_configs.second_order import NewNormWVBranchConfig
 from kyu.layers.secondstat import get_default_secondstat_args
-from kyu.utils.sys_utils import update_source_dict_by_given_kwargs
+from kyu.utils.dict_utils import update_source_dict_by_given_kwargs
 from ..model_configs import O2TBranchConfig, NoWVBranchConfig, NormWVBranchConfig
 
 

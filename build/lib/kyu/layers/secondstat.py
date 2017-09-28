@@ -2,16 +2,14 @@
 from __future__ import absolute_import
 
 import logging
+
 import tensorflow as tf
 
-from keras import backend as K
 from keras import activations, constraints, initializers, regularizers
+from keras import backend as K
 from keras.engine import Layer, InputSpec
 from keras.layers import BatchNormalization, Flatten
-
-from kyu.utils.cov_reg import FrobNormRegularizer, VonNeumannDistanceRegularizer, robust_estimate_eigenvalues
-
-
+from kyu.tensorflow.ops.cov_reg import FrobNormRegularizer, VonNeumannDistanceRegularizer, robust_estimate_eigenvalues
 # TODO Remove this theano import to prevent any usage in tensorflow backend
 # Potentially check Keras backend then import relevant libraries
 from kyu.utils.inspect_util import get_default_args

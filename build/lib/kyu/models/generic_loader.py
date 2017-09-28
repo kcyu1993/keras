@@ -5,7 +5,7 @@ Design to serve as model getter like keras.loss.get(id), but switch by the confi
 import six
 
 from kyu.configs.engine_configs import ModelConfig
-from kyu.utils.sys_utils import merge_dicts
+from kyu.utils.dict_utils import merge_dicts
 
 
 def get_model_from_config(model_fn, config, compulsory, optional):

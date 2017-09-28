@@ -13,7 +13,7 @@ from kyu.layers.assistants import FlattenSymmetric, SeparateConvolutionFeatures,
 from kyu.models.densenet121 import DenseNet121
 from kyu.models.resnet50 import ResNet50_v2
 from kyu.models.so_cnn_helper import get_cov_block, upsample_wrapper_v1
-from kyu.utils.sys_utils import merge_dicts
+from kyu.utils.dict_utils import merge_dicts
 from kyu.utils.train_utils import toggle_trainable_layers
 
 

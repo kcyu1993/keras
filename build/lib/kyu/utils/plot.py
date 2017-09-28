@@ -1,6 +1,8 @@
 import os
 
-from example_engine import ExampleEngine
+from kyu.legacy.example_engine import ExampleEngine
+
+
 # from kyu.theano.cifar.cifar10_sndstat import cifar_fitnet_v2
 
 
@@ -13,7 +15,6 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
                       legend_labels=[],
                       xlim=(0,200), ylim=(0,0.5)):
     # Execute on local machine
-    from example_engine import gethistoryfiledir
     hist_dir = '/Users/kcyu/Dropbox/git/keras/model_saved/history'
     hist_dir = os.path.join(hist_dir, folder_name)
     hist_list = []
@@ -105,7 +106,7 @@ def plot_cifar_fitnet(folder_name, significant_model=None,
 
 
 def plot_rescov_results():
-    from example_engine import gethistoryfiledir
+    from kyu.legacy.example_engine import gethistoryfiledir
     hist_dir = gethistoryfiledir()
     # folder_name = 'Fitnet_CIFAR'
     folder_name = 'ResCov_CIFAR'

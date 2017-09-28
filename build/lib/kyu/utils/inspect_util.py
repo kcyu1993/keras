@@ -6,7 +6,7 @@ Implement the arguments parsing and default dictionary composition
 import inspect
 
 import six
-from kyu.utils.sys_utils import merge_dicts
+from .dict_utils import merge_dicts
 
 
 def compose_default_call_arguments(func):
