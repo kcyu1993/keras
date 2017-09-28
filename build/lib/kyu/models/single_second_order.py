@@ -20,7 +20,9 @@ from kyu.utils.train_utils import toggle_trainable_layers
 def _compose_second_order_model(
         base_model, nb_class, cov_branch, cov_branch_kwargs=None,
         ######## FOR DCovConfig #########
-        mode=0, cov_branch_output=None,
+        mode=0,
+        cov_branch_output=None,
+        dense_branch_output=None,
         freeze_conv=False, name='default_so_model',
         nb_branch=1,
         nb_outputs=1,
@@ -37,7 +39,8 @@ def _compose_second_order_model(
     cov_branch_fn = get_cov_block(cov_branch)
     if cov_branch_output is None:
         cov_branch_output = nb_class
-
+    if dense_branch_output is None:
+        dense_branch_output = nb_class
     x = base_model.output
 
     if freeze_conv:
@@ -58,11 +61,10 @@ def _compose_second_order_model(
         elif mode == 2:
             cov_branch_y = cov_branch_fn(x, cov_branch_output, stage=5, block=str(ind),
                                          ** merge_dicts(kwargs, cov_branch_kwargs))
+            # Repeat the traditional VGG16.
             fo = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(base_model.output)
-            fo = GlobalAveragePooling2D()(fo)
-            # fo = Flatten()(fo)
-
-            fo = Dense(cov_branch_output, activation='relu')(fo)
+            # fo = GlobalAveragePooling2D()(fo)
+            fo = Dense(dense_branch_output, activation='relu')(fo)
             cov_branch_y = merge([fo, cov_branch_y], mode=concat)
         else:
             raise ValueError("Not supported mode {}".format(mode))

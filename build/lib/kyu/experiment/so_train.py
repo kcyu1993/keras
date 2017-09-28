@@ -9,7 +9,7 @@ from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetu
     mit_finetune_with_model, imagenet_finetune_with_model, data_finetune_with_model
 from kyu.experiment.general_train import get_argparser
 
-BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv', 'o2t_wv_norm']
+BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv', 'o2t_wv_norm', 'o2t_wv_new_norm']
 
 
 def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetune=0, title='',
@@ -70,6 +70,14 @@ def so_o2t_wv_with_norm(dataset, model_class, **kwargs):
     title = 'SO-{}_normWV'.format(str(model_class).upper())
     so_cnn_train(model_exp_fn=SOConfig.get_wv_norm_config, model_class=model_class, dataset=dataset, title=title, **kwargs)
 
+
+def so_o2t_wv_with_new_norm(dataset, model_class, **kwargs):
+    """ Get SO-CNN architecture with o2t wv with new norm branch """
+    title = 'SO-{}_normWV'.format(str(model_class).upper())
+    so_cnn_train(model_exp_fn=SOConfig.get_new_wv_norm_general, model_class=model_class, dataset=dataset, title=title,
+                 **kwargs)
+
+
 if __name__ == '__main__':
     parser = get_argparser(description='SO-CNN architecture testing')
     parser.add_argument('-b', '--branch', help='second-order branch', default='o2t_original',
@@ -85,6 +93,8 @@ if __name__ == '__main__':
         so_o2t_no_wv(**vars(args))
     elif branch == BRANCH_CHOICES[2]:
         so_o2t_wv_with_norm(**vars(args))
+    elif branch == BRANCH_CHOICES[3]:
+        so_o2t_wv_with_new_norm(**vars(args))
     else:
         raise NotImplementedError
 

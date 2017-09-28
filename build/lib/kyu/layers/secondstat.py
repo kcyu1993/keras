@@ -570,12 +570,12 @@ class O2Transform(Layer):
 
     def __init__(self, output_dim=None,
                  activation='relu',
-                 activation_regularizer=None,
+                 # activation_regularizer=None,
                  # weights=None,
                  kernel_initializer='glorot_uniform',
                  kernel_regularizer=None,
                  kernel_constraint=None,
-                 use_bias=False,
+                 # use_bias=False,
                  **kwargs):
 
         # Set out_dim accordingly.

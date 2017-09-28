@@ -33,6 +33,7 @@ def get_default_args(identifier, module_object=None, custom_object=None, method_
     -------
 
     """
+
     module_object = merge_dicts(module_object, custom_object)
     if isinstance(identifier, six.string_types):
         func = module_object.get(identifier)

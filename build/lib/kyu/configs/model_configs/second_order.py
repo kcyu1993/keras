@@ -3,28 +3,16 @@ from configobj import ConfigObj
 from kyu.configs.engine_configs import ModelConfig
 
 
-def get_default_cov_kwargs(**kwargs):
-    """
-     Obtain the default cov kwargs
-     should change when the new changes
-    Parameters
-    ----------
-    kwargs
-
-    Returns
-    -------
-
-    """
-
-
-
 class DCovConfig(ModelConfig):
     """
     Version 1.1 Add nb-outputs for 'multiple-loss-second-order'
     """
     # Define the flags for everything
     compulsoryArgs = ['input_shape', 'nb_class', 'cov_branch', 'cov_branch_kwargs']
-    optionalArgs = ['concat', 'mode', 'cov_branch_output', 'name',
+    optionalArgs = ['concat', 'mode',
+                    'cov_branch_output',
+                    'dense_branch_output',
+                    'name',
                     'nb_branch', 'cov_output_vectorization',
                     'upsample_method', 'last_conv_kernel', 'last_conv_feature_maps',
                     'freeze_conv', 'load_weights',
@@ -40,7 +28,9 @@ class DCovConfig(ModelConfig):
                  class_id=None,
                  model_id=None,
                  # configs for _compose_second_order_things
-                 mode=0, cov_branch_output=None,
+                 mode=0,
+                 cov_branch_output=None,
+                 dense_branch_output=None,
                  freeze_conv=False, name='default_so_model',
                  nb_branch=1,
                  concat='concat',
@@ -202,6 +192,7 @@ class NewNormWVBranchConfig(DCovConfig):
                  parametric=[],
                  vectorization='wv',
                  batch_norm=True,
+                 pow_norm=False,
                  cov_kwargs=None,
                  o2t_kwargs=None,
                  pv_kwargs=None,
@@ -212,6 +203,7 @@ class NewNormWVBranchConfig(DCovConfig):
              "parametric": parametric,
              "vectorization": vectorization,
              "batch_norm": batch_norm,
+             "pow_norm": pow_norm,
              "cov_kwargs": cov_kwargs,
              "o2t_kwargs": o2t_kwargs,
              "pv_kwargs": pv_kwargs
