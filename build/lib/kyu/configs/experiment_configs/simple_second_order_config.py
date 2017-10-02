@@ -347,15 +347,49 @@ def get_wv_norm_config(exp):
 def get_new_wv_norm_general(exp=1):
     cov_branch_output = 1024
     dense_branch_output = None
+    last_conv_feature_maps = [256]
+    parametric = []
     nb_branch = 1
+    vectorization = 'wv'
     mode = 1
+    concat = None
     cov_kwargs = get_default_secondstat_args('Cov')
     o2t_kwargs = get_default_secondstat_args('O2T')
     pv_kwargs = get_default_secondstat_args('PV')
-
+    pow_norm = False
+    use_gamma = True
     if exp == 1:
-        name = 'BN-Cov-PV{}-mode2_complete'.format(cov_branch_output)
+        cov_branch_output = 2048
+        use_gamma = True
+        name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        mode = 1
+    elif exp == 2:
+        use_gamma = False
+        name = "BN-Cov-PV{}-mode2_gamma{}".format(cov_branch_output, use_gamma)
         mode = 2
+    elif exp == 3:
+        nb_branch = 1
+        last_conv_feature_maps = [256]
+        pow_norm = True
+        parametric = [256]
+        vectorization = 'wv'
+        name = "BN-Cov-Pow-PV{}-mode1_complete".format(cov_branch_output)
+    elif exp == 4:
+        nb_branch = 2
+        last_conv_feature_maps = [512]
+        pow_norm = True
+        vectorization = None
+        name = "BN-Cov-Pow-PV{}-mode1_complete".format(cov_branch_output)
+    elif exp == 5:
+        nb_branch = 2
+        last_conv_feature_maps = [512]
+        pow_norm = False
+        vectorization = None
+        parametric = [256]
+        concat = 'concat'
+        use_gamma = True
+        cov_branch_output = 512
+        name = "BN-Cov-O2T{}-PV{}-mode1_complete".format(parametric, cov_branch_output)
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -382,16 +416,17 @@ def get_new_wv_norm_general(exp=1):
         use_bias=True,  # use bias for normalization additional
         bias_initializer='zeros',
         bias_regularizer=None,
-        use_gamma=True,  # use gamma for general gaussian distribution
+        use_gamma=use_gamma,  # use gamma for general gaussian distribution
         gamma_initializer='ones',
         gamma_regularizer='l2',
     )
     model_config = NewNormWVBranchConfig(
         # For cov-branch_kwargs
         epsilon=0,
-        parametric=[],
-        vectorization='wv',
+        parametric=parametric,
+        vectorization=vectorization,
         batch_norm=True,
+        pow_norm=pow_norm,
         cov_kwargs=cov_kwargs,
         o2t_kwargs=o2t_kwargs,
         pv_kwargs=pv_kwargs,
@@ -406,9 +441,9 @@ def get_new_wv_norm_general(exp=1):
         mode=mode,
         freeze_conv=False, name=name + '-{}_branch'.format(nb_branch),
         nb_branch=nb_branch,
-        concat='concat',
+        concat='concat' if concat is None else concat,
         cov_output_vectorization='pv',
-        last_conv_feature_maps=[256],
+        last_conv_feature_maps=last_conv_feature_maps,
         last_conv_kernel=[1, 1],
         upsample_method='conv',
     )

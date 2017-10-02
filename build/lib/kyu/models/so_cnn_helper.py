@@ -136,31 +136,45 @@ def covariance_block_no_wv(input_tensor, nb_class, stage, block, epsilon=0, para
     return x
 
 
-def covariance_block_matbp(input_tensor, nb_class, stage, block, epsilon=0, parametric=[], activation='relu',
-                           cov_mode='channel', cov_regularizer=None, vectorization='dense',
-                           o2tconstraints=None,
+def covariance_block_matbp(input_tensor, nb_class, stage, block,
+                           epsilon=0,
+                           parametric=[],
+                           vectorization='wv',
+                           batch_norm=True,
+                           log_norm=False,
+                           cov_kwargs=None,
+                           o2t_kwargs=None,
+                           pv_kwargs=None,
                            **kwargs):
-    if epsilon > 0:
-        cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
-    else:
-        cov_name_base = 'cov' + str(stage) + block + '_branch'
-    o2t_name_base = 'o2t' + str(stage) + block + '_branch'
-    log_name_base = 'log' + str(stage) + block + '_branch'
-    dense_name_base = 'fc' + str(stage) + block + '_branch'
+    """ Matrix Backprop """
+    cov_name_base = get_cov_name_base(stage, block, epsilon)
+    o2t_name_base = get_o2t_name_base(stage, block)
+    wp_name_base = get_pv_name_base(stage, block)
 
-    x = SecondaryStatistic(name=cov_name_base, eps=epsilon, normalization='mean',
-                           cov_mode=cov_mode, cov_regularizer=cov_regularizer, **kwargs)(input_tensor)
-    # x = BiLinear()(input_tensor)
+    # Add a normalization before goinging into secondary statistics
+    x = input_tensor
+    if batch_norm:
+        x = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block))(x)
+
+    with tf.name_scope(cov_name_base):
+        x = SecondaryStatistic(name=cov_name_base,
+                               **cov_kwargs)(x)
+    if log_norm:
+        x = LogTransform()(x)
     for id, param in enumerate(parametric):
-        x = O2Transform(param, activation='relu', name=o2t_name_base + str(id))(x)
-
-    # add log layer here.
-    x = LogTransform(epsilon, name=log_name_base)(x)
-    x = Flatten()(x)
-    # if vectorization == 'dense':
-    #     x = Dense(nb_class, activation=activation, name=dense_name_base)(x)
-    # else:
-    #     ValueError("vectorization parameter not recognized : {}".format(vectorization))
+        with tf.name_scope(o2t_name_base + str(id)):
+            if o2t_kwargs.has_key('output_dim'):
+                del o2t_kwargs['output_dim']
+            x = O2Transform(output_dim=param,
+                            name=o2t_name_base + str(id),
+                            **o2t_kwargs
+                            )(x)
+    if vectorization == 'pv' or vectorization == 'wv':
+        x = WeightedVectorization(nb_class,
+                                  name=wp_name_base,
+                                  **pv_kwargs)(x)
+    elif vectorization == 'mat_flatten' or vectorization == 'flatten':
+        x = FlattenSymmetric()(x)
     return x
 
 
@@ -172,7 +186,7 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
     #     cov_name_base = 'cov' + str(stage) + block + '_branch_epsilon' + str(epsilon)
     # else:
     #     cov_name_base = 'cov' + str(stage) + block + '_branch'
-    cov_name_base = get_cov_name_base(stage, block)
+    cov_name_base = get_cov_name_base(stage, block, epsilon)
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
     pow_name_base = 'pow' + str(stage) + block + '_branch'
     dense_name_base = 'fc' + str(stage) + block + '_branch'
@@ -181,7 +195,7 @@ def covariance_block_pow(input_tensor, nb_class, stage, block, epsilon=0, parame
     x = input_tensor
 
     # add baseline test.
-    x = BatchNormalization(axis=3, name='last_BN')(input_tensor)
+    # x = BatchNormalization(axis=3, name='last_BN')(input_tensor)
 
     x = SecondaryStatistic(name=cov_name_base, eps=epsilon, cov_beta=cov_beta,
                            cov_mode=cov_mode, cov_regularizer=cov_regularizer)(x)
@@ -313,14 +327,18 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
     # Add a normalization before goinging into secondary statistics
     x = input_tensor
     if batch_norm:
-        x = BatchNormalization(axis=3, name='last_BN')(x)
+        x = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block))(x)
 
     with tf.name_scope(cov_name_base):
         x = SecondaryStatistic(name=cov_name_base,
                                **cov_kwargs)(x)
+    if pow_norm:
+        x = PowTransform()(x)
     for id, param in enumerate(parametric):
         with tf.name_scope(o2t_name_base + str(id)):
-            x = O2Transform(param,
+            if o2t_kwargs.has_key('output_dim'):
+                del o2t_kwargs['output_dim']
+            x = O2Transform(output_dim=param,
                             name=o2t_name_base + str(id),
                             **o2t_kwargs
                             )(x)

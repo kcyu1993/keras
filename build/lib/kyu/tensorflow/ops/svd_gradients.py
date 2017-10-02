@@ -37,7 +37,7 @@ def matrix_symmetric(x):
     return (x + tf.transpose(x, [0,2,1])) / 2
 
 
-def get_eigen_K(x, square=False):
+def get_eigen_K(x, square=False, dtype=tf.float32):
     """
     Get K = 1 / (sigma_i - sigma_j) for i != j, 0 otherwise
 
@@ -52,23 +52,23 @@ def get_eigen_K(x, square=False):
     if square:
         x = tf.square(x)
     res = tf.expand_dims(x, 1) - tf.expand_dims(x, 2)
-    res += tf.eye(tf.shape(res)[1])
+    res += tf.eye(tf.shape(res)[1], dtype=dtype)
     res = 1 / res
-    res -= tf.eye(tf.shape(res)[1])
+    res -= tf.eye(tf.shape(res)[1], dtype=dtype)
 
     # Keep the results clean
-    res = tf.where(tf.is_nan(res), tf.zeros_like(res), res)
-    res = tf.where(tf.is_inf(res), tf.zeros_like(res), res)
+    res = tf.where(tf.is_nan(res), tf.zeros_like(res, dtype=dtype), res)
+    res = tf.where(tf.is_inf(res), tf.zeros_like(res, dtype=dtype), res)
     return res
 
 
-@tf.RegisterGradient('Svd')
+# @tf.RegisterGradient('Svd')
 def gradient_svd(op, grad_s, grad_u, grad_v):
     """
     Define the gradient for SVD
     References
         Ionescu, C., et al, Matrix Backpropagation for Deep Networks with Structured Layers
-        with dU = 0.
+        with dU = 0 and only support square matrix.
     Parameters
     ----------
     op

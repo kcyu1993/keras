@@ -8,8 +8,9 @@ import tensorflow as tf
 from keras import activations, constraints, initializers, regularizers
 from keras import backend as K
 from keras.engine import Layer, InputSpec
-from keras.layers import BatchNormalization, Flatten
+from keras.layers import Flatten
 from kyu.tensorflow.ops.cov_reg import FrobNormRegularizer, VonNeumannDistanceRegularizer, robust_estimate_eigenvalues
+from kyu.tensorflow.ops.math import safe_matrix_eig_op
 # TODO Remove this theano import to prevent any usage in tensorflow backend
 # Potentially check Keras backend then import relevant libraries
 from kyu.utils.inspect_util import get_default_args
@@ -356,7 +357,7 @@ class LogTransform(Layer):
 
     """
 
-    def __init__(self, epsilon=0, **kwargs):
+    def __init__(self, epsilon=1e-4, **kwargs):
         self.input_spec = [InputSpec(ndim='3+')]
         self.eps = epsilon
         self.out_dim = None
@@ -408,21 +409,13 @@ class LogTransform(Layer):
             return components
         else:
             if self.built:
-                # return self.logm(x)
                 import tensorflow as tf
-                # g = tf.get_default_graph()
-
-                # s, u, v = tf.svd(x)
-                s, u = tf.self_adjoint_eig(x)
-                s = tf.abs(s)
-                inner = s + self.eps
-                # inner = tf.Print(inner, [inner], message='log_inner before:')
-
-                inner = tf.log(inner)
-                # inner = tf.Print(inner, [inner], message='log_inner :')
-                inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
+                s, u = safe_matrix_eig_op(x)
+                eps = tf.identity(tf.zeros_like(s) + self.eps, name='eps')
+                inner = tf.where(tf.less(s, eps), eps, s, name='eps_inner')
+                inner = tf.log(inner, name='log_inner')
                 inner = tf.matrix_diag(inner)
-                tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
+                tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])), name='tf_log')
                 return tf_log
 
             else:
@@ -566,7 +559,8 @@ class O2Transform(Layer):
             activation      test activation later (could apply some non-linear activation here
     """
 
-    def __init__(self, output_dim=None,
+    def __init__(self,
+                 output_dim,    # Cannot be None!
                  activation='relu',
                  # activation_regularizer=None,
                  # weights=None,
@@ -917,67 +911,6 @@ class WeightedVectorization(Layer):
                   }
         base_config = super(WeightedVectorization, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
-
-class BatchNormalization_v2(BatchNormalization):
-    """
-    Support expand dimension batch-normalization
-    """
-    def __init__(self, expand_dim=True, **kwargs):
-        self.expand_dim = expand_dim
-        super(BatchNormalization_v2, self).__init__(**kwargs)
-
-    def call(self, x, mask=None):
-        if self.expand_dim and x is not None:
-            x = tf.expand_dims(x, axis=-1)
-
-        if self.mode == 0 or self.mode == 2:
-            assert self.built, 'Layer must be built before being called'
-            input_shape = K.int_shape(x)
-
-            reduction_axes = list(range(len(input_shape)))
-            del reduction_axes[self.axis]
-            broadcast_shape = [1] * len(input_shape)
-            broadcast_shape[self.axis] = input_shape[self.axis]
-
-            x_normed, mean, std = K.normalize_batch_in_training(
-                x, self.gamma, self.beta, reduction_axes,
-                epsilon=self.epsilon)
-
-            if self.mode == 0:
-                self.add_update([K.moving_average_update(self.running_mean, mean, self.momentum),
-                                 K.moving_average_update(self.running_std, std, self.momentum)], x)
-
-                if sorted(reduction_axes) == range(K.ndim(x))[:-1]:
-                    x_normed_running = K.batch_normalization(
-                        x, self.running_mean, self.running_std,
-                        self.beta, self.gamma,
-                        epsilon=self.epsilon)
-                else:
-                    # need broadcasting
-                    broadcast_running_mean = K.reshape(self.running_mean, broadcast_shape)
-                    broadcast_running_std = K.reshape(self.running_std, broadcast_shape)
-                    broadcast_beta = K.reshape(self.beta, broadcast_shape)
-                    broadcast_gamma = K.reshape(self.gamma, broadcast_shape)
-                    x_normed_running = K.batch_normalization(
-                        x, broadcast_running_mean, broadcast_running_std,
-                        broadcast_beta, broadcast_gamma,
-                        epsilon=self.epsilon)
-
-                # pick the normalized form of x corresponding to the training phase
-                x_normed = K.in_train_phase(x_normed, x_normed_running)
-
-        elif self.mode == 1:
-            # sample-wise normalization
-            m = K.mean(x, axis=-1, keepdims=True)
-            std = K.sqrt(K.var(x, axis=-1, keepdims=True) + self.epsilon)
-            x_normed = (x - m) / (std + self.epsilon)
-            x_normed = self.gamma * x_normed + self.beta
-
-        if self.expand_dim and x is not None:
-            x_normed = tf.squeeze(x_normed, squeeze_dims=-1)
-
-        return x_normed
 
 
 class BiLinear(Layer):

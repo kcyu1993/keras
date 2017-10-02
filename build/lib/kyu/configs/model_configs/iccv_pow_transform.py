@@ -33,3 +33,4 @@ class BilinearSOConfig(MPNConfig):
         super(BilinearSOConfig, self).__init__(**kwargs)
         self.cov_branch = 'bilinear'
 
+

@@ -8,7 +8,8 @@ from keras.layers import BatchNormalization
 import tensorflow as tf
 import numpy as np
 
-from kyu.tensorflow.ops.math import matrix_log, matrix_exp
+from kyu.tensorflow.ops.math import matrix_exp
+from kyu.tensorflow.ops import matrix_log
 
 
 class SPDBatchNormalization(Layer):

@@ -270,6 +270,8 @@ class ClassificationTrainer(object):
 
         except (KeyboardInterrupt, SystemExit) as e1:
             print("Catch the Keyboard Interrupt. ")
+            # Handle the stop training.
+            self.model.stop_training = True
             if self.running_config.save_weights:
                 print("Temp weights save to {}".format(self.dirhelper.get_tmp_weight_path()))
                 self.model.save_weights(self.dirhelper.get_tmp_weight_path())
@@ -281,8 +283,9 @@ class ClassificationTrainer(object):
                     self.save_history(history, tmp=True)
                     self.plot_result(tmp=True)
                 except Exception as e:
-                    raise e
-            raise e1
+                    print(e)
+
+            print(e1)
 
         self.history = history
 

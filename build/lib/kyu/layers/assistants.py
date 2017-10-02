@@ -2,7 +2,9 @@ import numpy as np
 import tensorflow as tf
 
 import keras.backend as K
+from keras import backend as K
 from keras.engine import Layer, InputSpec
+from keras.layers import BatchNormalization
 
 
 def block_diagonal(matrices, dtype=tf.float32):
@@ -502,3 +504,64 @@ class Squeeze(Layer):
 
     def call(self, x, mask=None):
         return tf.squeeze(x, axis=self.axis)
+
+
+class BatchNormalization_v2(BatchNormalization):
+    """
+    Support expand dimension batch-normalization
+    """
+    def __init__(self, expand_dim=True, **kwargs):
+        self.expand_dim = expand_dim
+        super(BatchNormalization_v2, self).__init__(**kwargs)
+
+    def call(self, x, mask=None):
+        if self.expand_dim and x is not None:
+            x = tf.expand_dims(x, axis=-1)
+
+        if self.mode == 0 or self.mode == 2:
+            assert self.built, 'Layer must be built before being called'
+            input_shape = K.int_shape(x)
+
+            reduction_axes = list(range(len(input_shape)))
+            del reduction_axes[self.axis]
+            broadcast_shape = [1] * len(input_shape)
+            broadcast_shape[self.axis] = input_shape[self.axis]
+
+            x_normed, mean, std = K.normalize_batch_in_training(
+                x, self.gamma, self.beta, reduction_axes,
+                epsilon=self.epsilon)
+
+            if self.mode == 0:
+                self.add_update([K.moving_average_update(self.running_mean, mean, self.momentum),
+                                 K.moving_average_update(self.running_std, std, self.momentum)], x)
+
+                if sorted(reduction_axes) == range(K.ndim(x))[:-1]:
+                    x_normed_running = K.batch_normalization(
+                        x, self.running_mean, self.running_std,
+                        self.beta, self.gamma,
+                        epsilon=self.epsilon)
+                else:
+                    # need broadcasting
+                    broadcast_running_mean = K.reshape(self.running_mean, broadcast_shape)
+                    broadcast_running_std = K.reshape(self.running_std, broadcast_shape)
+                    broadcast_beta = K.reshape(self.beta, broadcast_shape)
+                    broadcast_gamma = K.reshape(self.gamma, broadcast_shape)
+                    x_normed_running = K.batch_normalization(
+                        x, broadcast_running_mean, broadcast_running_std,
+                        broadcast_beta, broadcast_gamma,
+                        epsilon=self.epsilon)
+
+                # pick the normalized form of x corresponding to the training phase
+                x_normed = K.in_train_phase(x_normed, x_normed_running)
+
+        elif self.mode == 1:
+            # sample-wise normalization
+            m = K.mean(x, axis=-1, keepdims=True)
+            std = K.sqrt(K.var(x, axis=-1, keepdims=True) + self.epsilon)
+            x_normed = (x - m) / (std + self.epsilon)
+            x_normed = self.gamma * x_normed + self.beta
+
+        if self.expand_dim and x is not None:
+            x_normed = tf.squeeze(x_normed, squeeze_dims=-1)
+
+        return x_normed

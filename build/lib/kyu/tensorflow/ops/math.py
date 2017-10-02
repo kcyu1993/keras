@@ -9,61 +9,69 @@ import keras.backend as K
 from keras.optimizers import SGD
 from kyu.tensorflow.ops.svd_gradients import get_eigen_K
 
-_EPSILON = 1e-8
+_EPSILON = 1e-4
 
 
-def gradient_matrix_log_eig(op, grad_s, grad_u):
-    """ U == V in such operation """
-    s, u = op.outputs
-    # with tf.name_scope('SVD_GRADIENT'):
-    u_t = tf.transpose(u, [0,2,1])
-    # log_inner = 1. / tf.log(tf.abs(s) + 0.001)
-    # s = tf.Print(s, [s], summarize=64, message='s')
-    # log_inner = 1. / tf.log(s)
-    # log_inner = tf.Print(log_inner, [log_inner], summarize=64, message='log_inner')
-    # log_inner = tf.where(tf.is_nan(log_inner), tf.zeros_like(log_inner), log_inner)
-    # log_inner = tf.matrix_diag(log_inner)
-    # sess2 = tf.Session()
-    # dLdC = tf.matmul(grad_u, tf.matrix_inverse(tf.matmul(u, tf.matrix_diag(log_inner)))) / 2
-    # grad_u = tf.Print(grad_u, [grad_u], summarize=10, message='grad_u')
-    # grad_s = tf.Print(grad_s, [grad_s], message='grad_s')
-    # grad_v = tf.Print(grad_v, [grad_v], message='grad_v')
+def gradient_matrix_eig_safe(op, grad_s, grad_u):
+    """
+    Implement the safe gradients for EIG.
+        Double precision operations for EIG safe computation.
 
-    # dLdC = tf.matmul(grad_u, (tf.matmul(log_inner, u_t)), name='dLdC') / 2
-    # dLdC = tf.Print(dLdC, [dLdC], summarize=64*64, message='dLdC')
+    Parameters
+    ----------
+    op
+    grad_s
+    grad_u
 
-    # tmp = tf.matmul(u_t, tf.matmul(dLdC, u), name='tmp')
-    # tmp = tf.Print(tmp, [tmp], summarize=64*64, message='tmp')
+    Returns
+    -------
 
-    # inv_diag_S = (1. / s)
-    # inv_diag_S = tf.where(tf.is_inf(inv_diag_S), tf.zeros_like(inv_diag_S), inv_diag_S)
-    # # inv_diag_S = tf.Print(inv_diag_S, [inv_diag_S], summarize=64, message='inv_diag_S')
-    # inv_diag_S = tf.matrix_diag(inv_diag_S)
-    # grad_S = tf.matmul(inv_diag_S, tmp, name='grad_S')
-    # grad_S = tf.Print(grad_S, [grad_S],summarize=64, message='grad_S')
+    """
+    with tf.device("/cpu:0"):
+        dtype = tf.float64
+        s, u = op.outputs
+        s = tf.identity(s, name='s')
+        u = tf.identity(u, name='u')
 
-    with tf.name_scope('K'):
-        K = get_eigen_K(s, square=False)
-    # K = tf.Print(K, [K], summarize=64*64, message='K')
+        s = tf.cast(s, dtype, name='s_float64')
+        u = tf.cast(u, dtype, name='u_float64')
+        grad_s = tf.cast(grad_s, dtype, name='grad_s_float64')
+        grad_u = tf.cast(grad_u, dtype, name='grad_u_float64')
 
-    # dzdx1 = K * tf.matmul(u_t, grad_u) + tf.matrix_diag(tf.matrix_diag_part(grad_S), name='dzdx1')
-    dzdx1 = K * tf.matmul(u_t, grad_u) + tf.matrix_diag(grad_s, name='dzdx1')
-    # dzdx1 = tf.Print(dzdx1, [dzdx1],  summarize=64*64, message='dzdx1')
-    dzdx1 = tf.matmul(dzdx1, u_t)
+        # Compute the s1, u1 which has non-zero values.
 
-    # u = tf.Print(u, [u], summarize=64*64, message='u')
+        u_t = tf.transpose(u, [0,2,1])
+        with tf.name_scope('K'):
+            K = get_eigen_K(s, square=False, dtype=dtype)
 
-    dzdx_final = tf.matmul(u, dzdx1, name='dzdx_final')
-    dzdx_final = tf.where(tf.is_nan(dzdx_final), tf.zeros_like(dzdx_final), dzdx_final)
-    # dzdx_final = tf.Print(dzdx_final, [dzdx_final],  summarize=10, message='dzdx_final')
-    # return tf.ones_like(dzdx) / 10
-    # dzdx_final = tf.Print(dzdx, [dzdx], message='dzdx ')
+        with tf.name_scope('mask_K'):
+            """ Remove the o """
+            # mask_K = tf.where(tf.greater(K, tf.zeros_like(K) + _EPSILON),
+            #                   tf.ones_like(K), tf.zeros_like(K))
+            mask_s = tf.where(tf.greater(s, tf.zeros_like(s, dtype=dtype) + _EPSILON),
+                              tf.ones_like(s, dtype=dtype), tf.zeros_like(s, dtype=dtype))
+            mask_s = tf.expand_dims(mask_s, -1)
+            mask_K = tf.matmul(mask_s, tf.transpose(mask_s, [0, 2, 1]))
+
+        with tf.name_scope('inner'):
+            inner = K * tf.matmul(u_t, grad_u) + tf.matrix_diag(grad_s)
+
+        with tf.name_scope('inner_masked'):
+            inner *= mask_K
+
+        with tf.name_scope('dzdx_final'):
+            dzdx_final = tf.matmul(inner, u_t)
+            dzdx_final = tf.identity(tf.matmul(u, dzdx_final), name='identity')
+
+        with tf.name_scope('dzdx_wrapper'):
+            dzdx_final = tf.where(tf.is_nan(dzdx_final), tf.zeros_like(dzdx_final, dtype=dtype), dzdx_final)
+        dzdx_final = tf.cast(dzdx_final, tf.float32, name='dzdx_final_float32')
     return dzdx_final
 
 
-def matrix_log(x, eps=1e-5):
+def safe_matrix_eig(x):
     """
-    Define the matrix logarithm with the gradients
+    Lets return the U1 and S1 accordingly, rather than the complete matrix.
 
     Parameters
     ----------
@@ -73,20 +81,18 @@ def matrix_log(x, eps=1e-5):
     -------
 
     """
-    s, u = tf.self_adjoint_eig(x)
-    s = tf.abs(s)
-    inner = s + eps
-    inner = tf.log(inner)
-    inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
-    inner = tf.matrix_diag(inner)
-    tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0,2,1])))
-    return tf_log
+    return tf.self_adjoint_eig(x)
 
 
-@Defun(tf.float32, python_grad_func=gradient_matrix_log_eig)
-def safe_matrix_log_op(x):
-    """ Safe matrix log for ill-conditioned cases """
-    return matrix_log(x, _EPSILON)
+@Defun(tf.float32, python_grad_func=gradient_matrix_eig_safe)
+def safe_matrix_eig_op(x):
+    """ TensorFlow Safe EIG op definition """
+    dtype = tf.float32
+    x = tf.cast(x, dtype=dtype)
+    # with tf.device('/cpu:0'):
+    s, u = safe_matrix_eig(x)
+    s, u = tf.cast(s, tf.float32, name='s_float32'), tf.cast(u, tf.float32, name='u_float32')
+    return s, u
 
 
 def matrix_exp(x):
@@ -271,6 +277,3 @@ class StiefelSGD(SGD):
             if key in name:
                 return True
         return False
-
-
-# def ClippingSGD()

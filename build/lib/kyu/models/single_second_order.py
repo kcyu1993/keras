@@ -62,8 +62,9 @@ def _compose_second_order_model(
             cov_branch_y = cov_branch_fn(x, cov_branch_output, stage=5, block=str(ind),
                                          ** merge_dicts(kwargs, cov_branch_kwargs))
             # Repeat the traditional VGG16.
-            fo = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(base_model.output)
+            # fo = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(base_model.output)
             # fo = GlobalAveragePooling2D()(fo)
+            fo = Flatten()(x)
             fo = Dense(dense_branch_output, activation='relu')(fo)
             cov_branch_y = merge([fo, cov_branch_y], mode=concat)
         else:
@@ -73,7 +74,7 @@ def _compose_second_order_model(
     # Merge if valid
     if nb_branch > 1:
         if concat == 'concat':
-            if all(len(cov_output.shape) == 3 for cov_output in cov_outputs):
+            if all(len(K.int_shape(cov_output)) == 3 for cov_output in cov_outputs):
                 # use matrix concat
                 x = MatrixConcat(cov_outputs)(cov_outputs)
             else:
@@ -89,7 +90,11 @@ def _compose_second_order_model(
 
     if len(K.int_shape(x)) == 3:
         if cov_output_vectorization == 'pv' or cov_output_vectorization == 'wv':
-            x = WeightedVectorization(cov_branch_output, activation='relu', use_bias=False)(x)
+            if cov_branch_kwargs.has_key('pv_kwargs'):
+                pv_kwargs = cov_branch_kwargs.get('pv_kwargs')
+            else:
+                pv_kwargs = {}
+            x = WeightedVectorization(cov_branch_output, **pv_kwargs)(x)
         elif cov_output_vectorization == 'mat_flatten':
             x = FlattenSymmetric()(x)
         else:

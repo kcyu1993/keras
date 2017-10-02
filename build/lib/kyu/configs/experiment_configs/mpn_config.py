@@ -22,7 +22,7 @@ def get_basic_mpn_model_and_run(exp):
             normalization=None,
             mode=1,
             last_conv_feature_maps=[256],
-            name='MPN-Cov-baseline no normalization'
+            name='MPN-Cov-baseline-BN'
         )
     elif exp == 2:
         mpn_config = MPNConfig(

@@ -3,9 +3,9 @@ import tensorflow as tf
 from keras.layers import Flatten, Dense
 from keras.legacy.layers import merge
 from kyu.layers.secondstat import WeightedVectorization, \
-    O2Transform, SecondaryStatistic, BatchNormalization_v2, Correlation, \
+    O2Transform, SecondaryStatistic, Correlation, \
     LogTransform
-from kyu.layers.assistants import FlattenSymmetric, MatrixConcat, ExpandDims, Squeeze
+from kyu.layers.assistants import FlattenSymmetric, MatrixConcat, ExpandDims, Squeeze, BatchNormalization_v2
 from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization
 
 

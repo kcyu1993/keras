@@ -33,7 +33,7 @@ from keras.optimizers import SGD
 from keras.utils import np_utils
 from keras.utils.data_utils import get_absolute_dir_project
 from kyu.utils.logger import Logger
-from kyu.models.cifar import model_original, model_snd, cifar_fitnet_v1, cifar_fitnet_v3, cifar_fitnet_v5, \
+from kyu.legacy.models.cifar import model_original, model_snd, cifar_fitnet_v1, cifar_fitnet_v3, cifar_fitnet_v5, \
     cifar_fitnet_v4
 
 import keras.backend as K
@@ -340,7 +340,7 @@ def run_routine11():
 
     """
     nb_epoch = 200
-    from kyu.models.cifar import cifar_fitnet_v2
+    from kyu.legacy.models.cifar import cifar_fitnet_v2
     model = cifar_fitnet_v2([], mode=8)
     fit_model(model, load=False, save=True, verbose=2)
 
