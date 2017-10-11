@@ -55,3 +55,7 @@ def update_source_dict_by_given_kwargs(source, **target_kwargs):
         else:
             warning("key not found {}".format(entry))
     return source
+
+
+def create_dict_by_given_kwargs(**kwargs):
+    return kwargs

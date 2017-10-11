@@ -8,6 +8,7 @@ from kyu.datasets import get_dataset_by_name
 from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetune_with_model, sun_finetune_with_model, \
     mit_finetune_with_model, imagenet_finetune_with_model, data_finetune_with_model
 from kyu.experiment.general_train import get_argparser
+from kyu.utils import dict_utils
 
 BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv', 'o2t_wv_norm', 'o2t_wv_new_norm']
 
@@ -36,9 +37,10 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
     dataset = str(dataset).lower()
     model_config = model_exp_fn(model_exp)
     model_config.class_id = model_class
+
     running_config = get_running_config_no_debug_withSGD(
         title=title,
-        model_config=model_config
+        model_config=model_config,
     )
 
     if tf_dbg:
@@ -47,6 +49,8 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
     running_config.comments = comments
     wrap_running_config(config=running_config, **kwargs)
     data = get_dataset_by_name(dataset)
+    if model_config.class_id == 'alexnet':
+        model_config.load_weights = None
     data_finetune_with_model(data,
                              model_config=model_config,
                              nb_epoch_finetune=nb_epoch_finetune,

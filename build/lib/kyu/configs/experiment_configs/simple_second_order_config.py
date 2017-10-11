@@ -274,6 +274,7 @@ def get_wv_norm_config(exp):
     pv_use_gamma = False
     pv_output_sqrt = True
     mode = 1
+    load_weights = 'imagenet'
     if exp == 1:
         parametric = []
         cov_branch_output = 1024
@@ -351,11 +352,13 @@ def get_new_wv_norm_general(exp=1):
     parametric = []
     nb_branch = 1
     vectorization = 'wv'
+    load_weights = 'imagenet'
     mode = 1
     concat = None
     cov_kwargs = get_default_secondstat_args('Cov')
     o2t_kwargs = get_default_secondstat_args('O2T')
     pv_kwargs = get_default_secondstat_args('PV')
+    batch_norm_kwargs = {'scale':True}
     pow_norm = False
     use_gamma = True
     if exp == 1:
@@ -365,6 +368,7 @@ def get_new_wv_norm_general(exp=1):
         mode = 1
     elif exp == 2:
         use_gamma = False
+        cov_branch_output = 2048
         name = "BN-Cov-PV{}-mode2_gamma{}".format(cov_branch_output, use_gamma)
         mode = 2
     elif exp == 3:
@@ -390,6 +394,24 @@ def get_new_wv_norm_general(exp=1):
         use_gamma = True
         cov_branch_output = 512
         name = "BN-Cov-O2T{}-PV{}-mode1_complete".format(parametric, cov_branch_output)
+    elif exp == 6:
+        cov_branch_output = 2048
+        use_gamma = True
+        load_weights = None
+        name = 'Scratch-BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        mode = 1
+    elif exp == 7:
+        cov_branch_output = 2048
+        use_gamma = True
+        name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        batch_norm_kwargs['scale'] = False
+    elif exp == 8:
+        cov_branch_output = 2048
+        use_gamma = True
+        parametric = [128,]
+        name = 'BN-Cov-O2T-PV{}-mode1_complete-gamma{}'.\
+            format(cov_branch_output, parametric, use_gamma)
+        batch_norm_kwargs['scale'] = False
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -426,6 +448,7 @@ def get_new_wv_norm_general(exp=1):
         parametric=parametric,
         vectorization=vectorization,
         batch_norm=True,
+        batch_norm_kwargs=batch_norm_kwargs,
         pow_norm=pow_norm,
         cov_kwargs=cov_kwargs,
         o2t_kwargs=o2t_kwargs,
@@ -437,7 +460,7 @@ def get_new_wv_norm_general(exp=1):
         # configs for _compose_second_order_things
         cov_branch_output=cov_branch_output,
         dense_branch_output=dense_branch_output,
-        load_weights='imagenet',
+        load_weights=load_weights,
         mode=mode,
         freeze_conv=False, name=name + '-{}_branch'.format(nb_branch),
         nb_branch=nb_branch,

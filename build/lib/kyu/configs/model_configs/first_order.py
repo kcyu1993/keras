@@ -1,5 +1,45 @@
 from kyu.configs.engine_configs import ModelConfig
 
+# TODO Rebuild the logic to have a FirstOrderModelConfig rather before that.
+
+
+class FirstOrderModelConfig(ModelConfig):
+    def __init__(self,
+                 nb_classes, input_shape,
+                 denses=[],
+                 input_tensor=None,
+                 weights='imagenet',
+                 include_top=True,
+                 freeze_conv=False,
+                 last_pooling=True,
+                 **kwargs
+                 ):
+        class_id = None
+        model_id = None
+        super(FirstOrderModelConfig, self).__init__()
+        raise NotImplementedError
+
+
+class AlexNetFirstOrderConfig(ModelConfig):
+    # Define the compulsory stuff
+    compulsory = ['nb_class', 'input_shape']
+    optional = ['denses', 'input_tensor', 'weights', 'include_top', 'last_pooling', 'freeze_conv']
+
+    def __init__(self,
+                 nb_classes, input_shape,
+                 denses=[],
+                 input_tensor=None,
+                 weights='imagenet',
+                 include_top=True,
+                 freeze_conv=False,
+                 last_pooling=True,
+                 **kwargs
+                 ):
+        class_id = 'alexnet'
+        model_id = 'first_order'
+        super(AlexNetFirstOrderConfig, self).__init__(class_id, model_id, **kwargs)
+        self.__dict__.update(locals())
+        self.batch_size = 128
 
 class VggFirstOrderConfig(ModelConfig):
 
@@ -17,6 +57,7 @@ class VggFirstOrderConfig(ModelConfig):
         model_id = 'first_order'
         super(VggFirstOrderConfig, self).__init__(class_id, model_id, **kwargs)
         self.__dict__.update(locals())
+        self.batch_size = 64
 
 
 class DenseNetFirstOrderConfig(ModelConfig):

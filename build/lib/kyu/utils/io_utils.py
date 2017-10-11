@@ -89,21 +89,29 @@ class ProjectFile(object):
                  source_path='/home/kyu/.pycharm/keras',
                  task='cls',
                  dataset='default',
-                 model_category='default'
+                 model_category='default',
+                 createDir=True
                  ):
         # Locate the root structure
         self.root_path = root_path
+        self.createDir = createDir
         if not os.path.exists(source_path):
             self.source_path = None
         else:
             self.source_path = source_path
 
         if not os.path.exists(root_path):
-            os.mkdir(root_path)
+            if self.createDir:
+                os.mkdir(root_path)
+            else:
+                raise IOError("Cannot found the location {}".format(root_path))
 
         self.output_path = os.path.join(self.root_path, 'output')
         if not os.path.exists(self.output_path):
-            os.mkdir(self.output_path)
+            if self.createDir:
+                os.mkdir(self.output_path)
+            else:
+                raise IOError("Cannot found teh location {}".format(self.output_path))
 
         self._run_dir = os.path.join(self.output_path, 'run')
         self._plots_dir = os.path.join(self.output_path, 'plots')
@@ -171,7 +179,10 @@ class ProjectFile(object):
         path = os.path.join(self.run_dir, self.task, self.dataset, self._model_category, self.run_id)
         # print(path)
         if not os.path.exists(path):
-            os.makedirs(path)
+            if self.createDir:
+                os.makedirs(path)
+            else:
+                raise IOError("Cannot found the file location {}".format(path))
         return path
 
     @mkdirs_if_not_exist

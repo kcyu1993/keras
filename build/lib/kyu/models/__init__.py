@@ -4,6 +4,7 @@ from kyu.configs.engine_configs import ModelConfig
 from . import resnet
 from . import vgg
 from . import densenet
+from . import alexnet
 
 # TODO unify the compulsory and optional args into this file for polymorphism
 
@@ -30,6 +31,8 @@ def get_model(config):
         model = resnet.get_model(config)
     elif str(identifier).find('densenet') >= 0:
         model = kyu.models.densenet.get_model(config)
+    elif str(identifier).find('alexnet') >= 0:
+        model = kyu.models.alexnet.get_model(config)
     else:
         raise ValueError("Unkwown identifier {}".format(identifier))
 

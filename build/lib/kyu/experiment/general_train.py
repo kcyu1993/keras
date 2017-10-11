@@ -19,9 +19,15 @@ def get_debug_dirhelper(dataset_name, model_category, **kwargs):
 
 def get_argparser(description='default'):
     """
-    Define the general arg-parser
+    Define the get argument parser default, given the description of the task
+
+    Parameters
+    ----------
+    description: str  description of the task.
+
     Returns
     -------
+    parser with all defaults
 
     """
     parser = argparse.ArgumentParser(description=description)
@@ -30,29 +36,44 @@ def get_argparser(description='default'):
     parser.add_argument('-m', '--model_class', help='model class should be in vgg, resnet', default='vgg', type=str)
     parser.add_argument('-ef', '--nb_epoch_finetune', help='number of epoch to finetune', default=0, type=int)
     parser.add_argument('-et', '--nb_epoch_train', help='number of epoch to retrain', default=200, type=int)
-    parser.add_argument('-tfdbg', '--tf_dbg', type=bool, help='True for entering TFDbg mode', default=False)
+    parser.add_argument('-c', '--comments', help='comments if any', default='', type=str)
+    parser.add_argument('-lr', '--learning_rate', help='learning rate initial', default=0.01, type=float)
+    parser.add_argument('--channel_reverse', help='enable channel transform from RGB to BGR', default=False, type=bool)
+    parser.add_argument('-init_weight', '--init_weights_location', help='init weights location', default='', type=str)
 
     parser.add_argument('-tb', '--tensorboard', action='store_true',
                         help='Enable Tensorboard monitoring', dest='tensorboard')
     parser.add_argument('-ntb', '--no-tensorboard', action='store_false',
                         help='Disable tensorboard monitoring', dest='tensorboard',)
-    parser.set_defaults(tensorboard=True)
-    parser.add_argument('-c', '--comments', help='comments if any', default='', type=str)
-    parser.add_argument('--channel_reverse', help='enable channel transform from RGB to BGR', default=False, type=bool)
+    parser.set_defaults(tensorboard=False)
 
     parser.add_argument('-debug', '--debug', help='set debug flag', dest='debug', action='store_true')
     parser.set_defaults(debug=False)
+
     parser.add_argument('-spe', '--save_per_epoch', help='save per epoch toggle',
                         dest='save_per_epoch', action='store_true')
     parser.set_defaults(save_per_epoch=False)
+
     parser.add_argument('-nld', '--no_learning_decay', help='disable decay on plaetu', action='store_false',
                         dest='lr_decay')
     parser.set_defaults(lr_decay=True)
 
+    parser.add_argument('-es', '--early_stop', help='early stop', action='store_true', dest='early_stop')
+    parser.set_defaults(early_stop=False)
+
+    parser.add_argument('-tfdbg', '--tf_debug', help='TFDBG mode', action='store_true', dest='tf_dbg')
+    parser.set_defaults(tf_dbg=False)
+
+    parser.add_argument('-lw', '--load_weights', help='set for training from scratch', action='store_true',
+                        dest='load_weights')
+    parser.set_defaults(load_weights=False)
     return parser
 
 
-def get_data_generator_flags(flag, target_size, running_config):
+def get_data_generator_flags(flag, target_size, data_config, mode='train'):
+    image_gen_kwargs = data_config.train_image_gen_configs \
+        if mode == 'train' else data_config.valid_image_gen_configs
+
     if str(flag).lower().find('vgg') >= 0:
         # if model_config.model_id == 'first_order':
         # print('First order set to resnet image gen')
@@ -61,27 +82,20 @@ def get_data_generator_flags(flag, target_size, running_config):
         #                                                  running_config.random_crop,
         #                                                  running_config.horizontal_flip)
         # else:
-        image_data_generator = get_vgg_image_gen(target_size,
-                                                 running_config.rescale_small,
-                                                 running_config.random_crop,
-                                                 running_config.horizontal_flip)
+        image_data_generator = get_vgg_image_gen(target_size, **image_gen_kwargs)
     elif str(flag).lower().find('densenet') >= 0:
-        image_data_generator = get_densenet_image_gen(target_size,
-                                                      running_config.rescale_small,
-                                                      running_config.random_crop,
-                                                      running_config.horizontal_flip)
+        image_data_generator = get_densenet_image_gen(target_size,**image_gen_kwargs)
     else:
-        image_data_generator = get_resnet_image_gen(target_size,
-                                                    running_config.rescale_small,
-                                                    running_config.random_crop,
-                                                    running_config.horizontal_flip)
+        image_data_generator = get_resnet_image_gen(target_size, **image_gen_kwargs)
     return image_data_generator
 
 
-def get_data_generator(model_config, running_config):
+def get_data_generator(model_config, data_config, mode='train'):
+    """ train or validation """
     return get_data_generator_flags(str(model_config.class_id).lower(),
                                     model_config.target_size,
-                                    running_config)
+                                    data_config,
+                                    mode)
 
 
 def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, running_config):
@@ -103,7 +117,13 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
 
     model_config.nb_class = data.nb_class
     # Get data generator
-    data.image_data_generator = get_data_generator(model_config, running_config)
+    if running_config.train_image_gen_configs:
+        data.train_image_gen_configs = running_config.train_image_gen_configs
+    if running_config.valid_image_gen_configs:
+        data.valid_image_gen_configs = running_config.valid_image_gen_configs
+
+    train_image_gen = get_data_generator(model_config, data, mode='train')
+    valid_image_gen = get_data_generator(model_config, data, mode='valid')
     dirhelper.build(running_config.title + model_config.name)
 
     if nb_epoch_finetune > 0:
@@ -114,7 +134,9 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
         trainer = ClassificationTrainer(model, data, dirhelper,
                                         model_config=model_config, running_config=running_config,
                                         save_log=True,
-                                        logfile=dirhelper.get_log_path())
+                                        logfile=dirhelper.get_log_path(),
+                                        train_image_gen=train_image_gen,
+                                        valid_image_gen=valid_image_gen)
 
         # trainer.model.summary()
         trainer.fit(nb_epoch=nb_epoch_finetune, verbose=running_config.verbose)
@@ -130,7 +152,9 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
         trainer = ClassificationTrainer(model, data, dirhelper,
                                         model_config=model_config, running_config=running_config,
                                         save_log=True,
-                                        logfile=dirhelper.get_log_path())
+                                        logfile=dirhelper.get_log_path(),
+                                        train_image_gen=train_image_gen,
+                                        valid_image_gen=valid_image_gen)
 
     else:
         raise ValueError("nb_finetune_epoch must be non-negative {}".format(nb_epoch_finetune))

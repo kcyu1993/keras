@@ -10,6 +10,7 @@ from keras.layers.merge import add, average, concatenate
 from keras.models import Model
 from kyu.layers.secondstat import WeightedVectorization
 from kyu.layers.assistants import FlattenSymmetric, SeparateConvolutionFeatures, MatrixConcat
+from kyu.models.alexnet5 import AlexNet_v2
 from kyu.models.densenet121 import DenseNet121
 from kyu.models.resnet50 import ResNet50_v2
 from kyu.models.so_cnn_helper import get_cov_block, upsample_wrapper_v1
@@ -156,3 +157,15 @@ def ResNet50_second_order(
     return _compose_second_order_model(base_model, nb_class, cov_branch, **kwargs)
 
 
+def AlexNet_second_order(
+        input_shape, nb_class, cov_branch, load_weights='imagenet', pooling='max', **kwargs
+):
+    if load_weights == 'imagenet':
+        base_model = AlexNet_v2(include_top=False, input_shape=input_shape, pooling=pooling)
+    elif load_weights is None:
+        base_model = AlexNet_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
+    else:
+        base_model = AlexNet_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
+        base_model.load_weights(load_weights, by_name=True)
+
+    return _compose_second_order_model(base_model, nb_class, cov_branch, **kwargs)

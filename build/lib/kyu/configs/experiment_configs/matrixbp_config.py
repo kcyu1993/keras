@@ -22,6 +22,8 @@ def get_baseline_matbp_exp(exp=1):
         batch_norm = False
         name = 'MatBP-baseline{}'.format('-BN' if batch_norm else '')
         mode = 1
+    # elif exp == 2:
+
     else:
         raise ValueError("wrong")
     cov_kwargs = update_source_dict_by_given_kwargs(

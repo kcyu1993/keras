@@ -4,6 +4,8 @@ SUN 397 standard dataset
 """
 import os
 import numpy as np
+
+from kyu.utils.dict_utils import create_dict_by_given_kwargs
 from kyu.utils.image import ImageIterator
 from kyu.engine.utils.data_utils import ClassificationImageData
 
@@ -124,6 +126,10 @@ class SUN397_v2(ClassificationImageData):
     def __init__(self, dirpath='', category='ClassName.txt', image_dir='SUN397'):
         super(SUN397_v2, self).__init__(dirpath, image_dir, category, name='SUN397')
         self.build_image_label_lists()
+        self.train_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=(256, 296), random_crop=True, horizontal_flip=True)
+        self.valid_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=256, random_crop=False, horizontal_flip=True)
 
     def build_image_label_lists(self):
         for i in range(1,11):

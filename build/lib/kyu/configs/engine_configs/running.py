@@ -1,6 +1,9 @@
 import os
 
+from keras.optimizers import SGD
 from kyu.configs.generic import KCConfig
+from kyu.utils import dict_utils
+from kyu.utils.dict_utils import create_dict_by_given_kwargs
 from kyu.utils.io_utils import ProjectFile
 
 
@@ -52,12 +55,14 @@ class RunningConfig(KCConfig):
                  init_weights_location=None,
                  save_per_epoch=True,
                  tensorboard=None,
-                 optimizer='SGD',
+                 optimizer=None,
                  lr=0.01,
                  model_config=None, # possibly
-                 rescale_small=320,
-                 random_crop=True,
-                 horizontal_flip=True,
+                 # Image Generator Configs
+                 train_image_gen_configs=create_dict_by_given_kwargs(
+                     rescaleshortedgeto=256, random_crop=True, horizontal_flip=True),
+                 valid_image_gen_configs=create_dict_by_given_kwargs(
+                     rescaleshortedgeto=256, random_crop=False, horizontal_flip=True),
                  debug=False,
                  tf_debug=False,
                  tf_debug_filters_name=None,
@@ -91,12 +96,12 @@ class RunningConfig(KCConfig):
         self.save_weights = save_weights
         self.save_per_epoch = save_per_epoch
 
-        self.optimizer = optimizer
+        self.lr = lr
+        self.optimizer = optimizer if optimizer else SGD(lr=self.lr, momentum=0.9, decay=1e-5)
         self.tensorboard = tensorboard
 
-        self.rescale_small = rescale_small
-        self.random_crop = random_crop
-        self.horizontal_flip = horizontal_flip
+        self.train_image_gen_configs = train_image_gen_configs
+        self.valid_image_gen_configs = valid_image_gen_configs
         self.comments = comments
 
         self.debug = debug
@@ -145,6 +150,15 @@ def wrap_running_config(config, **kwargs):
     for key, value in kwargs.items():
         if key in approved_keys:
             config.__dict__[key] = value
+        elif key == 'rescaleshortedgeto':
+            import ast
+            value = ast.literal_eval(value)
+            config.train_image_gen_configs = dict_utils.update_source_dict_by_given_kwargs(
+                config.train_image_gen_configs, rescaleshortedgeto=value
+            )
+            config.valid_image_gen_configs = dict_utils.update_source_dict_by_given_kwargs(
+                config.valid_image_gen_configs, rescaleshortedgeto=value
+            )
         else:
             print("RunningConfigWrapper: Key not supported {}".format(key))
 

@@ -9,6 +9,7 @@ from kyu.engine.utils.data_utils import ClassificationImageData
 from scipy.io import loadmat
 
 import keras.backend as K
+from kyu.utils.dict_utils import create_dict_by_given_kwargs
 from kyu.utils.image import ImageDataGeneratorAdvanced, ImageIterator
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -41,6 +42,10 @@ class ImageNetData(ClassificationImageData):
         # Construct the image label list
 
         self.build_image_label_lists()
+        self.train_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=(256, 512), random_crop=True, horizontal_flip=True)
+        self.valid_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=256, random_crop=False, horizontal_flip=True)
 
     def load_mat(self):
         meta_path = self.meta_file
@@ -489,15 +494,27 @@ if __name__ == '__main__':
     # save_list_to_h5df()
     data = ImageNetData('/home/kyu/.keras/datasets/ILSVRC2015')
     TARGET_SIZE = (224, 224)
-    RESCALE_SMALL = 230
+    RESCALE_SMALL = (256, 512)
     gen = ImageDataGeneratorAdvanced(TARGET_SIZE, RESCALE_SMALL, True,
                                      horizontal_flip=True,
                                      )
+    valid_gen = ImageDataGeneratorAdvanced(TARGET_SIZE,
+                                           rescaleshortedgeto=256,
+                                           random_crop=False,
+                                           horizontal_flip=True)
 
     def label_wrapper(label):
         imagenettool = data.imagenettool
         return imagenettool.id_to_words(imagenettool.synset_to_id(label))
 
+    valid = data.get_test(image_data_generator=valid_gen, save_to_dir='/home/kyu/plots',
+                          save_prefix='imagenet_valid', save_format='JPEG', label_wrapper=label_wrapper,
+                          shuffle=False)
+
     train = data.get_train(image_data_generator=gen, save_to_dir='/home/kyu/plots',
-                           save_prefix='imagenet', save_format='JPEG', label_wrapper=label_wrapper)
-    a, b = train.next()
+                           save_prefix='imagenet', save_format='JPEG', label_wrapper=label_wrapper,
+                           shuffle=False)
+
+    # a, b = train.next()
+    a, b = valid.next()
+    # a, b = train.next()

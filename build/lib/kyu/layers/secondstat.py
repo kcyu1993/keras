@@ -520,7 +520,7 @@ class PowTransform(Layer):
                 import tensorflow as tf
                 from kyu.tensorflow.ops import safe_truncated_sqrt
                 with tf.device('/cpu:0'):
-                    s, u = tf.self_adjoint_eig(x)
+                    s, u = safe_matrix_eig_op(x)
                 inner = safe_truncated_sqrt(s)
                 if self.norm == 'l2':
                     inner /= tf.reduce_max(inner)

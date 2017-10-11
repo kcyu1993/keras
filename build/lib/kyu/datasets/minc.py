@@ -3,6 +3,7 @@ import gzip
 
 from kyu.engine.utils.data_utils import ClassificationImageData
 from kyu.legacy.image import MincOriginalIterator
+from kyu.utils.dict_utils import create_dict_by_given_kwargs
 from kyu.utils.io_utils import get_dataset_dir
 from keras.utils.data_utils import get_file
 from keras.utils.io_utils import HDF5Matrix
@@ -34,6 +35,10 @@ class Minc2500_v2(ClassificationImageData):
                                           category=category, name='Minc2500', **kwargs)
         self.label_dir = os.path.join(self.root_folder, label_dirs)
         self.build_image_label_lists()
+        self.train_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=(256, 296), random_crop=True, horizontal_flip=True)
+        self.valid_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=296, random_crop=False, horizontal_flip=True)
 
     def build_image_label_lists(self):
         # Build the image list based on Minc data structure

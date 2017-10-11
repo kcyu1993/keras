@@ -3152,6 +3152,7 @@ def load_weights_from_hdf5_group_by_name(f, layers):
                                  ' weight(s), but the saved weights' +
                                  ' have ' + str(len(weight_values)) +
                                  ' element(s).')
+
             # Set values.
             for i in range(len(weight_values)):
                 weight_value_tuples.append((symbolic_weights[i],

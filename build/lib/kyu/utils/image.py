@@ -7,6 +7,7 @@ from scipy.misc import imresize
 import keras.backend as K
 from keras.preprocessing.image import DirectoryIterator, ImageDataGenerator, Iterator, load_img, img_to_array, \
     array_to_img
+from kyu.utils.dict_utils import create_dict_by_given_kwargs
 from kyu.utils.imagenet_utils import preprocess_image_for_imagenet_without_channel_reverse, \
     preprocess_image_for_imagenet_of_densenet, preprocess_image_for_imagenet
 
@@ -184,6 +185,17 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         Support ImageNet training data.
 
     """
+
+    @classmethod
+    def get_default_train_config(cls):
+        return create_dict_by_given_kwargs(
+            rescaleshortedgeto=(256, 296), random_crop=True, horizontal_flip=True)
+
+    @classmethod
+    def get_default_valid_config(cls):
+        return create_dict_by_given_kwargs(
+            rescaleshortedgeto=256, random_crop=False, horizontal_flip=True)
+
     def __init__(self,
                  target_size=None,
                  rescaleshortedgeto=None,
@@ -234,16 +246,24 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
             new_height = self.target_size[1]
             new_width = new_height * aspect_ratio
 
+        if isinstance(self.rescaleshortedgeto, (list, tuple)):
+            assert len(self.rescaleshortedgeto) == 2
+            rescaleshortedgeto = np.random.randint(self.rescaleshortedgeto[0], self.rescaleshortedgeto[1])
+        elif isinstance(self.rescaleshortedgeto, int):
+            rescaleshortedgeto = self.rescaleshortedgeto
+        else:
+            rescaleshortedgeto = None
+
         if self.rescaleshortedgeto:
 
             short_edge = min(new_height, new_width)
             short_aspect_ratio = float(max(new_height, new_width))/\
                                  float(min(new_height, new_width))
             if new_width > new_height:
-                new_height = self.rescaleshortedgeto
+                new_height = rescaleshortedgeto
                 new_width = new_height * aspect_ratio
             else:
-                new_width = self.rescaleshortedgeto
+                new_width = rescaleshortedgeto
                 new_height = new_width / aspect_ratio
         # Note the image resize only supports tf like image shape
         # x = x.transpose((1,2,0))
@@ -252,8 +272,11 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
             # Cornor change
             cornor[0] = np.random.randint(0, int(new_width - self.target_size[0]))
             cornor[1] = np.random.randint(0, int(new_height - self.target_size[1]))
-
-        tx =  tx[
+        else:
+            # Center the crop:
+            cornor[0] = int((new_width - self.target_size[0]) / 2)
+            cornor[1] = int((new_height - self.target_size[1]) / 2)
+        tx = tx[
                :,
                cornor[0]: cornor[0] + self.target_size[0],
                cornor[1]: cornor[1] + self.target_size[1]
@@ -435,28 +458,23 @@ class ImageLoader(object):
         pass
 
 
-def get_densenet_image_gen(target_size, rescale_small, random_crop=True, horizontal_flip=True):
+def get_densenet_image_gen(target_size, **kwargs):
     return ImageDataGeneratorAdvanced(
-        target_size, rescale=rescale_small, random_crop=random_crop, horizontal_flip=horizontal_flip,
-        preprocessing_function=preprocess_image_for_imagenet_of_densenet
+        target_size, preprocessing_function=preprocess_image_for_imagenet_of_densenet, **kwargs
     )
 
 
-def get_vgg_image_gen(target_size, rescale_small, random_crop=True, horizontal_flip=True):
+def get_vgg_image_gen(target_size, **kwargs):
 
     return ImageDataGeneratorAdvanced(
-        target_size, rescale_small, random_crop=random_crop,
-        horizontal_flip=horizontal_flip,
-        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse
+        target_size, preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse, **kwargs
         # preprocessing_function=preprocess_image_for_imagenet
     )
 
 
-def get_resnet_image_gen(target_size, rescale_small, random_crop=True, horizontal_flip=True):
+def get_resnet_image_gen(target_size, **kwargs):
     return ImageDataGeneratorAdvanced(
-        target_size, rescale_small, random_crop=random_crop,
-        horizontal_flip=horizontal_flip,
-        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse
+        target_size, preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse, **kwargs
     )
 
 

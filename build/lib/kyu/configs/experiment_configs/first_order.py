@@ -5,6 +5,7 @@ Experiment Configs Instances
 
 """
 from kyu.configs.model_configs import VggFirstOrderConfig, DenseNetFirstOrderConfig, ResNetFirstOrderConfig
+from kyu.configs.model_configs.first_order import AlexNetFirstOrderConfig
 
 
 def get_fo_vgg_exp(exp=1):
@@ -76,3 +77,19 @@ def get_fo_resnet_exp(exp=1):
         )
     else:
         raise ValueError("FO-ResNet: Not supported exp number {}".format(exp))
+
+
+def get_fo_alexnet_exp(exp=1):
+    if exp == 1:
+        return AlexNetFirstOrderConfig(
+            nb_classes=0,
+            input_shape=(227, 227, 3),
+            input_tensor=None,
+            weights=None,
+            include_top=True,
+            freeze_conv=False,
+            last_pooling=True,
+            name='AlexNet-FO'
+        )
+    else:
+        raise ValueError("FO-Alexnet: Not supported exp number {}".format(exp))

@@ -8,7 +8,7 @@ import os
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
 
-from kyu.utils.image import ImageIterator
+from kyu.utils.image import ImageIterator, ImageDataGeneratorAdvanced
 
 
 class ImageData(object):
@@ -122,6 +122,8 @@ class ClassificationImageData(ImageData):
 
     def __init__(self, root_folder, image_dir=None, category=None, name=None, meta_folder=None,
                  use_validation=False,
+                 train_image_gen_configs=None,
+                 valid_image_gen_configs=None,
                  **kwargs):
         # self.root_folder = root_folder
         self.foo = 'foo'
@@ -148,6 +150,10 @@ class ClassificationImageData(ImageData):
         self.channel = 'rgb'
 
         self.use_validation = use_validation
+        self.train_image_gen_configs = train_image_gen_configs \
+            if train_image_gen_configs else ImageDataGeneratorAdvanced.get_default_train_config()
+        self.valid_image_gen_configs = valid_image_gen_configs \
+            if valid_image_gen_configs else ImageDataGeneratorAdvanced.get_default_valid_config()
 
     def build_category_dict(self):
         self.category_dict = self._build_category_dict()
@@ -202,7 +208,20 @@ class ClassificationImageData(ImageData):
 
     # Private methods
     def _generator(self, mode, batch_size=None, target_size=None, image_data_generator=None, **kwargs):
+        """
 
+        Parameters
+        ----------
+        mode
+        batch_size
+        target_size
+        image_data_generator
+        kwargs
+
+        Returns
+        -------
+
+        """
         # Setting the default value if not provided.
         if image_data_generator is None:
             image_data_generator = self.image_data_generator

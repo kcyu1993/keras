@@ -7,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 from kyu.engine.utils.data_utils import ClassificationImageData
+from kyu.utils.dict_utils import create_dict_by_given_kwargs
 
 from kyu.utils.image import ClassificationIterator
 
@@ -100,6 +101,10 @@ class DTD(ClassificationImageData):
                                   use_validation=use_validation)
         # Construct the image label list
         self.build_image_label_lists()
+        self.train_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=(244, 296), random_crop=True, horizontal_flip=True)
+        self.valid_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=256, random_crop=False, horizontal_flip=True)
 
     def load_mat(self):
         meta_path = self.meta_file

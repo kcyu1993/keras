@@ -45,7 +45,7 @@ from kyu.configs.engine_configs import RunningConfig
 from kyu.configs.generic import KCConfig
 from kyu.engine.utils.callbacks import ModifiedTensorBoard
 from kyu.engine.utils.data_utils import ImageData
-from kyu.utils.callback import ReduceLROnDemand
+from kyu.utils.callback import ReduceLROnDemand, ModelCheckpoint_v2
 from kyu.utils.io_utils import ProjectFile, cpickle_load, cpickle_save
 from kyu.utils.logger import Logger
 
@@ -106,7 +106,8 @@ class ClassificationTrainer(object):
                  # logger=None,
                  save_log=True,
                  logfile=None,
-
+                 train_image_gen=None,
+                 valid_image_gen=None,
                  ):
         """
 
@@ -163,6 +164,9 @@ class ClassificationTrainer(object):
         self._built = False
         self.history = None
 
+        self.train_image_gen = train_image_gen
+        self.valid_image_gen = valid_image_gen
+
     def build(self):
         """ Construct the corresponding configs to prepare running """
 
@@ -178,8 +182,9 @@ class ClassificationTrainer(object):
 
         # Save weights and call backs
         if self.running_config.save_weights and self.running_config.save_per_epoch:
-            self.cbks.append(ModelCheckpoint(self.dirhelper.get_monitor_model_save_path(),
-                                             verbose=1, monitor='val_acc', save_best_only=True))
+            self.cbks.append(ModelCheckpoint_v2(
+                filepath=self.dirhelper.get_monitor_model_save_path(),
+                verbose=1, monitor='val_acc', save_best_only=True))
 
         # Add learning rate scheduler
         if isinstance(self.running_config.lr_decay, bool):
@@ -230,7 +235,7 @@ class ClassificationTrainer(object):
 
         self._built = True
 
-    def fit(self, batch_size=None, nb_epoch=None, verbose=None):
+    def fit(self, batch_size=None, nb_epoch=None, verbose=None, initial_epoch=None):
         if self._built is not True:
             self.build()
 
@@ -263,7 +268,8 @@ class ClassificationTrainer(object):
                             sess.add_tensor_filter(name, func)
                     K.set_session(sess)
                 # Run the train function.
-                history = self._fit_generator(batch_size=batch_size, nb_epoch=nb_epoch, verbose=verbose)
+                history = self._fit_generator(batch_size=batch_size, nb_epoch=nb_epoch,
+                                              verbose=verbose, initial_epoch=initial_epoch)
 
             else:
                 raise NotImplementedError("Fit mode other than 0 is not handled {}".format(self.fit_mode))
@@ -303,14 +309,16 @@ class ClassificationTrainer(object):
 
         return history
 
-    def _fit_generator(self, batch_size=None, nb_epoch=None, verbose=None):
+    def _fit_generator(self, batch_size=None, nb_epoch=None, verbose=None, initial_epoch=None):
 
-        train = self.data.get_train(batch_size=batch_size, target_size=self.model_config.target_size)
+        train = self.data.get_train(batch_size=batch_size, target_size=self.model_config.target_size,
+                                    image_data_generator=self.train_image_gen)
         if self.data.use_validation:
-            valid = self.data.get_valid(batch_size=batch_size, target_size=self.model_config.target_size)
+            valid = self.data.get_valid(batch_size=batch_size, target_size=self.model_config.target_size,
+                                        image_data_generator=self.valid_image_gen)
         else:
-            valid = self.data.get_test(batch_size=batch_size, target_size=self.model_config.target_size)
-
+            valid = self.data.get_test(batch_size=batch_size, target_size=self.model_config.target_size,
+                                       image_data_generator=self.valid_image_gen)
 
         if not isinstance(train, Iterator):
             raise ValueError("Only support generator for training data got {}".format(train))
@@ -334,11 +342,14 @@ class ClassificationTrainer(object):
             steps_per_epoch=steps_per_epoch,
             # nb_epoch=self.nb_epoch,
             epochs=nb_epoch,
-            workers=4,
+            workers=4 if train.batch_size < 100 else 8,
             validation_data=valid,
             validation_steps=val_steps_per_epoch,
             verbose=verbose,
-            callbacks=self.cbks
+            callbacks=self.cbks,
+            max_queue_size=10,
+            use_multiprocessing=train.batch_size > 100,
+            initial_epoch=initial_epoch if isinstance(initial_epoch, int) else 0
         )
         return history
 

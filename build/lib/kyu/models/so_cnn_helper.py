@@ -315,10 +315,11 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
                              parametric=[],
                              vectorization='wv',
                              batch_norm=True,
+                             batch_norm_kwargs={},
                              pow_norm=False,
-                             cov_kwargs=None,
-                             o2t_kwargs=None,
-                             pv_kwargs=None,
+                             cov_kwargs={},
+                             o2t_kwargs={},
+                             pv_kwargs={},
                              **kwargs):
     cov_name_base = get_cov_name_base(stage, block, epsilon)
     o2t_name_base = 'o2t' + str(stage) + block + '_branch'
@@ -327,7 +328,9 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
     # Add a normalization before goinging into secondary statistics
     x = input_tensor
     if batch_norm:
-        x = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block))(x)
+        print(batch_norm_kwargs)
+        x = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block),
+                               **batch_norm_kwargs)(x)
 
     with tf.name_scope(cov_name_base):
         x = SecondaryStatistic(name=cov_name_base,

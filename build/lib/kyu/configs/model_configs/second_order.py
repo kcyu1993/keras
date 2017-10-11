@@ -220,9 +220,10 @@ class NewNormWVBranchConfig(DCovConfig):
                  vectorization='wv',
                  batch_norm=True,
                  pow_norm=False,
-                 cov_kwargs=None,
-                 o2t_kwargs=None,
-                 pv_kwargs=None,
+                 batch_norm_kwargs={},
+                 cov_kwargs={},
+                 o2t_kwargs={},
+                 pv_kwargs={},
                  **kwargs
                  ):
         cov_branch = 'new_norm_wv'
@@ -230,6 +231,7 @@ class NewNormWVBranchConfig(DCovConfig):
              "parametric": parametric,
              "vectorization": vectorization,
              "batch_norm": batch_norm,
+             'batch_norm_kwargs': batch_norm_kwargs,
              "pow_norm": pow_norm,
              "cov_kwargs": cov_kwargs,
              "o2t_kwargs": o2t_kwargs,
