@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 import cPickle
 import json
+import decorator
 
 # def create_path(path, recursive):
 #     os.makedirs()
@@ -29,23 +30,23 @@ def getProjectPath():
     return p
 
 
-def check_id_set(get_path):
-    def __decorator(*args, **kwargs):
+@decorator.decorator
+def check_id_set(get_path, *args, **kw):
+    # def __decorator(*args, **kwargs):
         # print("checking {}".format(self.root_path))
-        if not args[0]._run_id_set:
-            raise ValueError(" ID Not set, return Nothing ")
-        path = get_path(*args, **kwargs)
-        return path
-    return __decorator
+    if not args[0]._run_id_set:
+        raise ValueError(" ID Not set, return Nothing ")
+    path = get_path(*args, **kw)
+    return path
+    # return __decorator
 
 
-def mkdirs_if_not_exist(get_folder):
-    def __decorator(*args, **kwargs):
-        folder = get_folder(*args, **kwargs)
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        return folder
-    return __decorator
+@decorator.decorator
+def mkdirs_if_not_exist(get_folder, *args, **kwargs):
+    folder = get_folder(*args, **kwargs)
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    return folder
 
 
 class ProjectFile(object):

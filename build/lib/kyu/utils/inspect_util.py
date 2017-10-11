@@ -4,6 +4,7 @@ Implement the arguments parsing and default dictionary composition
 """
 
 import inspect
+from functools import wraps
 
 import six
 from .dict_utils import merge_dicts
@@ -12,6 +13,13 @@ from .dict_utils import merge_dicts
 def compose_default_call_arguments(func):
     args_spec = inspect.getargspec(func)
     # make the dictionary by
+    if len(args_spec.args) == 0:
+        # It may be into decorators
+        try:
+            return dict(args_spec.args)
+        except IOError as e:
+            raise e
+
     return dict(zip(
         args_spec.args[len(args_spec.args) - len(args_spec.defaults):],
         args_spec.defaults

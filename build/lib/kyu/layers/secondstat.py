@@ -913,6 +913,167 @@ class WeightedVectorization(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class GlobalSquarePooling(Layer):
+    """
+    develop the equivalent format of BN-Cov-PV
+    """
+
+    def __init__(self, output_dim,
+                 input_dim=None,
+                 activation='linear',
+                 eps=1e-8,
+                 output_sqrt=False,  # Normalization
+                 normalization=False,  # normalize to further fit Chi-square distribution
+                 # kernel_initializer='glorot_uniform',
+                 # kernel_constraint=None,
+                 # kernel_regularizer=None,
+                 use_bias=False,  # use bias for normalization additional
+                 bias_initializer='zeros',
+                 bias_regularizer=None,
+                 bias_constraint=None,
+                 use_gamma=False,  # use gamma for general gaussian distribution
+                 gamma_initializer='ones',
+                 gamma_regularizer='l2',
+                 gamma_constraint=None,
+                 activation_regularizer=None,
+                 **kwargs):
+        self.data_format = K.image_data_format()
+        # self parameters
+        self.output_sqrt = output_sqrt
+        self.normalization = normalization
+        self.eps = eps
+        self.input_dim = input_dim  # Squared matrix input, as property of cov matrix
+        self.output_dim = output_dim  # final classified categories number
+        if output_dim is None:
+            raise ValueError("Output dim must be not None")
+
+        if activation_regularizer in ('l2', 'l1', None):
+            self.activation_regularizer = regularizers.get(activation_regularizer)
+        else:
+            raise ValueError("Activation regularizer only support l1, l2, None. Got {}".format(activation_regularizer))
+
+        # self.kernel_initializer = initializers.get(kernel_initializer)
+        # self.kernel_constraint = constraints.get(kernel_constraint)
+        # self.kernel_regularizer = regularizers.get(kernel_regularizer)
+
+        self.use_beta = use_bias
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.bias_constraint = constraints.get(bias_constraint)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+
+        self.use_gamma = use_gamma
+        self.gamma_initializer = initializers.get(gamma_initializer)
+        self.gamma_constraint = constraints.get(gamma_constraint)
+        self.gamma_regularizer = regularizers.get(gamma_regularizer)
+
+        self.activation = activations.get(activation)
+        super(WeightedVectorization, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        """
+        Build function
+        :param input_shape:
+        :return:
+        """
+        # 3D tensor (nb_samples, n_cov, n_cov)
+        assert len(input_shape) == 4
+
+        input_dim = input_shape[1]
+        if self.output_dim is None:
+            print("Wrong ! Should not be a None for output_dim")
+
+        if self.use_beta:
+            self.beta = self.add_weight(shape=(self.output_dim,),
+                                        initializer=self.bias_initializer,
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint,
+                                        name='bias'
+                                        )
+
+        else:
+            self.beta = None
+        if self.use_gamma:
+            self.gamma = self.add_weight(shape=(self.output_dim,),
+                                         initializer=self.gamma_initializer,
+                                         regularizer=self.gamma_regularizer,
+                                         constraint=self.gamma_constraint,
+                                         name='gamma'
+                                         )
+        else:
+            self.gamma = None
+        self.built = True
+
+    def call(self, inputs):
+        '''
+        The calculation of call function is not trival.
+        sum( self.W .* ( x * self.W) ) along axis 1
+        :param x:
+        :param mask:
+        :return: final output vector with w_i^T * W * w_i as item i, and propagate to all
+            samples. Output Shape (nb_samples, vector c)
+        '''
+        # logging.debug("prob_out: x_shape {}".format(K.shape(inputs)))
+        # new_W = K.expand_dims(self.W, dim=1)
+        if K.backend() == 'tensorflow':
+            output = K.square(x=inputs)
+        else:
+            raise NotImplementedError("Not support for other backend. ")
+
+        # Implement the Global Average Pooling
+        if self.data_format == 'channels_last':
+            output = K.mean(output, axis=[1,2])
+        else:
+            output = K.mean(output, axis=[2,3])
+
+        # if self.normalization:
+        #     make kernel
+            # output /= K.sum(K.pow(self.kernel, 2), axis=0)
+
+        if self.output_sqrt:
+            from kyu.tensorflow.ops import safe_sign_sqrt
+            output = safe_sign_sqrt(output)
+        if self.use_gamma:
+            output *= self.gamma
+
+        if self.use_beta:
+            output = K.bias_add(output, self.beta, data_format=K.image_data_format())
+
+        if self.activation_regularizer:
+            return self.activation_regularizer(output)
+        else:
+            return output
+
+    def compute_output_shape(self, input_shape):
+        # same as GlobalPooling2D
+        logging.debug(input_shape)
+        if self.data_format == 'channels_last':
+            return (input_shape[0], input_shape[3])
+        else:
+            return (input_shape[0], input_shape[1])
+
+    def get_config(self):
+        config = {'output_dim': self.output_dim,
+                  'input_dim': self.input_dim,
+                  'activation': activations.serialize(self.activation),
+                  'use_bias': self.use_beta,
+                  'use_gamma': self.use_gamma,
+                  'normalization': self.normalization,
+                  'output_sqrt': self.output_sqrt,
+                  # 'kernel_initializer': initializers.serialize(self.kernel_initializer),
+                  'bias_initializer': initializers.serialize(self.bias_initializer),
+                  'gamma_initializer': initializers.serialize(self.gamma_initializer),
+                  # 'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+                  'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+                  'gamma_regularizer': regularizers.serialize(self.gamma_regularizer),
+                  'activation_regularizer': regularizers.serialize(self.activation_regularizer),
+                  # 'kernel_constraint': constraints.serialize(self.kernel_constraint),
+                  'bias_constraint': constraints.serialize(self.bias_constraint),
+                  'gamma_constraint': constraints.serialize(self.gamma_constraint)
+                  }
+        base_config = super(GlobalSquarePooling, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class BiLinear(Layer):
     """
     Define the BiLinear layer for comparison

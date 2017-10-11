@@ -1,6 +1,7 @@
 from iccv_pow_transform import MPNConfig, BilinearSOConfig
 from bilinear import BilinearConfig
-from second_order import NoWVBranchConfig, O2TBranchConfig, NormWVBranchConfig, NewNormWVBranchConfig
+from second_order import NoWVBranchConfig, O2TBranchConfig, NormWVBranchConfig, NewNormWVBranchConfig, \
+    PVEquivalentConfig
 from first_order import VggFirstOrderConfig, DenseNetFirstOrderConfig, ResNetFirstOrderConfig
 
 MODEL_CONFIG_CLASS = {'mpn': MPNConfig,
@@ -12,7 +13,8 @@ MODEL_CONFIG_CLASS = {'mpn': MPNConfig,
                       'resnetfo': ResNetFirstOrderConfig,
                       'densenetfo': DenseNetFirstOrderConfig,
                       'normwv': NormWVBranchConfig,
-                      'newnormwv': NewNormWVBranchConfig
+                      'newnormwv': NewNormWVBranchConfig,
+                      '1x1_gsp': PVEquivalentConfig,
                       }
 
 

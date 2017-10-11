@@ -10,7 +10,7 @@ from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetu
 from kyu.experiment.general_train import get_argparser
 from kyu.utils import dict_utils
 
-BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv', 'o2t_wv_norm', 'o2t_wv_new_norm']
+BRANCH_CHOICES = ['o2t_original', 'o2t_no_wv', 'o2t_wv_norm', 'o2t_wv_new_norm', '1x1_gsp']
 
 
 def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetune=0, title='',
@@ -81,6 +81,11 @@ def so_o2t_wv_with_new_norm(dataset, model_class, **kwargs):
     so_cnn_train(model_exp_fn=SOConfig.get_new_wv_norm_general, model_class=model_class, dataset=dataset, title=title,
                  **kwargs)
 
+def so_pv_equivelent(dataset, model_class, **kwargs):
+    """ Get SO-CNN architecture with o2t wv with new norm branch """
+    title = '{}-BN-Conv-GSP'.format(str(model_class).upper())
+    so_cnn_train(model_exp_fn=SOConfig.get_pv_equivalent, model_class=model_class, dataset=dataset, title=title,
+                 **kwargs)
 
 if __name__ == '__main__':
     parser = get_argparser(description='SO-CNN architecture testing')
@@ -99,6 +104,8 @@ if __name__ == '__main__':
         so_o2t_wv_with_norm(**vars(args))
     elif branch == BRANCH_CHOICES[3]:
         so_o2t_wv_with_new_norm(**vars(args))
+    elif branch == BRANCH_CHOICES[4]:
+        so_pv_equivelent(**vars(args))
     else:
         raise NotImplementedError
 

@@ -44,7 +44,7 @@ from kyu.configs.engine_configs import ModelConfig
 from kyu.configs.engine_configs import RunningConfig
 from kyu.configs.generic import KCConfig
 from kyu.engine.utils.callbacks import ModifiedTensorBoard
-from kyu.engine.utils.data_utils import ImageData
+from kyu.engine.utils.data_utils import ClassificationImageData
 from kyu.utils.callback import ReduceLROnDemand, ModelCheckpoint_v2
 from kyu.utils.io_utils import ProjectFile, cpickle_load, cpickle_save
 from kyu.utils.logger import Logger
@@ -126,7 +126,7 @@ class ClassificationTrainer(object):
         else:
             raise ValueError("Model must be a Keras.model got {}".format(model))
 
-        if isinstance(data, ImageData):
+        if isinstance(data, ClassificationImageData):
             self.data = data
         else:
             raise ValueError("Data must be a ImageData got {}".format(data))
@@ -310,9 +310,12 @@ class ClassificationTrainer(object):
         return history
 
     def _fit_generator(self, batch_size=None, nb_epoch=None, verbose=None, initial_epoch=None):
-
+        # create train
         train = self.data.get_train(batch_size=batch_size, target_size=self.model_config.target_size,
                                     image_data_generator=self.train_image_gen)
+
+        if self.running_config.tensorboard:
+            Warning("not implmented the load entire dataset instead of the generator")
         if self.data.use_validation:
             valid = self.data.get_valid(batch_size=batch_size, target_size=self.model_config.target_size,
                                         image_data_generator=self.valid_image_gen)
@@ -333,7 +336,9 @@ class ClassificationTrainer(object):
 
         print("{} fit with generator with steps per epoch training {} val {}".
               format(self.model.name, steps_per_epoch, val_steps_per_epoch))
-
+        print("Train image generator {} \n Test image generator {}".format(
+            self.data.train_image_gen_configs, self.data.valid_image_gen_configs
+        ))
         if steps_per_epoch == 0:
             steps_per_epoch = 200
         history = self.model.fit_generator(

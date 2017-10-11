@@ -1,6 +1,7 @@
-from kyu.configs.model_configs.second_order import NewNormWVBranchConfig
+from kyu.configs.model_configs.second_order import NewNormWVBranchConfig, PVEquivalentConfig
 from kyu.layers.secondstat import get_default_secondstat_args
-from kyu.utils.dict_utils import update_source_dict_by_given_kwargs
+from kyu.utils.dict_utils import update_source_dict_by_given_kwargs, create_dict_by_given_kwargs
+from kyu.utils.inspect_util import get_default_args
 from ..model_configs import O2TBranchConfig, NoWVBranchConfig, NormWVBranchConfig
 
 
@@ -471,6 +472,98 @@ def get_new_wv_norm_general(exp=1):
         freeze_conv=False, name=name + '-{}_branch'.format(nb_branch),
         nb_branch=nb_branch,
         concat='concat' if concat is None else concat,
+        cov_output_vectorization='pv',
+        last_conv_feature_maps=last_conv_feature_maps,
+        last_conv_kernel=[1, 1],
+        upsample_method='conv',
+    )
+    return model_config
+
+
+def get_pv_equivalent(exp=1):
+    cov_branch_output = 1024
+    last_conv_feature_maps = [256]
+    load_weights = 'imagenet'
+    from keras.layers import Conv2D
+    conv_kwargs = create_dict_by_given_kwargs(
+        strides=(1, 1),
+        padding='valid',
+        data_format=None,
+        dilation_rate=(1, 1),
+        activation=None,
+        use_bias=True,
+        kernel_initializer='glorot_uniform',
+        bias_initializer='zeros',
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        activity_regularizer=None,
+        kernel_constraint=None,
+        bias_constraint=None,
+    )
+    gsp_kwargs = get_default_secondstat_args('GlobalSquarePooling')
+    batch_norm_kwargs = {'scale': True}
+    nb_branch = 1
+    batch_norm_end = False
+    use_gamma = True
+    if exp == 1:
+        cov_branch_output = 2048
+        use_gamma = True
+        name = 'BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
+        mode = 1
+    else:
+        raise ValueError("exp not reg {}".format(exp))
+
+    conv_kwargs = update_source_dict_by_given_kwargs(
+        conv_kwargs,
+        strides=(1, 1),
+        padding='valid',
+        data_format=None,
+        dilation_rate=(1, 1),
+        activation=None,
+        use_bias=True,
+        kernel_initializer='glorot_uniform',
+        bias_initializer='zeros',
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        activity_regularizer=None,
+        kernel_constraint=None,
+        bias_constraint=None,
+    )
+
+    gsp_kwargs = update_source_dict_by_given_kwargs(
+        gsp_kwargs,
+        activation='linear',
+        output_sqrt=False,  # Normalization
+        normalization=False,  # normalize to further fit Chi-square distribution
+        # kernel_initializer='glorot_uniform',
+        # kernel_constraint=None,
+        # kernel_regularizer=None,
+        use_bias=False,  # use bias for normalization additional
+        bias_initializer='zeros',
+        bias_regularizer=None,
+        bias_constraint=None,
+        use_gamma=use_gamma,  # use gamma for general gaussian distribution
+        gamma_initializer='ones',
+        gamma_regularizer='l2',
+        gamma_constraint=None,
+        activation_regularizer=None,
+    )
+    model_config = PVEquivalentConfig(
+        # For cov-branch_kwargs
+        batch_norm=True,
+        batch_norm_end=batch_norm_end,
+        conv_kwargs=conv_kwargs,
+        gsp_kwargs=gsp_kwargs,
+        batch_norm_kwargs=batch_norm_kwargs,
+        # Other
+        input_shape=(224, 224, 3),
+        nb_class=67,
+        class_id=None,  # Not set here.
+        # configs for _compose_second_order_things
+        cov_branch_output=cov_branch_output,
+        load_weights=load_weights,
+        mode=mode,
+        freeze_conv=False, name=name + '-{}_branch'.format(nb_branch),
         cov_output_vectorization='pv',
         last_conv_feature_maps=last_conv_feature_maps,
         last_conv_kernel=[1, 1],

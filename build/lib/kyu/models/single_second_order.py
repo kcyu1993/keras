@@ -112,7 +112,8 @@ def VGG16_second_order(
 
 ):
     if load_weights in {"imagenet", "secondorder"}:
-        base_model = VGG16(include_top=False, input_shape=input_shape, pooling=pooling)
+        base_model = VGG16(include_top=False, input_shape=input_shape, pooling=pooling,
+                           weights=load_weights)
     elif load_weights is None:
         base_model = VGG16(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
     else:
@@ -145,7 +146,8 @@ def ResNet50_second_order(
 ):
 
     if load_weights in {"imagenet", "secondorder"}:
-        base_model = ResNet50_v2(include_top=False, input_shape=input_shape, last_avg=last_avg, pooling=pooling)
+        base_model = ResNet50_v2(include_top=False, input_shape=input_shape, last_avg=last_avg, pooling=pooling,
+                                 weights=load_weights)
     elif load_weights is None:
         base_model = ResNet50_v2(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg,
                                  pooling=pooling)

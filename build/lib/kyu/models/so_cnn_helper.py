@@ -5,7 +5,7 @@ import keras.backend as K
 from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose, Reshape, BatchNormalization
 from keras.layers import concatenate, add, average
 from kyu.layers.secondstat import SecondaryStatistic, O2Transform, WeightedVectorization, LogTransform, \
-    PowTransform, BiLinear
+    PowTransform, BiLinear, GlobalSquarePooling
 from kyu.layers.assistants import FlattenSymmetric, MatrixConcat, MatrixReLU
 from kyu.legacy.so_cnn_helper import covariance_block_multi_o2t, covariance_block_sobn_multi_o2t, \
     covariance_block_batch, covariance_block_corr, covariance_block_vector_space, covariance_block_mix, \
@@ -27,6 +27,10 @@ def get_o2t_name_base(stage, block):
 
 def get_pv_name_base(stage, block):
     return 'pv-{}-br_{}'.format(str(stage), block)
+
+
+def get_name_base(name, stage, block):
+    return '{}-{}-br_{}'.format(name, str(stage), block)
 
 
 def fn_regroup(tensors):
@@ -352,6 +356,31 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
     return x
 
 
+def covariance_block_pv_equivelent(input_tensor, nb_class, stage, block,
+                                   batch_norm=True,
+                                   batch_norm_kwargs={},
+                                   batch_norm_end=False,
+                                   conv_kwargs={},
+                                   gsp_kwargs={},
+                                   **kwargs):
+    conv_name_base = get_name_base('1x1_conv', stage, block)
+    gsp_name_base = get_name_base('globalsquarepool', stage, block)
+
+    # Add a normalization before goinging into secondary statistics
+    x = input_tensor
+    if batch_norm:
+        print(batch_norm_kwargs)
+        x = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block),
+                               **batch_norm_kwargs)(x)
+
+    x = Conv2D(kernel_size=(1,1), name=conv_name_base, **conv_kwargs)(x)
+    x = GlobalSquarePooling(nb_class, name=gsp_name_base, **gsp_kwargs)(x)
+    if batch_norm_end:
+        print(batch_norm_kwargs)
+        x = BatchNormalization(axis=2, name='BN_{}_{}-end'.format(stage, block),
+                               **batch_norm_kwargs)(x)
+    return x
+
 
 def upsample_wrapper_v1(x, last_conv_feature_maps=[],method='conv',kernel=(1,1), stage='', **kwargs):
     """
@@ -409,6 +438,8 @@ def get_cov_block(cov_branch):
         covariance_block = covariance_block_norm_wv
     elif cov_branch == 'new_norm_wv':
         covariance_block = covariance_block_newn_wv
+    elif cov_branch == "1x1_gsp":
+        covariance_block = covariance_block_pv_equivelent
     else:
         raise ValueError('covariance cov_mode not supported')
 

@@ -254,3 +254,23 @@ class MatrixBackPropConfig(BasicSOStructureConfig):
         else:
             raise ValueError("Fatal error")
 
+
+class PVEquivalentConfig(DCovConfig):
+    def __init__(self,
+                 # Cov branch kwargs
+                 batch_norm=True,
+                 batch_norm_kwargs={},
+                 batch_norm_end=False,
+                 conv_kwargs={},
+                 gsp_kwargs={},
+                 **kwargs
+                 ):
+        cov_branch = 'new_norm_wv'
+        z = {
+             "batch_norm": batch_norm,
+             'batch_norm_kwargs': batch_norm_kwargs,
+             "batch_norm_end": batch_norm_end,
+             "conv_kwargs": conv_kwargs,
+             "gsp_kwargs": gsp_kwargs
+             }
+        super(PVEquivalentConfig, self).__init__(cov_branch=cov_branch, cov_branch_kwargs=z, **kwargs)
