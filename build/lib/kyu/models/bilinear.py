@@ -25,7 +25,7 @@ def _compose_bilinear_model(base_model, nb_class, freeze_conv=False, last_conv_k
 
 
 def DenseNet121_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), freeze_conv=False, **kwargs):
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = DenseNet121(include_top=False, input_shape=input_shape)
     elif load_weights is None:
         base_model = DenseNet121(include_top=False, weights_path=None, input_shape=input_shape)
@@ -40,7 +40,7 @@ def DenseNet121_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224
 
 def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), freeze_conv=False,
                    **kwargs):
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = VGG16(include_top=False, input_shape=input_shape)
     elif load_weights is None:
         base_model = VGG16(include_top=False, weights=None, input_shape=input_shape)
@@ -55,7 +55,7 @@ def VGG16_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), f
 
 def ResNet50_bilinear(nb_class, load_weights='imagenet', input_shape=(224,224,3), last_avg=False, freeze_conv=False,
                       **kwargs):
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = ResNet50(include_top=False, input_shape=input_shape, last_avg=last_avg)
     elif load_weights is None:
         base_model = ResNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg)

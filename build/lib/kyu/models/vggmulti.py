@@ -196,7 +196,7 @@ def VGG16Multi_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,
     -------
 
     """
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = VGG16_Multi(include_top=False, input_shape=input_shape, last_avg=last_avg, pooling=pooling)
     elif load_weights is None:
         base_model = VGG16_Multi(include_top=False, weights=None, input_shape=input_shape,last_avg=last_avg, pooling=pooling)

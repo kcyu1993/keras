@@ -412,6 +412,12 @@ def get_new_wv_norm_general(exp=1):
         name = 'BN-Cov-O2T-PV{}-mode1_complete-gamma{}'.\
             format(cov_branch_output, parametric, use_gamma)
         batch_norm_kwargs['scale'] = False
+    elif exp == 9:
+        cov_branch_output = 2048
+        use_gamma = True
+        name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        mode = 1
+        load_weights = 'secondorder'
     else:
         raise ValueError("exp not reg {}".format(exp))
 

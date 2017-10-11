@@ -169,10 +169,12 @@ def ResNet50_v2(
         ValueError: in case of invalid argument for `weights`,
             or invalid input shape.
     """
-    if weights not in {'imagenet', None}:
+    if weights not in {'imagenet', 'secondorder', None}:
         raise ValueError('The `weights` argument should be either '
                          '`None` (random initialization) or `imagenet` '
-                         '(pre-training on ImageNet).')
+                         '(pre-training on ImageNet) or '
+                         '`secondorder` (pretrained on ImageNet for SO '
+                         'structure.')
 
     if weights == 'imagenet' and include_top and nb_class != 1000:
         raise ValueError('If using `weights` as imagenet with `include_top`'
@@ -266,17 +268,24 @@ def ResNet50_v2(
         toggle_trainable_layers(model, not freeze_conv)
 
     # load weights
-    if weights == 'imagenet':
-        if include_top:
-            weights_path = get_file('resnet50_weights_tf_dim_ordering_tf_kernels.h5',
-                                    WEIGHTS_PATH,
-                                    cache_subdir='models',
-                                    md5_hash='a7b3fe01876f51b976af0dea6bc144eb')
+    if weights is not None:
+        if weights == 'imagenet':
+            if include_top:
+                weights_path = get_file('resnet50_weights_tf_dim_ordering_tf_kernels.h5',
+                                        WEIGHTS_PATH,
+                                        cache_subdir='models',
+                                        md5_hash='a7b3fe01876f51b976af0dea6bc144eb')
+            else:
+                weights_path = get_file('resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5',
+                                        WEIGHTS_PATH_NO_TOP,
+                                        cache_subdir='models',
+                                        md5_hash='a268eb855778b3df3c7506639542a6af')
+        elif weights == 'secondorder':
+            weights_path = get_file('so_resnet50_weights_tf_dim_ordering_tf.h5',
+                                    None,
+                                    cache_subdir='models')
         else:
-            weights_path = get_file('resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5',
-                                    WEIGHTS_PATH_NO_TOP,
-                                    cache_subdir='models',
-                                    md5_hash='a268eb855778b3df3c7506639542a6af')
+            return model
         model.load_weights(weights_path, by_name=True)
         if K.backend() == 'theano':
             layer_utils.convert_all_kernels_in_model(model)

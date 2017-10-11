@@ -166,7 +166,7 @@ def ResNet50_o2_multibranch(parametrics=[], mode=0, nb_classes=1000, input_shape
             basename += str(para) + '_'
     basename += 'mode_{}'.format(str(mode))
 
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = ResCovNet50(include_top=False, input_shape=input_shape, last_avg=last_avg)
     elif load_weights is None:
         base_model = ResCovNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg)
@@ -206,7 +206,7 @@ def ResNet50_o2(parametrics=[], mode=0, nb_classes=1000, input_shape=(224,224,3)
             basename += str(para) + '_'
     basename += 'mode_{}'.format(str(mode))
 
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = ResNet50(include_top=False, input_shape=input_shape, last_avg=last_avg)
     elif load_weights is None:
         base_model = ResNet50(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg)
@@ -296,7 +296,7 @@ def ResNet50_cifar_o2(parametrics=[], mode=0, nb_classes=10, input_shape=(32,32,
             basename += str(para) + '_'
     basename += 'mode_{}'.format(str(mode))
 
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = ResNet50CIFAR(include_top=False, input_shape=input_shape, last_avg=last_avg)
     elif load_weights is None:
         base_model = ResNet50CIFAR(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg)

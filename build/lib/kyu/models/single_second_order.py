@@ -111,7 +111,7 @@ def VGG16_second_order(
         input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None, **kwargs
 
 ):
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = VGG16(include_top=False, input_shape=input_shape, pooling=pooling)
     elif load_weights is None:
         base_model = VGG16(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
@@ -126,7 +126,7 @@ def DenseNet121_second_order(
         input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None, **kwargs
 
 ):
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = DenseNet121(include_top=False, input_shape=input_shape, last_pooling=pooling,
                                  weights_path='imagenet')
     elif load_weights is None:
@@ -144,7 +144,7 @@ def ResNet50_second_order(
         **kwargs
 ):
 
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = ResNet50_v2(include_top=False, input_shape=input_shape, last_avg=last_avg, pooling=pooling)
     elif load_weights is None:
         base_model = ResNet50_v2(include_top=False, weights=None, input_shape=input_shape, last_avg=last_avg,
@@ -160,7 +160,7 @@ def ResNet50_second_order(
 def AlexNet_second_order(
         input_shape, nb_class, cov_branch, load_weights='imagenet', pooling='max', **kwargs
 ):
-    if load_weights == 'imagenet':
+    if load_weights in {"imagenet", "secondorder"}:
         base_model = AlexNet_v2(include_top=False, input_shape=input_shape, pooling=pooling)
     elif load_weights is None:
         base_model = AlexNet_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
