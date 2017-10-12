@@ -359,9 +359,15 @@ def get_new_wv_norm_general(exp=1):
     cov_kwargs = get_default_secondstat_args('Cov')
     o2t_kwargs = get_default_secondstat_args('O2T')
     pv_kwargs = get_default_secondstat_args('PV')
-    batch_norm_kwargs = {'scale':True}
+    batch_norm_kwargs = {'scale': True}
+
+    # PV layers
     pow_norm = False
     use_gamma = True
+    batch_norm_end = False
+    normalization = True,  # normalize to further fit Chi-square distribution
+    use_bias = True,  # use bias for normalization additional
+
     if exp == 1:
         cov_branch_output = 2048
         use_gamma = True
@@ -419,6 +425,14 @@ def get_new_wv_norm_general(exp=1):
         name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
         mode = 1
         load_weights = 'secondorder'
+    elif exp == 10:
+        cov_branch_output = 2048
+        use_gamma = False
+        use_bias = False
+        normalization = False
+        batch_norm_end = True
+        mode = 1
+        name = 'BN-Cov-PV{}-BN-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -439,10 +453,10 @@ def get_new_wv_norm_general(exp=1):
         activation='linear',
         eps=1e-8,
         output_sqrt=True,  # Normalization
-        normalization=True,  # normalize to further fit Chi-square distribution
+        normalization=normalization,  # normalize to further fit Chi-square distribution
         kernel_initializer='glorot_uniform',
         kernel_regularizer=None,
-        use_bias=True,  # use bias for normalization additional
+        use_bias=use_bias,  # use bias for normalization additional
         bias_initializer='zeros',
         bias_regularizer=None,
         use_gamma=use_gamma,  # use gamma for general gaussian distribution
@@ -455,6 +469,7 @@ def get_new_wv_norm_general(exp=1):
         parametric=parametric,
         vectorization=vectorization,
         batch_norm=True,
+        batch_norm_end=batch_norm_end,
         batch_norm_kwargs=batch_norm_kwargs,
         pow_norm=pow_norm,
         cov_kwargs=cov_kwargs,

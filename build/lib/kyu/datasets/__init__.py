@@ -4,6 +4,7 @@ from sun import SUN397_v2 as SUN397
 from imagenet import ImageNetData as ImageNet
 from minc import Minc2500_v2 as Minc2500
 from mit import MitIndoor
+from chestxray14 import ChestXray14
 
 
 def get_dataset_by_name(name, dirpath=None):
@@ -59,7 +60,10 @@ def get_dataset(config):
         config.dirpath = config.dirpath if config.dirpath is not None \
             else '/home/kyu/.keras/datasets/ILSVRC2015'
         dataset = ImageNet(config.dirpath)
-
+    elif identifier in ['chestxray', 'chest-xray', 'chest-xray14']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/chest-xray14'
+        dataset = ChestXray14(config.dirpath)
     else:
         raise ValueError("Dataset Name Not recognized {}".format(identifier))
 

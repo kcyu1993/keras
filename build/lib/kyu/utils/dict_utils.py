@@ -3,6 +3,7 @@ Define the system utils
 
 """
 from logging import warning
+import json
 
 
 def merge_dicts(*dict_args):
@@ -59,3 +60,28 @@ def update_source_dict_by_given_kwargs(source, **target_kwargs):
 
 def create_dict_by_given_kwargs(**kwargs):
     return kwargs
+
+
+def save_dict(dictionary, path, type='json', **kwargs):
+    if type == 'json':
+        with open(path, 'wb') as f:
+            json_string = json.dumps(dictionary)
+            try:
+                json.dump(json_string, f, **kwargs)
+            except IOError as e:
+                warning(e + "save not successful")
+                return
+    print("dict save successful {} type {}".format(path, type))
+    return path
+
+
+def load_dict(path, type='json', **kwargs):
+    # Save to json
+    result = None
+    if type == 'json':
+        with open(path, 'rb') as f:
+            json_str = json.load(f)
+            result = json.loads(json_str, **kwargs)
+
+    if isinstance(result, dict):
+        return result

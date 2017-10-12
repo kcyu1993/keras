@@ -4,7 +4,6 @@ Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 """
 
 import keras.backend as K
-from keras.applications import VGG16
 from keras.layers import Flatten, Dense, merge, MaxPooling2D, GlobalAveragePooling2D
 from keras.layers.merge import add, average, concatenate
 from keras.models import Model
@@ -13,6 +12,7 @@ from kyu.layers.assistants import FlattenSymmetric, SeparateConvolutionFeatures,
 from kyu.models.alexnet5 import AlexNet_v2
 from kyu.models.densenet121 import DenseNet121
 from kyu.models.resnet50 import ResNet50_v2
+from kyu.models.vgg16 import VGG16_v2
 from kyu.models.so_cnn_helper import get_cov_block, upsample_wrapper_v1
 from kyu.utils.dict_utils import merge_dicts
 from kyu.utils.train_utils import toggle_trainable_layers
@@ -62,7 +62,7 @@ def _compose_second_order_model(
         elif mode == 2:
             cov_branch_y = cov_branch_fn(x, cov_branch_output, stage=5, block=str(ind),
                                          ** merge_dicts(kwargs, cov_branch_kwargs))
-            # Repeat the traditional VGG16.
+            # Repeat the traditional VGG16_v2.
             # fo = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(base_model.output)
             # fo = GlobalAveragePooling2D()(fo)
             fo = Flatten()(x)
@@ -112,12 +112,12 @@ def VGG16_second_order(
 
 ):
     if load_weights in {"imagenet", "secondorder"}:
-        base_model = VGG16(include_top=False, input_shape=input_shape, pooling=pooling,
-                           weights=load_weights)
+        base_model = VGG16_v2(include_top=False, input_shape=input_shape, pooling=pooling,
+                              weights=load_weights)
     elif load_weights is None:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
+        base_model = VGG16_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
     else:
-        base_model = VGG16(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
+        base_model = VGG16_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
         base_model.load_weights(load_weights, by_name=True)
 
     return _compose_second_order_model(base_model, nb_class, cov_branch, **kwargs)

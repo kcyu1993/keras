@@ -967,7 +967,7 @@ class GlobalSquarePooling(Layer):
         self.gamma_regularizer = regularizers.get(gamma_regularizer)
 
         self.activation = activations.get(activation)
-        super(WeightedVectorization, self).__init__(**kwargs)
+        super(GlobalSquarePooling, self).__init__(**kwargs)
 
     def build(self, input_shape):
         """

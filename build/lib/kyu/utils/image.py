@@ -528,7 +528,7 @@ class ImageIterator(Iterator):
 
         self.data_format = K.image_data_format() if data_format == 'default' else data_format
 
-        if class_mode not in {'categorical', 'binary', 'sparse', None}:
+        if class_mode not in {'categorical', 'binary', 'sparse', 'multi_categorical', None}:
             raise ValueError('Invalid class_mode:', class_mode,
                              '; expected one of "categorical", '
                              '"binary", "sparse", or None.')
@@ -570,7 +570,10 @@ class ImageIterator(Iterator):
 
         # Generate the image list and corresponding category
         self.img_files_list = [self.get_image_path(i) for i in imgloc_list]
-        self.img_cate_list = cate_list.astype(np.uint32)
+        if isinstance(cate_list, np.ndarray):
+            self.img_cate_list = cate_list.astype(np.uint32)
+        elif isinstance(cate_list, list):
+            self.img_cate_list = np.asanyarray(cate_list)
         self.category_dict = category_dict
 
         self.nb_sample = len(self.img_files_list)
@@ -615,9 +618,17 @@ class ImageIterator(Iterator):
         elif self.class_mode == 'categorical':
             batch_y = np.zeros((len(batch_x), self.nb_class), dtype='float32')
             for i, j in enumerate(index_array):
+                # Add judgement sentences here
                 label = self.img_cate_list[j]
                 # label = self.img_cate_list[j] - 1
                 batch_y[i, label] = 1.
+        elif self.class_mode == 'multi_categorical':
+            batch_y = np.zeros((len(batch_x), self.nb_class), dtype='float32')
+            for i, j in enumerate(index_array):
+                # Should pass a list into the Iterator
+                labels = self.img_cate_list[j]
+                for label in labels:
+                    batch_y[i, label] = 1.
         else:
             return batch_x
 

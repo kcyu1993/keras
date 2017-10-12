@@ -319,6 +319,7 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
                              parametric=[],
                              vectorization='wv',
                              batch_norm=True,
+                             batch_norm_end=False,
                              batch_norm_kwargs={},
                              pow_norm=False,
                              cov_kwargs={},
@@ -353,6 +354,11 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
         x = WeightedVectorization(nb_class,
                                   name=wp_name_base,
                                   **pv_kwargs)(x)
+        if batch_norm_end:
+            x = Reshape((1,1, nb_class))(x)
+            x = BatchNormalization(axis=1, name='BN-end{}_{}'.format(stage, block),
+                                   **batch_norm_kwargs)(x)
+            x = Flatten()(x)
     return x
 
 
@@ -373,7 +379,7 @@ def covariance_block_pv_equivelent(input_tensor, nb_class, stage, block,
         x = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block),
                                **batch_norm_kwargs)(x)
 
-    x = Conv2D(kernel_size=(1,1), name=conv_name_base, **conv_kwargs)(x)
+    x = Conv2D(filters=nb_class, kernel_size=(1,1), name=conv_name_base, **conv_kwargs)(x)
     x = GlobalSquarePooling(nb_class, name=gsp_name_base, **gsp_kwargs)(x)
     if batch_norm_end:
         print(batch_norm_kwargs)

@@ -219,6 +219,7 @@ class NewNormWVBranchConfig(DCovConfig):
                  parametric=[],
                  vectorization='wv',
                  batch_norm=True,
+                 batch_norm_end=False,
                  pow_norm=False,
                  batch_norm_kwargs={},
                  cov_kwargs={},
@@ -231,6 +232,7 @@ class NewNormWVBranchConfig(DCovConfig):
              "parametric": parametric,
              "vectorization": vectorization,
              "batch_norm": batch_norm,
+             "batch_norm_end": batch_norm_end,
              'batch_norm_kwargs': batch_norm_kwargs,
              "pow_norm": pow_norm,
              "cov_kwargs": cov_kwargs,
@@ -265,7 +267,7 @@ class PVEquivalentConfig(DCovConfig):
                  gsp_kwargs={},
                  **kwargs
                  ):
-        cov_branch = 'new_norm_wv'
+        cov_branch = '1x1_gsp'
         z = {
              "batch_norm": batch_norm,
              'batch_norm_kwargs': batch_norm_kwargs,
