@@ -46,16 +46,18 @@ class SecondaryStatistic(Layer):
     def __init__(self,
                  eps=1e-5,
                  cov_mode='channel',
-                 kernel_initializer='glorot_uniform',
                  activation='linear',
-                 kernel_regularizer=None,
-                 dim_ordering='default',
                  normalization='mean',
                  cov_regularizer=None,
                  cov_alpha=0.01,
                  cov_beta=0.3,
+                 use_kernel=False,
+                 kernel_initializer='ones',
+                 kernel_regularizer=None,
+                 kernel_constraint=None,
                  alpha_initializer='ones',
                  alpha_constraint=None,
+                 dim_ordering='default',
                  robust=False,
                  **kwargs):
 
@@ -89,9 +91,10 @@ class SecondaryStatistic(Layer):
 
         self.activation = activations.get(activation)
 
+        self.use_kernel = use_kernel
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
-
+        self.kernel_constraint = constraints.get(kernel_constraint)
         self.alpha_initializer = initializers.get(alpha_initializer)
         self.alpha_constraint = constraints.get(alpha_constraint)
 
@@ -141,6 +144,16 @@ class SecondaryStatistic(Layer):
         if self.robust:
             print('use robust estimation with cov_alpha {}'.format(self.cov_alpha))
             self.name += '_rb'
+
+        if self.use_kernel:
+            kernel_shape = (self.cov_dim,)
+            self.kernel = self.add_weight(shape=kernel_shape,
+                                          name='kernel',
+                                          initializer=self.kernel_initializer,
+                                          regularizer=self.kernel_regularizer,
+                                          constraint=self.kernel_constraint)
+        else:
+            self.kernel = None
 
         if self.cov_regulairzer == 'Fob':
             self.C_regularizer = FrobNormRegularizer(self.out_dim, self.cov_alpha)
@@ -234,7 +247,7 @@ class SecondaryStatistic(Layer):
             return K.transpose(tx, (0,2,1))
 
     def calculate_pre_cov(self, x):
-        """
+        """1
         4D tensor to 3D (N, nb_filter, col* row)
         :param x: Keras.tensor  (N, nb_filter, col, row) data being called
         :return: Keras.tensor   (N, nb_filter, col* row)
@@ -245,7 +258,10 @@ class SecondaryStatistic(Layer):
             xf_normal = xf - xf_mean
         else:
             xf_normal = xf
-        tx = K.batch_dot(xf_normal, K.transpose(xf_normal, [0,2,1]))
+        if self.use_kernel:
+            tx = K.dot(xf_normal, tf.matrix_diag_part(self.kernel))
+        else:
+            tx = K.batch_dot(xf_normal, K.transpose(xf_normal, [0,2,1]))
         # tx = K.sum(K.multiply(K.expand_dims(xf_normal, dim=1),
         #                       K.expand_dims(xf_normal, dim=2)),
         #            axis=3)

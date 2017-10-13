@@ -75,6 +75,22 @@ def get_fo_resnet_exp(exp=1):
             class_id='resnet50',
             name='ResNet50-FO'
         )
+    elif exp == 2:
+        return ResNetFirstOrderConfig(
+            nb_class=0,
+            denses=[],
+            include_top=False,
+            input_shape=(224, 224, 3),
+            weights='imagenet',
+            input_tensor=None,
+            pooling=None,
+            last_avg=True,
+            weight_decay=0,
+            freeze_conv=True,
+            pred_activation='sigmoid',
+            class_id='resnet50',
+            name='ResNet50-FO'
+        )
     else:
         raise ValueError("FO-ResNet: Not supported exp number {}".format(exp))
 

@@ -129,7 +129,7 @@ def VGG16_v2(include_top=True, weights='imagenet',
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`.
     if input_tensor is not None:
-        inputs = get_source_inputs(input_tensor)
+         inputs = get_source_inputs(input_tensor)
     else:
         inputs = img_input
     # Create model.
@@ -152,7 +152,7 @@ def VGG16_v2(include_top=True, weights='imagenet',
     else:
         return model
     model.load_weights(weights_path, by_name=True)
-    if K.backend() == 'theano':e
+    if K.backend() == 'theano':
         layer_utils.convert_all_kernels_in_model(model)
 
     if K.image_data_format() == 'channels_first':

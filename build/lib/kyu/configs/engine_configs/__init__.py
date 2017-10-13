@@ -1,2 +1,2 @@
-from model import ModelConfig
-from running import RunningConfig
+from .model import ModelConfig
+from .running import RunningConfig

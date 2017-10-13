@@ -118,6 +118,7 @@ def ResNet50_v2(
         last_avg=True,
         weight_decay=0,
         freeze_conv=False,
+        pred_activation='softmax',
         nb_outputs=1,
         ):
     """Instantiates the ResNet50 architecture.
@@ -251,8 +252,8 @@ def ResNet50_v2(
             pred_name = 'fc1000'
         base_model = Model(inputs, x, name='resnet50-base')
         toggle_trainable_layers(base_model, not freeze_conv)
-        x = Dense(nb_class, activation='softmax', name=pred_name)(x)
-        model = Model(inputs, x, name='resnet50')
+        x = Dense(nb_class, activation=pred_activation, name=pred_name)(x)
+        model = Model(inputs, x, name='resnet50-{}'.format(pred_activation))
     else:
         # Handle multiple-outputs only here.
         nb_outputs = 1 if nb_outputs <= 1 else nb_outputs
@@ -307,9 +308,9 @@ def ResNet50_v2(
     return model
 
 
-def ResNet50_first_order(nb_class, denses=[], include_top=False, **kwargs):
+def ResNet50_first_order(nb_class, denses=[], include_top=False, pred_activation='softmax', **kwargs):
     if include_top:
-        return ResNet50_v2(nb_class=nb_class, include_top=include_top, **kwargs)
+        return ResNet50_v2(nb_class=nb_class, include_top=include_top, pred_activation=pred_activation, **kwargs)
     base_model = ResNet50_v2(nb_class=nb_class, include_top=include_top, **kwargs)
     x = base_model.output
     x = Flatten(name='flatten')(x)
@@ -317,6 +318,6 @@ def ResNet50_first_order(nb_class, denses=[], include_top=False, **kwargs):
         x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind + 1)),
                   kernel_initializer='glorot_uniform')(x)
     pred_name = 'new_pred'
-    x = Dense(nb_class, activation='softmax', name=pred_name)(x)
-    model = Model(base_model.input, x, name='resnet50-fo-{}'.format(denses))
+    x = Dense(nb_class, activation=pred_activation, name=pred_name)(x)
+    model = Model(base_model.input, x, name='resnet50-fo-{}-{}'.format(denses, pred_activation))
     return model

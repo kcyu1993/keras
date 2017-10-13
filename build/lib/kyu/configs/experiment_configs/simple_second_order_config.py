@@ -525,6 +525,12 @@ def get_pv_equivalent(exp=1):
         use_gamma = True
         name = 'BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
         mode = 1
+    elif exp == 2:
+        cov_branch_output = 2048
+        use_gamma = True
+        name = 'BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
+        mode = 1
+        load_weights = 'secondorder'
     else:
         raise ValueError("exp not reg {}".format(exp))
 
