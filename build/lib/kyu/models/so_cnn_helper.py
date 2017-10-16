@@ -356,7 +356,7 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
                                   **pv_kwargs)(x)
         if batch_norm_end:
             x = Reshape((1,1, nb_class))(x)
-            x = BatchNormalization(axis=1, name='BN-end{}_{}'.format(stage, block),
+            x = BatchNormalization(axis=3, name='BN-end{}_{}'.format(stage, block),
                                    **batch_norm_kwargs)(x)
             x = Flatten()(x)
     return x
@@ -383,8 +383,10 @@ def covariance_block_pv_equivelent(input_tensor, nb_class, stage, block,
     x = GlobalSquarePooling(nb_class, name=gsp_name_base, **gsp_kwargs)(x)
     if batch_norm_end:
         print(batch_norm_kwargs)
-        x = BatchNormalization(axis=2, name='BN_{}_{}-end'.format(stage, block),
+        x = Reshape((1, 1, nb_class))(x)
+        x = BatchNormalization(axis=3, name='BN_{}_{}-end'.format(stage, block),
                                **batch_norm_kwargs)(x)
+        x = Flatten()(x)
     return x
 
 

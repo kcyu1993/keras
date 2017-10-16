@@ -156,11 +156,13 @@ def get_session():
     else:
         if _SESSION is None:
             if not os.environ.get('OMP_NUM_THREADS'):
-                config = tf.ConfigProto(allow_soft_placement=True)
+                config = tf.ConfigProto(allow_soft_placement=True,
+                                        allow_growth=True)
             else:
                 num_thread = int(os.environ.get('OMP_NUM_THREADS'))
                 config = tf.ConfigProto(intra_op_parallelism_threads=num_thread,
-                                        allow_soft_placement=True)
+                                        allow_soft_placement=True,
+                                        allow_growth=True)
             print("Keras create new session with config {}".format(config))
             _SESSION = tf.Session(config=config)
         session = _SESSION

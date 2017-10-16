@@ -108,6 +108,7 @@ class ClassificationTrainer(object):
                  logfile=None,
                  train_image_gen=None,
                  valid_image_gen=None,
+                 enable_distributed=False
                  ):
         """
 
@@ -167,6 +168,9 @@ class ClassificationTrainer(object):
         self.train_image_gen = train_image_gen
         self.valid_image_gen = valid_image_gen
 
+        # horovod distributed
+        self.enable_distributed = enable_distributed
+
     def build(self):
         """ Construct the corresponding configs to prepare running """
 
@@ -218,6 +222,20 @@ class ClassificationTrainer(object):
                                     write_images=True)
             )
 
+        # Distributed settings here:
+        if self.enable_distributed:
+            import tensorflow as tf
+            try:
+                import horovod.tensorflow as hvd
+                hvd.Init()
+            except ImportError as e:
+                raise ("Cannot import horovod {}".format(e))
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            sess = K.get_session()
+
+
+
         # Compile the model (even again)
         # For single model
         if len(self.model.outputs) == 1:
@@ -251,6 +269,8 @@ class ClassificationTrainer(object):
 
         # Log model
         self.model.summary()
+
+        # Try the horovod distributed version of stuff
 
         try:
             if self.fit_mode == 0:

@@ -16,11 +16,8 @@ def second_order(config):
     if not isinstance(config, DCovConfig):
         raise ValueError("ResNet: second-order only support DCovConfig")
 
-    compulsory = ['input_shape', 'nb_class', 'cov_branch', 'cov_branch_kwargs']
-    optional = ['concat', 'mode', 'cov_branch_output', 'name',
-                'nb_branch', 'cov_output_vectorization',
-                'upsample_method', 'last_conv_kernel', 'last_conv_feature_maps',
-                'freeze_conv', 'load_weights']
+    compulsory = DCovConfig.compulsoryArgs
+    optional = DCovConfig.optionalArgs
     if config.class_id == RESNET_SUPPORTED_MODEL[0]:
         return get_model_from_config(ResNet50_second_order, config, compulsory, optional)
     else:
@@ -41,6 +38,7 @@ def first_order(config):
     """
     if not isinstance(config, ResNetFirstOrderConfig):
         raise ValueError("ResNet first order: only support ResNetFirstOrderConfig")
+    # TODO Change to ResENtFirstConfig
     compulsory = ['nb_class', 'input_shape']
     optional = ['include_top', 'weights', 'input_tensor', 'denses', 'pooling',
                 'last_avg', 'weight_decay', 'freeze_conv']

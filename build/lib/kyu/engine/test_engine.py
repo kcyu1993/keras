@@ -9,6 +9,8 @@ from kyu.configs.model_configs import MPNConfig
 from kyu.configs.model_configs.bilinear import BilinearConfig
 from kyu.datasets.dtd import DTD
 from kyu.engine.trainer import ClassificationTrainer
+from kyu.experiment.configuration import get_running_config
+from kyu.experiment.data_train_utils import dtd_finetune_with_model
 from kyu.models import get_model
 from kyu.utils.io_utils import ProjectFile
 
@@ -64,7 +66,6 @@ def test_model_plot_function():
 
 def test_tfdbg_session():
     from tensorflow.python import debug as tfdbg
-    from kyu.theano.dtd.new_train import get_running_config, dtd_finetune_with_model
 
     model_config = MPNConfig(input_shape=(224, 224, 3),
                              nb_class=67,

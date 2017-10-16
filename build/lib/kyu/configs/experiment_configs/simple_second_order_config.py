@@ -360,7 +360,7 @@ def get_new_wv_norm_general(exp=1):
     o2t_kwargs = get_default_secondstat_args('O2T')
     pv_kwargs = get_default_secondstat_args('PV')
     batch_norm_kwargs = {'scale': True}
-
+    separate_conv_features = True
     # PV layers
     pow_norm = False
     use_gamma = True
@@ -416,9 +416,10 @@ def get_new_wv_norm_general(exp=1):
         cov_branch_output = 2048
         use_gamma = True
         parametric = [32, 256]
-        nb_branch = 2
-        name = 'BN-Cov-O2T{}-PV{}-mode1_complete-gamma{}'.\
-            format(cov_branch_output, parametric, use_gamma)
+        nb_branch = 4
+        separate_conv_features = False
+        name = 'BN-Cov-O2T{}-PV{}-mode1-gamma{}-Sep{}'.\
+            format(cov_branch_output, parametric, use_gamma, separate_conv_features)
         concat = 'sum'
         vectorization = None
         batch_norm_kwargs['scale'] = True
@@ -507,6 +508,7 @@ def get_new_wv_norm_general(exp=1):
         cov_output_vectorization='pv',
         last_conv_feature_maps=last_conv_feature_maps,
         last_conv_kernel=[1, 1],
+        separate_conv_features=separate_conv_features,
         upsample_method='conv',
     )
     return model_config
@@ -554,6 +556,12 @@ def get_pv_equivalent(exp=1):
         name = 'SC-BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
         mode = 1
         load_weights = None
+    elif exp == 4:
+        cov_branch_output = 2048
+        use_gamma = False
+        name = 'BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
+        mode = 1
+        batch_norm_end = True
     else:
         raise ValueError("exp not reg {}".format(exp))
 

@@ -32,6 +32,7 @@ def _compose_second_order_model(
         last_conv_feature_maps=[],
         last_conv_kernel=[1,1],
         upsample_method='conv',
+        separate_conv_features=True,
         # pass to the cov_branch_fn
         **kwargs
 ):
@@ -50,7 +51,10 @@ def _compose_second_order_model(
     x = upsample_wrapper_v1(x, last_conv_feature_maps, upsample_method, kernel=last_conv_kernel)
 
     if nb_branch > 1:
-        cov_input = SeparateConvolutionFeatures(nb_branch)(x)
+        if separate_conv_features:
+            cov_input = SeparateConvolutionFeatures(nb_branch)(x)
+        else:
+            cov_input = nb_branch * [x,]
     else:
         cov_input = [x]
 

@@ -14,8 +14,12 @@ class DCovConfig(ModelConfig):
                     'dense_branch_output',
                     'name',
                     'nb_branch', 'cov_output_vectorization',
-                    'upsample_method', 'last_conv_kernel', 'last_conv_feature_maps',
-                    'freeze_conv', 'load_weights',
+                    'upsample_method',
+                    'last_conv_kernel',
+                    'last_conv_feature_maps',
+                    'freeze_conv',
+                    'load_weights',
+                    'separate_conv_features',
                     'nb_outputs']
 
     def __init__(self,
@@ -38,6 +42,7 @@ class DCovConfig(ModelConfig):
                  last_conv_feature_maps=[],
                  last_conv_kernel=[1, 1],
                  upsample_method='conv',
+                 separate_conv_features=True,
                  nb_outputs=1,
                  **kwargs
                  ):
