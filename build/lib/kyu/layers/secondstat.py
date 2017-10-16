@@ -107,6 +107,8 @@ class SecondaryStatistic(Layer):
         self.dim_ordering = dim_ordering
         self.input_spec = [InputSpec(ndim=4)]
         super(SecondaryStatistic, self).__init__(**kwargs)
+        if self.use_kernel:
+            self.name += '-para'
 
     def build(self, input_shape):
         """

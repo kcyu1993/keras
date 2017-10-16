@@ -247,7 +247,7 @@ class ClassificationTrainer(object):
             # opt = tf.train.GradientDescentOptimizer(0.2)
             opt = tf.train.AdadeltaOptimizer(1.0 * hvd.size())
             opt = hvd.DistributedOptimizer(opt)
-            from kyu.tensorflow.ops.math import TFOptimizer_v2
+            from kyu.tensorflow.optimizers import TFOptimizer_v2
             self.running_config.optimizer = TFOptimizer_v2(opt)
 
         # Compile the model (even again)
