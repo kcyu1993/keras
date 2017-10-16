@@ -54,7 +54,7 @@ class SecondaryStatistic(Layer):
                  use_kernel=False,
                  kernel_initializer='ones',
                  kernel_regularizer=None,
-                 kernel_constraint=None,
+                 kernel_constraint='NonNeg',
                  alpha_initializer='ones',
                  alpha_constraint=None,
                  dim_ordering='default',
@@ -259,7 +259,9 @@ class SecondaryStatistic(Layer):
         else:
             xf_normal = xf
         if self.use_kernel:
+            # Parametric Covariance matrix computation
             tx = K.dot(xf_normal, tf.matrix_diag_part(self.kernel))
+            tx = K.batch_dot(tx, K.permute_dimensions(xf_normal, [0,2,1]))
         else:
             tx = K.batch_dot(xf_normal, K.transpose(xf_normal, [0,2,1]))
         # tx = K.sum(K.multiply(K.expand_dims(xf_normal, dim=1),
@@ -273,7 +275,7 @@ class SecondaryStatistic(Layer):
 
         if self.normalization == None:
             # cov /= (self.rows * self.cols - 1)
-            cov /= (self.rows * self.cols )
+            cov /= (self.rows * self.cols)
         cov = K.identity(cov, 'pre_cov')
         return cov, xf_mean
 

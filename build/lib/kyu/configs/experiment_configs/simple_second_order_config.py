@@ -415,10 +415,13 @@ def get_new_wv_norm_general(exp=1):
     elif exp == 8:
         cov_branch_output = 2048
         use_gamma = True
-        parametric = [128,]
-        name = 'BN-Cov-O2T-PV{}-mode1_complete-gamma{}'.\
+        parametric = [32, 256]
+        nb_branch = 2
+        name = 'BN-Cov-O2T{}-PV{}-mode1_complete-gamma{}'.\
             format(cov_branch_output, parametric, use_gamma)
-        batch_norm_kwargs['scale'] = False
+        concat = 'sum'
+        vectorization = None
+        batch_norm_kwargs['scale'] = True
     elif exp == 9:
         cov_branch_output = 2048
         use_gamma = True
@@ -432,7 +435,19 @@ def get_new_wv_norm_general(exp=1):
         normalization = False
         batch_norm_end = True
         mode = 1
-        name = 'BN-Cov-PV{}-BN-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        nb_branch = 4
+        parametric = [32, 256]
+        concat = 'sum'
+        vectorization = None
+        batch_norm_kwargs['scale'] = True
+        name = 'BN-Cov-PV{}-BN-mode1-gamma_{}-br_{}'.format(cov_branch_output, use_gamma, nb_branch)
+    elif exp == 11:
+        # Test with the new parameterized covariance layer with the simplest structure
+        cov_branch_output = 2048
+        cov_use_kernel = True
+        use_gamma = True
+        name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        mode = 1
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -440,6 +455,7 @@ def get_new_wv_norm_general(exp=1):
         cov_kwargs,
         cov_mode='channel',
         normalization='mean',
+
     )
     o2t_kwargs = update_source_dict_by_given_kwargs(
         o2t_kwargs,
@@ -463,6 +479,7 @@ def get_new_wv_norm_general(exp=1):
         gamma_initializer='ones',
         gamma_regularizer='l2',
     )
+
     model_config = NewNormWVBranchConfig(
         # For cov-branch_kwargs
         epsilon=0,
@@ -531,6 +548,12 @@ def get_pv_equivalent(exp=1):
         name = 'BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
         mode = 1
         load_weights = 'secondorder'
+    elif exp == 3:
+        cov_branch_output = 2048
+        use_gamma = True
+        name = 'SC-BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
+        mode = 1
+        load_weights = None
     else:
         raise ValueError("exp not reg {}".format(exp))
 

@@ -4,7 +4,7 @@ Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 """
 
 import keras.backend as K
-from keras.layers import Flatten, Dense, merge, MaxPooling2D, GlobalAveragePooling2D
+from keras.layers import Flatten, Dense, merge, MaxPooling2D, GlobalAveragePooling2D, Reshape, BatchNormalization
 from keras.layers.merge import add, average, concatenate
 from keras.models import Model
 from kyu.layers.secondstat import WeightedVectorization
@@ -96,6 +96,13 @@ def _compose_second_order_model(
             else:
                 pv_kwargs = {}
             x = WeightedVectorization(cov_branch_output, **pv_kwargs)(x)
+            # Judge whether attaching the batchnorm to the end
+            if cov_branch_kwargs.has_key('batch_norm_end'):
+                x = Reshape((1, 1, cov_branch_output))(x)
+                x = BatchNormalization(axis=1, name='BN-end'.format(),
+                                       **cov_branch_kwargs['batch_norm_kwargs'])(x)
+                x = Flatten()(x)
+
         elif cov_output_vectorization == 'mat_flatten':
             x = FlattenSymmetric()(x)
         else:
