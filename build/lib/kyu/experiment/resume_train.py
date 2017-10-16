@@ -13,7 +13,7 @@ Current design:
 """
 
 import glob
-
+import os
 from datetime import datetime
 
 from keras.models import model_from_json, load_model
@@ -22,7 +22,6 @@ from kyu.configs.model_configs import get_model_config_by_name, MODEL_CONFIG_CLA
 from kyu.datasets import get_dataset_by_name
 from kyu.engine.trainer import ClassificationTrainer
 from kyu.experiment.general_train import get_dirhelper, get_argparser, get_data_generator
-from kyu.layers.secondstat import get_custom_objects
 
 MODEL_FOLDER = '/cvlabdata1/home/kyu/so_updated_record/output/run/cls/ImageNet'
 TESTING_DIRECTORY = 'MPN-RESNET50-baselineMPN-Cov-baseline no normalization_2017-09-07T15:14:33'
@@ -49,6 +48,8 @@ def recover_model_from_folder(model_folder):
     -------
 
     """
+    if not os.path.exists(model_folder):
+        raise IOError("File not found ! {}".format(model_folder))
     # Check the model file exists or not
     model_file_list = glob.glob(model_folder + '/keras_model.*.hdf5')
     if len(model_file_list) > 0:

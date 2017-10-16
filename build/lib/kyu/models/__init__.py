@@ -41,3 +41,4 @@ def get_model(config):
 
     model.name = config.name
     return model
+

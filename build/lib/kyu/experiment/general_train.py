@@ -115,7 +115,12 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
 
     """
     # TODO Add the distributed to running_config if it works
-    enable_distributed = True
+    try:
+        import horovod.tensorflow as hvd
+        enable_distributed = True
+    except ImportError as e:
+        print("No hvd module, set enable_distributed to False")
+        enable_distributed = False
 
     model_config.nb_class = data.nb_class
     # Get data generator
