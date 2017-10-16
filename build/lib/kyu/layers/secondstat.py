@@ -127,8 +127,10 @@ class SecondaryStatistic(Layer):
         # Calculate covariance axis
         if self.cov_mode == 'channel' or self.cov_mode == 'mean' or self.cov_mode == 'pmean':
             self.cov_dim = self.nb_filter
+            kernel_shape = (self.rows * self.cols,)
         else:
             self.cov_dim = self.rows * self.cols
+            kernel_shape = (self.nb_filter, )
 
         # Set out_dim accordingly.
         if self.cov_mode == 'mean' or self.cov_mode == 'pmean':
@@ -146,7 +148,6 @@ class SecondaryStatistic(Layer):
             self.name += '_rb'
 
         if self.use_kernel:
-            kernel_shape = (self.cov_dim,)
             self.kernel = self.add_weight(shape=kernel_shape,
                                           name='kernel',
                                           initializer=self.kernel_initializer,
@@ -260,7 +261,7 @@ class SecondaryStatistic(Layer):
             xf_normal = xf
         if self.use_kernel:
             # Parametric Covariance matrix computation
-            tx = K.dot(xf_normal, tf.matrix_diag_part(self.kernel))
+            tx = K.dot(xf_normal, tf.matrix_diag(self.kernel))
             tx = K.batch_dot(tx, K.permute_dimensions(xf_normal, [0,2,1]))
         else:
             tx = K.batch_dot(xf_normal, K.transpose(xf_normal, [0,2,1]))

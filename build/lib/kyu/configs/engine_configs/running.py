@@ -84,7 +84,6 @@ class RunningConfig(KCConfig):
         self.nb_epoch = nb_epoch
         self.verbose = verbose
         self.lr_decay = lr_decay
-        self.lr = lr
 
         self.sequence = sequence
         self.patience = patience
@@ -97,7 +96,8 @@ class RunningConfig(KCConfig):
         self.save_per_epoch = save_per_epoch
 
         self.lr = lr
-        self.optimizer = optimizer if optimizer else SGD(lr=self.lr, momentum=0.9, decay=1e-5)
+        # self.optimizer = optimizer if optimizer else SGD(lr=float(self.lr), momentum=0.9, decay=1e-5)
+        self.optimizer = optimizer
         self.tensorboard = tensorboard
 
         self.train_image_gen_configs = train_image_gen_configs

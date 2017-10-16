@@ -114,6 +114,8 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
     -------
 
     """
+    # TODO Add the distributed to running_config if it works
+    enable_distributed = True
 
     model_config.nb_class = data.nb_class
     # Get data generator
@@ -136,8 +138,9 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
                                         save_log=True,
                                         logfile=dirhelper.get_log_path(),
                                         train_image_gen=train_image_gen,
-                                        valid_image_gen=valid_image_gen)
-
+                                        valid_image_gen=valid_image_gen,
+                                        enable_distributed=enable_distributed)
+        trainer.build()
         # trainer.model.summary()
         trainer.fit(nb_epoch=nb_epoch_finetune, verbose=running_config.verbose)
         trainer.plot_result()
@@ -154,7 +157,8 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
                                         save_log=True,
                                         logfile=dirhelper.get_log_path(),
                                         train_image_gen=train_image_gen,
-                                        valid_image_gen=valid_image_gen)
+                                        valid_image_gen=valid_image_gen,
+                                        enable_distributed=enable_distributed)
 
     else:
         raise ValueError("nb_finetune_epoch must be non-negative {}".format(nb_epoch_finetune))
@@ -173,6 +177,7 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
 
     # Set the learning rate to 1/10 of original one during the finetune process.
     running_config.optimizer = SGD(lr=running_config.lr / 10, momentum=0.9, decay=0.)
+    running_config.lr /= 10
     trainer.build()
     trainer.fit(verbose=running_config.verbose)
     trainer.plot_result()

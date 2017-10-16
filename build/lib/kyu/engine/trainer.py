@@ -170,6 +170,7 @@ class ClassificationTrainer(object):
 
         # horovod distributed
         self.enable_distributed = enable_distributed
+        self.nb_gpu = 1
 
     def build(self):
         """ Construct the corresponding configs to prepare running """
@@ -188,7 +189,8 @@ class ClassificationTrainer(object):
         if self.running_config.save_weights and self.running_config.save_per_epoch:
             self.cbks.append(ModelCheckpoint_v2(
                 filepath=self.dirhelper.get_monitor_model_save_path(),
-                verbose=1, monitor='val_acc', save_best_only=True))
+                verbose=1, monitor='val_acc', save_best_only=True,
+                save_weights_only=self.enable_distributed))
 
         # Add learning rate scheduler
         if isinstance(self.running_config.lr_decay, bool):
@@ -227,14 +229,26 @@ class ClassificationTrainer(object):
             import tensorflow as tf
             try:
                 import horovod.tensorflow as hvd
-                hvd.Init()
+                hvd.init()
             except ImportError as e:
                 raise ("Cannot import horovod {}".format(e))
             config = tf.ConfigProto()
             config.gpu_options.allow_growth = True
             sess = K.get_session()
+            config = sess._config
+            config.gpu_options.allow_growth = True
+            config.gpu_options.visible_device_list = str(hvd.local_rank())
+            K.set_session(tf.Session(config=config))
 
-
+            try:
+                self.nb_gpu = hvd.size()
+            except Exception as e:
+                raise e
+            # opt = tf.train.GradientDescentOptimizer(0.2)
+            opt = tf.train.AdadeltaOptimizer(1.0 * hvd.size())
+            opt = hvd.DistributedOptimizer(opt)
+            from kyu.tensorflow.ops.math import TFOptimizer_v2
+            self.running_config.optimizer = TFOptimizer_v2(opt)
 
         # Compile the model (even again)
         # For single model
@@ -361,6 +375,17 @@ class ClassificationTrainer(object):
         ))
         if steps_per_epoch == 0:
             steps_per_epoch = 200
+
+        if self.enable_distributed:
+            # Broadcast variables from rank 0 to all other processes.
+            try:
+                import horovod.tensorflow as hvd
+                import tensorflow as tf
+                K.get_session().run(tf.global_variables_initializer())
+                K.get_session().run(hvd.broadcast_global_variables(0))
+            except Exception as e:
+                raise e
+
         history = self.model.fit_generator(
             train,
             # samples_per_epoch=sample_per_epoch,

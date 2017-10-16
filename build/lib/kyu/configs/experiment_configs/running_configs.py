@@ -1,9 +1,5 @@
-from kyu.utils.dict_utils import create_dict_by_given_kwargs
-from kyu.utils.image import ImageDataGeneratorAdvanced
 from ..engine_configs import RunningConfig
 from tensorflow.python import debug as tfdbg
-
-from keras.optimizers import SGD
 
 
 def get_running_config_no_debug_withSGD(title='general-testing', model_config=None):

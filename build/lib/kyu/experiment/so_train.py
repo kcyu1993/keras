@@ -51,6 +51,7 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
     data = get_dataset_by_name(dataset)
     if model_config.class_id == 'alexnet':
         model_config.load_weights = None
+
     data_finetune_with_model(data,
                              model_config=model_config,
                              nb_epoch_finetune=nb_epoch_finetune,

@@ -356,18 +356,23 @@ def get_new_wv_norm_general(exp=1):
     load_weights = 'imagenet'
     mode = 1
     concat = None
-    cov_kwargs = get_default_secondstat_args('Cov')
-    o2t_kwargs = get_default_secondstat_args('O2T')
-    pv_kwargs = get_default_secondstat_args('PV')
-    batch_norm_kwargs = {'scale': True}
     separate_conv_features = True
+    cov_kwargs = get_default_secondstat_args('Cov')
+    cov_use_kernel = False
+
+    # O2t
+    o2t_kwargs = get_default_secondstat_args('O2T')
+
     # PV layers
+    pv_kwargs = get_default_secondstat_args('PV')
     pow_norm = False
     use_gamma = True
     batch_norm_end = False
     normalization = True,  # normalize to further fit Chi-square distribution
     use_bias = True,  # use bias for normalization additional
 
+    # batch norm
+    batch_norm_kwargs = {'scale': True}
     if exp == 1:
         cov_branch_output = 2048
         use_gamma = True
@@ -447,7 +452,7 @@ def get_new_wv_norm_general(exp=1):
         cov_branch_output = 2048
         cov_use_kernel = True
         use_gamma = True
-        name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        name = 'BN-Para_Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
         mode = 1
     else:
         raise ValueError("exp not reg {}".format(exp))
@@ -456,7 +461,7 @@ def get_new_wv_norm_general(exp=1):
         cov_kwargs,
         cov_mode='channel',
         normalization='mean',
-
+        use_kernel=cov_use_kernel,
     )
     o2t_kwargs = update_source_dict_by_given_kwargs(
         o2t_kwargs,
