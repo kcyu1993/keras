@@ -102,7 +102,7 @@ class DTD(ClassificationImageData):
         # Construct the image label list
         self.build_image_label_lists()
         self.train_image_gen_configs = create_dict_by_given_kwargs(
-            rescaleshortedgeto=(244, 296), random_crop=True, horizontal_flip=True)
+            rescaleshortedgeto=[244, 296], random_crop=True, horizontal_flip=True)
         self.valid_image_gen_configs = create_dict_by_given_kwargs(
             rescaleshortedgeto=256, random_crop=False, horizontal_flip=True)
 

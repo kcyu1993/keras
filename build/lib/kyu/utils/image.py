@@ -12,6 +12,21 @@ from kyu.utils.imagenet_utils import preprocess_image_for_imagenet_without_chann
     preprocess_image_for_imagenet_of_densenet, preprocess_image_for_imagenet
 
 
+def correct_rescale_short_with_target_size(rescaleshortedgeto, target_size):
+    if isinstance(rescaleshortedgeto, int):
+        while rescaleshortedgeto < min(*target_size):
+            rescaleshortedgeto *= 2
+    elif isinstance(rescaleshortedgeto, list):
+        while max(rescaleshortedgeto) < min(*target_size):
+            for i in range(len(rescaleshortedgeto)):
+                rescaleshortedgeto[i] *= 2
+    else:
+        raise ValueError("Rescaleshortedge cannot accept {}".
+                         format(type(rescaleshortedgeto)))
+    print('ImageGeneratorAdvanced: rescaleto {}'.format(rescaleshortedgeto))
+    return rescaleshortedgeto
+
+
 def crop(x, center_x, center_y, ratio=.23, channel_index=0):
     """
 
@@ -189,7 +204,7 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
     @classmethod
     def get_default_train_config(cls):
         return create_dict_by_given_kwargs(
-            rescaleshortedgeto=(256, 296), random_crop=True, horizontal_flip=True)
+            rescaleshortedgeto=[256, 296], random_crop=True, horizontal_flip=True)
 
     @classmethod
     def get_default_valid_config(cls):
@@ -211,10 +226,12 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
         random_crop
         kwargs
         """
-        self.random_crop = random_crop
-        self.rescaleshortedgeto = rescaleshortedgeto
-        self.target_size = target_size
         super(ImageDataGeneratorAdvanced, self).__init__(**kwargs)
+        self.random_crop = random_crop
+        self.target_size = target_size
+
+        self.rescaleshortedgeto = correct_rescale_short_with_target_size(rescaleshortedgeto,
+                                                                         self.target_size)
 
     def advancedoperation(self, x, data_format='default'):
         """

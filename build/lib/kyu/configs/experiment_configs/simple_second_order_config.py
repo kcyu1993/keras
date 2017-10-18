@@ -348,6 +348,7 @@ def get_wv_norm_config(exp):
 
 def get_new_wv_norm_general(exp=1):
     cov_branch_output = 1024
+    batch_size = 32
     dense_branch_output = None
     last_conv_feature_maps = [256]
     parametric = []
@@ -368,15 +369,18 @@ def get_new_wv_norm_general(exp=1):
     pow_norm = False
     use_gamma = True
     batch_norm_end = False
-    normalization = True,  # normalize to further fit Chi-square distribution
-    use_bias = True,  # use bias for normalization additional
+    normalization = True  # normalize to further fit Chi-square distribution
+    use_bias = True  # use bias for normalization additional
+    input_shape = (224, 224, 3)
+
 
     # batch norm
     batch_norm_kwargs = {'scale': True}
     if exp == 1:
         cov_branch_output = 2048
         use_gamma = True
-        name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        normalization = True
+        name = 'BN-Cov-PV{}-mode1_complete-gamma{}-norm{}'.format(cov_branch_output, use_gamma, normalization)
         mode = 1
     elif exp == 2:
         use_gamma = False
@@ -419,9 +423,9 @@ def get_new_wv_norm_general(exp=1):
         batch_norm_kwargs['scale'] = False
     elif exp == 8:
         cov_branch_output = 2048
-        use_gamma = True
+        use_gamma = False
         parametric = [32, 256]
-        nb_branch = 4
+        nb_branch = 8
         separate_conv_features = False
         name = 'BN-Cov-O2T{}-PV{}-mode1-gamma{}-Sep{}'.\
             format(cov_branch_output, parametric, use_gamma, separate_conv_features)
@@ -452,8 +456,31 @@ def get_new_wv_norm_general(exp=1):
         cov_branch_output = 2048
         cov_use_kernel = True
         use_gamma = True
+        normalization = True
+        use_bias = True
+
         name = 'BN-Para_Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
         mode = 1
+
+    elif exp == 12:
+        cov_branch_output = 2048
+        use_gamma = False
+        name = 'BN-Cov-PV_gamma{}-BN'. \
+            format(cov_branch_output, use_gamma)
+        normalization = True
+        batch_norm_end = True
+        batch_norm_kwargs['scale'] = True
+
+    elif exp == 13:
+        cov_branch_output = 2048
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        name = 'BN-Cov-PV{}_final-BN'.format(cov_branch_output)
+        input_shape = (448, 448, 3)
+        batch_size = 16
+
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -499,7 +526,7 @@ def get_new_wv_norm_general(exp=1):
         o2t_kwargs=o2t_kwargs,
         pv_kwargs=pv_kwargs,
         # Other
-        input_shape=(224, 224, 3),
+        input_shape=input_shape,
         nb_class=67,
         class_id=None,  # Not set here.
         # configs for _compose_second_order_things
@@ -515,12 +542,14 @@ def get_new_wv_norm_general(exp=1):
         last_conv_kernel=[1, 1],
         separate_conv_features=separate_conv_features,
         upsample_method='conv',
+        batch_size=batch_size,
     )
     return model_config
 
 
 def get_pv_equivalent(exp=1):
     cov_branch_output = 1024
+    batch_size = 32
     last_conv_feature_maps = [256]
     load_weights = 'imagenet'
     from keras.layers import Conv2D
@@ -529,7 +558,7 @@ def get_pv_equivalent(exp=1):
         padding='valid',
         data_format=None,
         dilation_rate=(1, 1),
-        activation=None,
+        activation='linear',
         use_bias=True,
         kernel_initializer='glorot_uniform',
         bias_initializer='zeros',
@@ -539,11 +568,15 @@ def get_pv_equivalent(exp=1):
         kernel_constraint=None,
         bias_constraint=None,
     )
+    use_bias = True
+
     gsp_kwargs = get_default_secondstat_args('GlobalSquarePooling')
+    output_sqrt = False
+    use_gamma = True
+    gsp_use_bias = True
     batch_norm_kwargs = {'scale': True}
     nb_branch = 1
     batch_norm_end = False
-    use_gamma = True
     if exp == 1:
         cov_branch_output = 2048
         use_gamma = True
@@ -563,39 +596,48 @@ def get_pv_equivalent(exp=1):
         load_weights = None
     elif exp == 4:
         cov_branch_output = 2048
-        use_gamma = False
-        name = 'BN-1x1_{}-GSP-useGamme_{}'.format(cov_branch_output, use_gamma)
+        name = 'BN-1x1_{}-GSP-FC_mode1-gsplayer'.format(cov_branch_output, use_gamma)
         mode = 1
-        batch_norm_end = True
+
+        # GSP layer
+        use_gamma = True
+        gsp_use_bias = True
+        batch_norm_end = False
+        output_sqrt = True
+
+        # Conv layer
+        use_bias = False
+    elif exp == 5:
+        cov_branch_output = 2048
+        name = 'BN-1x1_{}-GSP-FC_mode1-convlayer'.format(cov_branch_output, use_gamma)
+        mode = 1
+
+        # GSP layer
+        use_gamma = True
+        gsp_use_bias = True
+        batch_norm_end = False
+        output_sqrt = True
+
+        # Conv layer
+        use_bias = True
+
     else:
         raise ValueError("exp not reg {}".format(exp))
 
     conv_kwargs = update_source_dict_by_given_kwargs(
         conv_kwargs,
-        strides=(1, 1),
-        padding='valid',
-        data_format=None,
-        dilation_rate=(1, 1),
-        activation=None,
-        use_bias=True,
-        kernel_initializer='glorot_uniform',
-        bias_initializer='zeros',
-        kernel_regularizer=None,
-        bias_regularizer=None,
-        activity_regularizer=None,
-        kernel_constraint=None,
-        bias_constraint=None,
+        use_bias=use_bias
     )
 
     gsp_kwargs = update_source_dict_by_given_kwargs(
         gsp_kwargs,
         activation='linear',
-        output_sqrt=False,  # Normalization
+        output_sqrt=output_sqrt,  # Normalization
         normalization=False,  # normalize to further fit Chi-square distribution
         # kernel_initializer='glorot_uniform',
         # kernel_constraint=None,
         # kernel_regularizer=None,
-        use_bias=False,  # use bias for normalization additional
+        use_bias=gsp_use_bias,  # use bias for normalization additional
         bias_initializer='zeros',
         bias_regularizer=None,
         bias_constraint=None,

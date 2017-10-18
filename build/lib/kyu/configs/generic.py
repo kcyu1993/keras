@@ -1,5 +1,6 @@
 import os
 from configobj import ConfigObj
+from kyu.utils.dict_utils import load_dict, save_dict
 
 
 class KCConfig(object):
@@ -25,9 +26,34 @@ class KCConfig(object):
 
             config.write(f)
 
+            # export_dict = self.__dict__
+            # # Remove some parts
+            # remove_keywords = ['self', 'kwargs']
+            # for key in remove_keywords:
+            #     if key in export_dict.keys():
+            #         del export_dict[key]
+            # save_dict(export_dict, outfile)
+
     @classmethod
     def load_config_from_file(cls, infile):
-        config = ConfigObj(infile, raise_errors=True)
+        config = ConfigObj(infile, raise_errors=True, interpolation=True)
+        # config = load_dict(infile)
         if 'self' in config.keys():
             del config['self']
-        return cls(**config.dict())
+        res_dict = load_str_dict_to_original_type(**config)
+        return cls(**res_dict)
+
+
+def load_str_dict_to_original_type(source_dict):
+    import ast
+    for key, value in source_dict.items():
+        if key == 'comments':
+            continue
+
+        if isinstance(value, str):
+            if value[0] == '<':
+                del source_dict[key]
+                continue
+            source_dict[key] = ast.literal_eval(value)
+    return source_dict
+

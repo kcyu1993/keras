@@ -226,7 +226,8 @@ class ClassificationImageData(ImageData):
         if image_data_generator is None:
             image_data_generator = self.image_data_generator
         if target_size is None:
-            target_size = self.target_size
+            target_size = image_data_generator.target_size \
+                if hasattr(image_data_generator, 'target_size') else self.target_size
         if batch_size is None:
             batch_size = self.batch_size
 
@@ -290,6 +291,17 @@ class ClassificationImageData(ImageData):
         return image_list, np.asanyarray(label_list)
 
     def _load_dict_from_txt(self, path, decode=None):
+        """
+
+        Parameters
+        ----------
+        path
+        decode : func(str)  decode each line of txt into the name of it.
+
+        Returns
+        -------
+
+        """
         if path is None:
             path = self.category_path
         with open(self.category_path, 'r') as f:

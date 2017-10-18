@@ -127,7 +127,7 @@ class SUN397_v2(ClassificationImageData):
         super(SUN397_v2, self).__init__(dirpath, image_dir, category, name='SUN397')
         self.build_image_label_lists()
         self.train_image_gen_configs = create_dict_by_given_kwargs(
-            rescaleshortedgeto=(256, 296), random_crop=True, horizontal_flip=True)
+            rescaleshortedgeto=[256, 296], random_crop=True, horizontal_flip=True)
         self.valid_image_gen_configs = create_dict_by_given_kwargs(
             rescaleshortedgeto=256, random_crop=False, horizontal_flip=True)
 

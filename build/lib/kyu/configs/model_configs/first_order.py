@@ -5,7 +5,7 @@ from kyu.configs.engine_configs import ModelConfig
 
 class FirstOrderModelConfig(ModelConfig):
     def __init__(self,
-                 nb_classes, input_shape,
+                 nb_class, input_shape,
                  denses=[],
                  input_tensor=None,
                  weights='imagenet',
@@ -26,7 +26,7 @@ class AlexNetFirstOrderConfig(ModelConfig):
     optional = ['denses', 'input_tensor', 'weights', 'include_top', 'last_pooling', 'freeze_conv']
 
     def __init__(self,
-                 nb_classes, input_shape,
+                 nb_class, input_shape,
                  denses=[],
                  input_tensor=None,
                  weights='imagenet',
@@ -37,14 +37,20 @@ class AlexNetFirstOrderConfig(ModelConfig):
                  ):
         class_id = 'alexnet'
         model_id = 'first_order'
+        del kwargs['model_id']
+        del kwargs['class_id']
+        if kwargs.has_key('nb_classes'):
+            nb_class = kwargs['nb_classes']
+            del kwargs['nb_classes']
         super(AlexNetFirstOrderConfig, self).__init__(class_id, model_id, **kwargs)
         self.__dict__.update(locals())
         self.batch_size = 128
 
-class VggFirstOrderConfig(ModelConfig):
 
+class VggFirstOrderConfig(ModelConfig):
+    # TODO Fix nb-class
     def __init__(self,
-                 nb_classes, input_shape,
+                 nb_class, input_shape,
                  denses=[],
                  input_tensor=None,
                  weights='imagenet',

@@ -3,14 +3,20 @@ import argparse
 from keras.layers import Conv2D, BatchNormalization
 from keras.optimizers import SGD
 from kyu.engine.trainer import ClassificationTrainer
+from kyu.engine.utils.callbacks import TensorBoardWrapper
 from kyu.models import get_model
+from kyu.models.so_cnn_helper import get_tensorboard_layer_name_keys
 from kyu.utils.image import get_vgg_image_gen, get_resnet_image_gen, get_densenet_image_gen
 from kyu.utils.io_utils import ProjectFile
 
 
 def get_dirhelper(dataset_name, model_category, **kwargs):
-    return ProjectFile(root_path='/home/kyu/cvkyu/so_updated_record', dataset=dataset_name, model_category=model_category,
+    """ Finalize the experiments with different datasets """
+    return ProjectFile(root_path='/home/kyu/cvkyu/secondstat_final',
+                       dataset=dataset_name,
+                       model_category=model_category,
                        **kwargs)
+
 
 def get_debug_dirhelper(dataset_name, model_category, **kwargs):
     return ProjectFile(root_path='/home/kyu/cvkyu/debug_secondstat', dataset=dataset_name, model_category=model_category,
@@ -131,7 +137,44 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
 
     train_image_gen = get_data_generator(model_config, data, mode='train')
     valid_image_gen = get_data_generator(model_config, data, mode='valid')
-    dirhelper.build(running_config.title + model_config.name)
+
+    # Build the id.
+    dirhelper.build([running_config.title + model_config.name, running_config.comments.replace(' ', '-')])
+
+    # Add support for tensorboard validation
+    if data.use_validation:
+        valid = data.get_valid(batch_size=running_config.batch_size,
+                               target_size=model_config.target_size,
+                               image_data_generator=valid_image_gen)
+    else:
+        valid = data.get_test(batch_size=running_config.batch_size,
+                              target_size=model_config.target_size,
+                              image_data_generator=valid_image_gen)
+    if running_config.tensorboard:
+        # Replace the binary tensorboard to this.
+        running_config.tensorboard = TensorBoardWrapper(
+            batch_gen=valid, nb_steps=20,
+            # watch_layer_keys=get_tensorboard_layer_name_keys(),
+            log_dir=dirhelper.get_tensorboard_path(),
+            histogram_freq=1,
+            batch_size=running_config.batch_size,
+            # write_graph=True,
+            # write_grads=True,
+            # write_images=True
+            write_output_image=True
+        )
+    else:
+        # Get the simple tensorboard
+        running_config.tensorboard = TensorBoardWrapper(
+            batch_gen=valid, nb_steps=20,
+            # watch_layer_keys=get_tensorboard_layer_name_keys(),
+            log_dir=dirhelper.get_tensorboard_path(),
+            histogram_freq=1,
+            batch_size=running_config.batch_size,
+            # write_graph=True,
+            # write_grads=True,
+            # write_images=True
+        )
 
     if nb_epoch_finetune > 0:
         # model_config2 = copy.copy(model_config)
@@ -176,7 +219,9 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
     # trainer.model.summary()
     if nb_epoch_finetune > 0:
         # Evaluate before proceed.
-        test_data = data.get_test()
+        test_data = data.get_test(batch_size=running_config.batch_size,
+                                  target_size=model_config.target_size,
+                                  image_data_generator=valid_image_gen)
         history = trainer.model.evaluate_generator(test_data, steps=test_data.n / running_config.batch_size)
         print("evaluation before re-training loss {} acc {}".format(history[0], history[1]))
 
@@ -184,7 +229,8 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
     running_config.optimizer = SGD(lr=running_config.lr / 10, momentum=0.9, decay=0.)
     running_config.lr /= 10
     trainer.build()
-    trainer.fit(verbose=running_config.verbose)
+    trainer.fit(verbose=running_config.verbose,
+                initial_epoch=None if nb_epoch_finetune == 0 else nb_epoch_finetune)
     trainer.plot_result()
 
 

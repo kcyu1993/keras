@@ -792,6 +792,7 @@ class WeightedVectorization(Layer):
                  gamma_regularizer='l2',
                  gamma_constraint=None,
                  activation_regularizer=None,
+                 batch_norm_moving_variance=None,
                  **kwargs):
 
         # self parameters
@@ -821,6 +822,9 @@ class WeightedVectorization(Layer):
         self.gamma_initializer = initializers.get(gamma_initializer)
         self.gamma_constraint = constraints.get(gamma_constraint)
         self.gamma_regularizer = regularizers.get(gamma_regularizer)
+
+        # Pass the moving variance into this matrix.
+        self.batch_norm_moving_variance = batch_norm_moving_variance
 
         self.activation = activations.get(activation)
         super(WeightedVectorization, self).__init__(**kwargs)
@@ -884,11 +888,20 @@ class WeightedVectorization(Layer):
 
         if self.normalization:
             # make kernel
-            output /= K.sum(K.pow(self.kernel, 2), axis=0)
+            if self.batch_norm_moving_variance:
+                variance = K.sum((self.kernel *
+                                  K.dot(tf.matrix_diag(self.batch_norm_moving_variance),
+                                        self.kernel)),
+                                 axis=0)
+                output /= variance
+            else:
+                # output /= K.sum(K.pow(self.kernel, 2), axis=0)
+                raise NotImplementedError("You should only use batch norm moving variance to norm it")
 
         if self.output_sqrt:
             from kyu.tensorflow.ops import safe_sign_sqrt
-            output = safe_sign_sqrt(output)
+            output = safe_sign_sqrt(2 * output)
+
         if self.use_gamma:
             output *= self.gamma
 

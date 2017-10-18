@@ -13,6 +13,10 @@ from kyu.legacy.so_cnn_helper import covariance_block_multi_o2t, covariance_bloc
 from kyu.tensorflow.ops.normalization import SecondOrderBatchNormalization
 
 
+def get_tensorboard_layer_name_keys():
+    return ['cov', 'o2t', 'pv', '1x1', 'bn-', 'last_bn', 'pow', ]
+
+
 def get_cov_name_base(stage, block, epsilon):
     if epsilon > 0:
         cov_name_base = 'cov-{}-br_{}-eps_{}'.format(str(stage), block, epsilon)
@@ -334,8 +338,9 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
     x = input_tensor
     if batch_norm:
         print(batch_norm_kwargs)
-        x = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block),
-                               **batch_norm_kwargs)(x)
+        batch_norm_layer = BatchNormalization(axis=3, name='last_BN_{}_{}'.format(stage, block),
+                                              **batch_norm_kwargs)
+        x = batch_norm_layer(x)
 
     with tf.name_scope(cov_name_base):
         x = SecondaryStatistic(name=cov_name_base,
@@ -351,6 +356,7 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
                             **o2t_kwargs
                             )(x)
     if vectorization == 'pv' or vectorization == 'wv':
+        pv_kwargs['batch_norm_moving_variance'] = batch_norm_layer.moving_variance if batch_norm else None
         x = WeightedVectorization(nb_class,
                                   name=wp_name_base,
                                   **pv_kwargs)(x)

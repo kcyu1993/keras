@@ -43,7 +43,7 @@ from keras.preprocessing.image import Iterator
 from kyu.configs.engine_configs import ModelConfig
 from kyu.configs.engine_configs import RunningConfig
 from kyu.configs.generic import KCConfig
-from kyu.engine.utils.callbacks import ModifiedTensorBoard
+from kyu.engine.utils.callbacks import ModifiedTensorBoard, TensorBoardWrapper
 from kyu.engine.utils.data_utils import ClassificationImageData
 from kyu.utils.callback import ReduceLROnDemand, ModelCheckpoint_v2
 from kyu.utils.io_utils import ProjectFile, cpickle_load, cpickle_save
@@ -221,8 +221,11 @@ class ClassificationTrainer(object):
                                     batch_size=self.running_config.batch_size,
                                     write_graph=True,
                                     write_grads=True,
-                                    write_images=True)
+                                    write_images=True
+                                    )
             )
+        else:
+            pass
 
         # Distributed settings here:
         if self.enable_distributed:
@@ -245,15 +248,17 @@ class ClassificationTrainer(object):
             except Exception as e:
                 raise e
             # opt = tf.train.GradientDescentOptimizer(0.2)
-            opt = tf.train.AdadeltaOptimizer(1.0 * hvd.size())
+            opt = tf.train.MomentumOptimizer(self.running_config.lr, momentum=0.95)
             opt = hvd.DistributedOptimizer(opt)
             from kyu.tensorflow.optimizers import TFOptimizer_v2
             self.running_config.optimizer = TFOptimizer_v2(opt)
+            self.running_config.optimizer.lr = K.variable(self.running_config.lr)
 
         # Compile the model (even again)
         # For single model
         if len(self.model.outputs) == 1:
-            self.model.compile(optimizer=self.running_config.optimizer, loss=categorical_crossentropy,
+            self.model.compile(optimizer=self.running_config.optimizer,
+                               loss=categorical_crossentropy,
                                metrics=['accuracy', top_k_categorical_accuracy])
         else:
             # Create the loss
@@ -282,7 +287,8 @@ class ClassificationTrainer(object):
             sys.stdout = self.stdout.open()
 
         # Log model
-        self.model.summary()
+        if initial_epoch is None:
+            self.model.summary()
 
         # Try the horovod distributed version of stuff
 

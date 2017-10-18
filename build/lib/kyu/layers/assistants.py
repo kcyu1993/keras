@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-import keras.backend as K
 from keras import backend as K
 from keras.engine import Layer, InputSpec
 from keras.layers import BatchNormalization

@@ -5,6 +5,7 @@ from kyu.configs.engine_configs.running import wrap_running_config
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD
 from kyu.configs.experiment_configs import simple_second_order_config as SOConfig
 from kyu.datasets import get_dataset_by_name
+from kyu.engine.utils.callbacks import TensorBoardWrapper
 from kyu.experiment.data_train_utils import dtd_finetune_with_model, minc_finetune_with_model, sun_finetune_with_model, \
     mit_finetune_with_model, imagenet_finetune_with_model, data_finetune_with_model
 from kyu.experiment.general_train import get_argparser
@@ -34,6 +35,7 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
     -------
 
     """
+
     dataset = str(dataset).lower()
     model_config = model_exp_fn(model_exp)
     model_config.class_id = model_class

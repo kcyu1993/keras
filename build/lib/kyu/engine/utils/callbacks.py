@@ -1,9 +1,180 @@
 import os
 
 from tensorflow.contrib.tensorboard.plugins import projector
-from keras.callbacks import Callback
+from keras.callbacks import Callback, TensorBoard
 import tensorflow as tf
 import keras.backend as K
+import numpy as np
+
+
+class TensorBoardWrapper(TensorBoard):
+    '''
+    From issue: https://github.com/fchollet/keras/issues/3358
+    Sets the self.validation_data property for use with TensorBoard callback.
+    '''
+
+    def __init__(self,
+                 batch_gen, nb_steps,
+                 watch_layer_keys=[''],
+                 write_output_image=False,
+                 **kwargs):
+        super(TensorBoardWrapper, self).__init__(**kwargs)
+        self.batch_gen = batch_gen # The generator.
+        self.nb_steps = nb_steps   # Number of times to call next() on the generator.
+        self.watch_layer_keys = watch_layer_keys # Watch layer keys
+        self.write_output_image = write_output_image
+
+    def set_model(self, model):
+        self.model = model
+        self.sess = K.get_session()
+        if self.histogram_freq and self.merged is None:
+            for layer in self.model.layers:
+
+                for weight in layer.weights:
+                    mapped_weight_name = weight.name.replace(':', '_')
+                    tf.summary.histogram(mapped_weight_name, weight)
+                    if not any(key in layer.name.lower() for key in self.watch_layer_keys):
+                        continue
+                    # print("Log layer {} weights".format(layer.name))
+                    if self.write_grads:
+                        grads = model.optimizer.get_gradients(model.total_loss,
+                                                              weight)
+
+                        def is_indexed_slices(grad):
+                            return type(grad).__name__ == 'IndexedSlices'
+
+                        grads = [
+                            grad.values if is_indexed_slices(grad) else grad
+                            for grad in grads]
+                        tf.summary.histogram('{}_grad'.format(mapped_weight_name), grads)
+                    if self.write_images:
+                        w_img = tf.squeeze(weight)
+                        shape = K.int_shape(w_img)
+                        if len(shape) == 2:  # dense layer kernel case
+                            if shape[0] > shape[1]:
+                                w_img = tf.transpose(w_img)
+                                shape = K.int_shape(w_img)
+                            w_img = tf.reshape(w_img, [1,
+                                                       shape[0],
+                                                       shape[1],
+                                                       1])
+                        elif len(shape) == 3:  # convnet case
+                            if K.image_data_format() == 'channels_last':
+                                # switch to channels_first to display
+                                # every kernel as a separate image
+                                w_img = tf.transpose(w_img, perm=[2, 0, 1])
+                                shape = K.int_shape(w_img)
+                            w_img = tf.reshape(w_img, [shape[0],
+                                                       shape[1],
+                                                       shape[2],
+                                                       1])
+                        elif len(shape) == 1:  # bias case
+                            w_img = tf.reshape(w_img, [1,
+                                                       1,
+                                                       shape[0],
+                                                       1])
+                        else:
+                            # not possible to handle 3D convnets etc.
+                            continue
+
+                        shape = K.int_shape(w_img)
+                        assert len(shape) == 4 and shape[-1] in [1, 3, 4]
+                        tf.summary.image(mapped_weight_name, w_img)
+
+                if hasattr(layer, 'output'):
+                    tf.summary.histogram('{}_out'.format(layer.name),
+                                         layer.output)
+                    if self.write_output_image:
+                        o_img = layer.output
+                        shape = K.int_shape(o_img)
+                        if len(shape) == 2: # Dense layer output
+                            o_img = tf.reshape(o_img, [-1,
+                                                       shape[1],
+                                                       1,
+                                                       1])
+                        elif len(shape) == 3: # Covariance's type of output
+                            if shape[1] > shape[2]:
+                                o_img = tf.transpose(o_img, perm=[0,2,1])
+                                shape = K.int_shape(o_img)
+                            o_img = tf.reshape(o_img, [-1,
+                                                       shape[1],
+                                                       shape[2],
+                                                       1])
+                        elif len(shape) == 4: # Conv output kernel
+                            if shape[-1] in [1, 3, 4]:
+                                # no need to transform based on this requirement
+                                continue
+                            if K.image_data_format() == 'channels_last':
+                                o_img = tf.transpose(o_img, perm=[0, 3, 1, 2])
+                            shape = K.int_shape(o_img)
+                            o_img = tf.reshape(o_img, [-1,
+                                                       shape[2],
+                                                       shape[3],
+                                                       1])
+
+                        else:
+                            continue
+                        shape = K.int_shape(o_img)
+                        assert len(shape) == 4 and shape[-1] in [1, 3, 4]
+                        tf.summary.image('{}_out'.format(layer.name), o_img)
+
+        self.merged = tf.summary.merge_all()
+
+        if self.write_graph:
+            self.writer = tf.summary.FileWriter(self.log_dir,
+                                                self.sess.graph)
+        else:
+            self.writer = tf.summary.FileWriter(self.log_dir)
+
+        if self.embeddings_freq:
+            embeddings_layer_names = self.embeddings_layer_names
+
+            if not embeddings_layer_names:
+                embeddings_layer_names = [layer.name for layer in self.model.layers
+                                          if type(layer).__name__ == 'Embedding']
+
+            embeddings = {layer.name: layer.weights[0]
+                          for layer in self.model.layers
+                          if layer.name in embeddings_layer_names}
+
+            self.saver = tf.train.Saver(list(embeddings.values()))
+
+            embeddings_metadata = {}
+
+            if not isinstance(self.embeddings_metadata, str):
+                embeddings_metadata = self.embeddings_metadata
+            else:
+                embeddings_metadata = {layer_name: self.embeddings_metadata
+                                       for layer_name in embeddings.keys()}
+
+            config = projector.ProjectorConfig()
+            self.embeddings_ckpt_path = os.path.join(self.log_dir,
+                                                     'keras_embedding.ckpt')
+
+            for layer_name, tensor in embeddings.items():
+                embedding = config.embeddings.add()
+                embedding.tensor_name = tensor.name
+
+                if layer_name in embeddings_metadata:
+                    embedding.metadata_path = embeddings_metadata[layer_name]
+
+            projector.visualize_embeddings(self.writer, config)
+
+
+    def on_epoch_end(self, epoch, logs=None):
+        # Fill in the `validation_data` property. Obviously this is specific to how your generator works.
+        # Below is an example that yields images and classification tags.
+        # After it's filled in, the regular on_epoch_end method has access to the validation_data.
+        imgs, tags = None, None
+        for s in range(self.nb_steps):
+            ib, tb = next(self.batch_gen)
+            if imgs is None and tags is None:
+                imgs = np.zeros(((self.nb_steps * ib.shape[0],) + ib.shape[1:]), dtype=np.float32)
+                tags = np.zeros(((self.nb_steps * tb.shape[0],) + tb.shape[1:]), dtype=np.uint8)
+            imgs[s * ib.shape[0]:(s + 1) * ib.shape[0]] = ib
+            tags[s * tb.shape[0]:(s + 1) * tb.shape[0]] = tb
+        self.validation_data = [imgs, tags, np.ones(imgs.shape[0]), 0.0]
+        return super(TensorBoardWrapper, self).on_epoch_end(epoch, logs)
 
 
 class ModifiedTensorBoard(Callback):

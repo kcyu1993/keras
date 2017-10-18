@@ -1,5 +1,6 @@
 from dtd import DTD
 from kyu.configs.dataset_config import DatasetConfig
+from cub import CUB
 from sun import SUN397_v2 as SUN397
 from imagenet import ImageNetData as ImageNet
 from minc import Minc2500_v2 as Minc2500
@@ -64,6 +65,10 @@ def get_dataset(config):
         config.dirpath = config.dirpath if config.dirpath is not None \
             else '/home/kyu/.keras/datasets/chest-xray14'
         dataset = ChestXray14(config.dirpath)
+    elif identifier in ['cub', 'cub2001', 'cub200']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/cub/CUB_200_2011'
+        dataset = CUB(config.dirpath)
     else:
         raise ValueError("Dataset Name Not recognized {}".format(identifier))
 

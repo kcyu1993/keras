@@ -103,7 +103,7 @@ def _compose_second_order_model(
             # Judge whether attaching the batchnorm to the end
             if cov_branch_kwargs.has_key('batch_norm_end'):
                 x = Reshape((1, 1, cov_branch_output))(x)
-                x = BatchNormalization(axis=1, name='BN-end'.format(),
+                x = BatchNormalization(axis=3, name='BN-end'.format(),
                                        **cov_branch_kwargs['batch_norm_kwargs'])(x)
                 x = Flatten()(x)
 

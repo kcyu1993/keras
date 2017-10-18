@@ -17,15 +17,17 @@ class ModelConfig(KCConfig):
                  input_shape=(224, 224, 3),
                  nb_outputs=1,       # Add support for multiple losses implementation
                  loss_weights=[1.0,],  # weights passed in
-                 name=None):
+                 name=None,
+                 batch_size=32):
         self.class_id = class_id
         self.model_id = model_id
         self.input_shape = input_shape
-        self.nb_outputs = nb_outputs
+        self.nb_outputs = int(nb_outputs)
         if len(loss_weights) < self.nb_outputs:
             loss_weights = [1.0, ] + (nb_outputs - 1) * [0.2, ]
         self.loss_weights = loss_weights
         self.name = name
+        self.batch_size = batch_size
 
     @property
     def target_size(self):

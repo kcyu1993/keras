@@ -3,7 +3,8 @@ from tensorflow.python import debug as tfdbg
 
 
 def get_running_config_no_debug_withSGD(title='general-testing', model_config=None):
-    return RunningConfig(
+
+    config = RunningConfig(
         _title=title,
         nb_epoch=150,
         batch_size=getattr(model_config,'batch_size') if hasattr(model_config, 'batch_size') else 32,
@@ -27,6 +28,4 @@ def get_running_config_no_debug_withSGD(title='general-testing', model_config=No
         tf_debug_filters_func=[tfdbg.has_inf_or_nan,],
         tf_debug_filters_name=['has_inf_or_nan',],
     )
-
-
-
+    return config

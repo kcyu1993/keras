@@ -29,14 +29,15 @@ class TmpMinc(ClassificationImageData):
 class Minc2500_v2(ClassificationImageData):
     """ Define the classification data for minc 2500 """
 
-    def __init__(self, dirpath='', category='categories.txt', image_dir=None, label_dirs='labels', **kwargs):
+    def __init__(self, dirpath='', category='categories.txt',
+                 image_dir=None, label_dirs='labels', **kwargs):
         # self.root_folder = dirpath
         super(Minc2500_v2, self).__init__(root_folder=dirpath, image_dir=image_dir,
                                           category=category, name='Minc2500', **kwargs)
         self.label_dir = os.path.join(self.root_folder, label_dirs)
         self.build_image_label_lists()
         self.train_image_gen_configs = create_dict_by_given_kwargs(
-            rescaleshortedgeto=(256, 296), random_crop=True, horizontal_flip=True)
+            rescaleshortedgeto=[256, 296], random_crop=True, horizontal_flip=True)
         self.valid_image_gen_configs = create_dict_by_given_kwargs(
             rescaleshortedgeto=296, random_crop=False, horizontal_flip=True)
 

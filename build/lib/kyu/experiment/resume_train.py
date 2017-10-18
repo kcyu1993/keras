@@ -22,6 +22,7 @@ from kyu.configs.model_configs import get_model_config_by_name, MODEL_CONFIG_CLA
 from kyu.datasets import get_dataset_by_name
 from kyu.engine.trainer import ClassificationTrainer
 from kyu.experiment.general_train import get_dirhelper, get_argparser, get_data_generator
+from kyu.layers import get_custom_objects
 
 MODEL_FOLDER = '/cvlabdata1/home/kyu/so_updated_record/output/run/cls/ImageNet'
 TESTING_DIRECTORY = 'MPN-RESNET50-baselineMPN-Cov-baseline no normalization_2017-09-07T15:14:33'
@@ -31,7 +32,7 @@ def recover_model_from_model_file(model_file):
     model = load_model(model_file, custom_objects=get_custom_objects())
     # decode the running epoch number
     filename = model_file.split('/')[-1]
-    epoch = int(filename.split('.')[0].split('-')[0])
+    epoch = int(filename.split('-')[0].split('.')[1])
     return model, epoch
 
 
@@ -75,12 +76,12 @@ def recover_model_from_folder(model_folder):
 
 def recover_running_config(model_folder):
     run_config_path = glob.glob(model_folder + '/*run.config')
-    return RunningConfig.load_config_from_file(run_config_path)
+    return RunningConfig.load_config_from_file(run_config_path[0])
 
 
 def recover_model_config(model_folder, model_config_cls):
     model_config_path = glob.glob(model_folder + '/*model.config')
-    return model_config_cls.load_config_from_file(model_config_path)
+    return model_config_cls.load_config_from_file(model_config_path[0])
 
 
 def resume_train_with_data(
@@ -107,15 +108,15 @@ def resume_train_with_data(
     model_config = recover_model_config(rundir, get_model_config_by_name(model_config_class))
 
     # Get data generator
-    if running_config.train_image_gen_configs:
-        data.train_image_gen_configs = running_config.train_image_gen_configs
-    if running_config.valid_image_gen_configs:
-        data.valid_image_gen_configs = running_config.valid_image_gen_configs
+    # if running_config.train_image_gen_configs == 'None':
+    #     data.train_image_gen_configs = running_config.train_image_gen_configs
+    # if running_config.valid_image_gen_configs == 'None':
+    #     data.valid_image_gen_configs = running_config.valid_image_gen_configs
 
     train_image_gen = get_data_generator(model_config, data, mode='train')
     valid_image_gen = get_data_generator(model_config, data, mode='valid')
     dirhelper.build(running_config.title + model_config.name)
-
+    running_config.optimizer = 'SGD'
     trainer = ClassificationTrainer(model, data, dirhelper,
                                     model_config=model_config, running_config=running_config,
                                     save_log=True,

@@ -6,7 +6,6 @@
 # temp files
 v/*
 temp/*
-dist/*
 keras/datasets/data/*
 keras/datasets/temp/*
 docs/site/*
@@ -32,21 +31,13 @@ Keras.egg-info
 # new image models
 /examples/ImageModels/docs/
 /examples/ImageModels/Model/
-/model_saved/log/
-/data/t10k-labels-idx1-ubyte
-/data/mnist.pkl.gz
-/data/t10k-patterns-idx3-ubyte
 
 # log related files
-/model_saved/cifar10_cnn_sndstat.weights
-/model_saved/cifar10_baseline.weights
 data/
 dist/
-model_saved/cifar10_baseline.weights
-model_saved/cifar10_cnn_sndstat.weights
 /build/.ipynb_checkpoints/
 /build/bdist.macosx-10.6-x86_64/
 /model_saved/
-
+/output/*
 
 /build/lib/keras_old/

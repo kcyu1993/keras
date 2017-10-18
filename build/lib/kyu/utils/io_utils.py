@@ -121,6 +121,7 @@ class ProjectFile(object):
         self._dataset = dataset
         self._model_category = model_category
         self._run_id = None
+        self._run_id_dir = None
         self._run_id_set = False
 
     @property
@@ -144,6 +145,10 @@ class ProjectFile(object):
         return self._dataset
 
     @property
+    def run_id_dir(self):
+        return self._run_id_dir
+
+    @property
     def run_id(self):
         return self._run_id
 
@@ -158,6 +163,17 @@ class ProjectFile(object):
         self._run_id_set = True if value is not None else False
         self._run_id = value + "_" + datetime.now().isoformat().split('.')[0]
 
+    @run_id_dir.setter
+    def run_id_dir(self, value):
+        if not isinstance(value, str) or value is None:
+            try:
+                value = str(value)
+            except ValueError:
+                Warning("ID Not set, cannot translate to string. ")
+                return
+        self._run_id_set = True if value is not None else False
+        self._run_id_dir = value + "_" + datetime.now().isoformat().split('.')[0]
+
     def resume_runid(self, value):
         if value is None:
             return
@@ -165,9 +181,30 @@ class ProjectFile(object):
         self._run_id = value
 
     def build(self, run_id, task=None, dataset=None, model_category=None):
-        if not isinstance(run_id, str):
+        """
+        Build the corresponding RunID.
+        Parameters
+        ----------
+        run_id : str or tuple/list.
+            for list input, it automatically create the corresponding sub-folder.
+        task
+        dataset
+        model_category
+
+        Returns
+        -------
+
+        """
+
+        if isinstance(run_id, (tuple, list)):
+            run_id_dir = os.path.join(*run_id)
+            run_id = run_id[-1]
+        elif isinstance(run_id, str):
+            run_id_dir = run_id
+        else:
             raise ValueError("Run id must be a valid string")
 
+        self.run_id_dir = run_id_dir
         self.run_id = run_id
         self._task = task if task is not None else self._task
         self._dataset = dataset if dataset is not None else self._dataset
@@ -177,11 +214,18 @@ class ProjectFile(object):
 
     @check_id_set
     def get_model_run_path(self):
-        path = os.path.join(self.run_dir, self.task, self.dataset, self._model_category, self.run_id)
+        path = os.path.join(self.run_dir, self.task, self.dataset, self._model_category, self.run_id_dir)
         # print(path)
         if not os.path.exists(path):
             if self.createDir:
-                os.makedirs(path)
+                # if not os.path.exists(path):
+                try:
+                    os.makedirs(path)
+                except OSError as e:
+                    print(e)
+                    pass
+                except Exception as e:
+                    raise e
             else:
                 raise IOError("Cannot found the file location {}".format(path))
         return path
