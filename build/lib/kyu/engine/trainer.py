@@ -39,7 +39,9 @@ from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, T
 from keras.engine import Model
 from keras.losses import categorical_crossentropy
 from keras.metrics import top_k_categorical_accuracy
+from keras.models import load_model
 from keras.preprocessing.image import Iterator
+from kyu import get_custom_objects
 from kyu.configs.engine_configs import ModelConfig
 from kyu.configs.engine_configs import RunningConfig
 from kyu.configs.generic import KCConfig
@@ -182,8 +184,13 @@ class ClassificationTrainer(object):
 
         # Weight load and over-ride pre-load weights again
         if self.running_config.load_weights and os.path.exists(self.running_config.init_weights_location):
-            print("Weights load from {}".format(self.running_config.init_weights_location))
-            self.model.load_weights(self.running_config.init_weights_location, by_name=True)
+            path = self.running_config.init_weights_location
+            if 'keras_model' in path:
+                tmp_model = load_model(path, custom_objects=get_custom_objects())
+                tmp_model.save_weights(self.dirhelper.get_weight_path('initialize'))
+                path = self.dirhelper.get_weight_path('initialize')
+            print("Weights load from {}".format(path))
+            self.model.load_weights(path, by_name=True)
 
         # Save weights and call backs
         if self.running_config.save_weights and self.running_config.save_per_epoch:
@@ -196,10 +203,10 @@ class ClassificationTrainer(object):
         if isinstance(self.running_config.lr_decay, bool):
             if self.running_config.lr_decay:
                 print("Reduce LR on DEMAND")
-                self.cbks.append(ReduceLROnDemand(min_lr=1e-6, verbose=1, sequence=self.running_config.sequence))
+                self.cbks.append(ReduceLROnDemand(min_lr=1e-7, verbose=1, sequence=self.running_config.sequence))
             else:
                 print("Reduce LR on PLATEAU")
-                self.cbks.append(ReduceLROnPlateau(min_lr=1e-6, verbose=1, patience=self.running_config.patience))
+                self.cbks.append(ReduceLROnPlateau(min_lr=1e-7, verbose=1, patience=self.running_config.patience))
         elif isinstance(self.running_config.lr_decay, (ReduceLROnDemand, ReduceLROnPlateau)):
             self.cbks.append(self.running_config.lr_decay)
 
@@ -248,7 +255,8 @@ class ClassificationTrainer(object):
             except Exception as e:
                 raise e
             # opt = tf.train.GradientDescentOptimizer(0.2)
-            opt = tf.train.MomentumOptimizer(self.running_config.lr, momentum=0.95)
+            opt = tf.train.MomentumOptimizer(self.running_config.lr, momentum=0.9)
+            print("MomentumOptimizer with learning rate {}".format(self.running_config.lr))
             opt = hvd.DistributedOptimizer(opt)
             from kyu.tensorflow.optimizers import TFOptimizer_v2
             self.running_config.optimizer = TFOptimizer_v2(opt)

@@ -160,7 +160,6 @@ class TensorBoardWrapper(TensorBoard):
 
             projector.visualize_embeddings(self.writer, config)
 
-
     def on_epoch_end(self, epoch, logs=None):
         # Fill in the `validation_data` property. Obviously this is specific to how your generator works.
         # Below is an example that yields images and classification tags.
@@ -171,11 +170,72 @@ class TensorBoardWrapper(TensorBoard):
             if imgs is None and tags is None:
                 imgs = np.zeros(((self.nb_steps * ib.shape[0],) + ib.shape[1:]), dtype=np.float32)
                 tags = np.zeros(((self.nb_steps * tb.shape[0],) + tb.shape[1:]), dtype=np.uint8)
+                self.batch_size = self.batch_gen.batch_size # Batch gen is a iterator (which has a batch size)
+
+            if ib.shape[0] < self.batch_size:
+                # Assert the correctness
+                s -= 1
+                continue
             imgs[s * ib.shape[0]:(s + 1) * ib.shape[0]] = ib
             tags[s * tb.shape[0]:(s + 1) * tb.shape[0]] = tb
-        self.validation_data = [imgs, tags, np.ones(imgs.shape[0]), 0.0]
-        return super(TensorBoardWrapper, self).on_epoch_end(epoch, logs)
 
+        self.validation_data = [imgs, tags, np.ones(imgs.shape[0]),]
+        if self.model.uses_learning_phase:
+            self.validation_data += [0.0,]
+        # return super(TensorBoardWrapper, self).on_epoch_end(epoch, logs)
+        logs = logs or {}
+
+        if not self.validation_data and self.histogram_freq:
+            raise ValueError('If printing histograms, validation_data must be '
+                             'provided, and cannot be a generator.')
+        if self.validation_data and self.histogram_freq:
+            if epoch % self.histogram_freq == 0:
+
+                val_data = self.validation_data
+                tensors = (self.model.inputs +
+                           self.model.targets +
+                           self.model.sample_weights)
+
+                if self.model.uses_learning_phase:
+                    tensors += [K.learning_phase()]
+
+                # assert len(val_data) == len(tensors)
+                if len(val_data) != len(tensors):
+                    print(val_data)
+                    print(tensors)
+                    raise ValueError("Length not match ")
+                val_size = val_data[0].shape[0]
+                i = 0
+                while i < val_size:
+                    step = min(self.batch_size, val_size - i)
+                    if self.model.uses_learning_phase:
+                        # do not slice the learning phase
+                        batch_val = [x[i:i + step] for x in val_data[:-1]]
+                        batch_val.append(val_data[-1])
+                    else:
+                        batch_val = [x[i:i + step] for x in val_data]
+                    assert len(batch_val) == len(tensors)
+                    feed_dict = dict(zip(tensors, batch_val))
+                    result = self.sess.run([self.merged], feed_dict=feed_dict)
+                    summary_str = result[0]
+                    self.writer.add_summary(summary_str, epoch)
+                    i += self.batch_size
+
+        if self.embeddings_freq and self.embeddings_ckpt_path:
+            if epoch % self.embeddings_freq == 0:
+                self.saver.save(self.sess,
+                                self.embeddings_ckpt_path,
+                                epoch)
+
+        for name, value in logs.items():
+            if name in ['batch', 'size']:
+                continue
+            summary = tf.Summary()
+            summary_value = summary.value.add()
+            summary_value.simple_value = value.item()
+            summary_value.tag = name
+            self.writer.add_summary(summary, epoch)
+        self.writer.flush()
 
 class ModifiedTensorBoard(Callback):
     """Tensorboard basic visualizations.

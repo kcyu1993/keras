@@ -14,7 +14,7 @@ def _compose_bilinear_model(base_model, nb_class, freeze_conv=False, last_conv_k
         x = Conv2D(k, (1, 1), name='1x1_stage5_{}'.format(k))(x)
         # add for baseline
 
-    x = BatchNormalization(axis=3, name='last_BN')(x)
+    # x = BatchNormalization(axis=3, name='last_BN')(x)
     x = BiLinear(eps=0, activation='linear')(x)
     x = Dense(nb_class, activation='softmax')(x)
     if freeze_conv:

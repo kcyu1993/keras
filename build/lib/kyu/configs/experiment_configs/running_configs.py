@@ -1,3 +1,4 @@
+from kyu.utils.dict_utils import create_dict_by_given_kwargs
 from ..engine_configs import RunningConfig
 from tensorflow.python import debug as tfdbg
 
@@ -28,4 +29,12 @@ def get_running_config_no_debug_withSGD(title='general-testing', model_config=No
         tf_debug_filters_func=[tfdbg.has_inf_or_nan,],
         tf_debug_filters_name=['has_inf_or_nan',],
     )
+
+    config.train_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=[449, 500], random_crop=True, horizontal_flip=True)
+    config.valid_image_gen_configs = create_dict_by_given_kwargs(
+            rescaleshortedgeto=449, random_crop=False, horizontal_flip=True)
+
     return config
+
+

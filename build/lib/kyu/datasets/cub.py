@@ -2,14 +2,7 @@
 Build CUB dataset loader
 
 """
-import numpy as np
-import os
-
-from kyu.utils.dict_utils import create_dict_by_given_kwargs
-
-from kyu.utils.image import ImageDataGeneratorAdvanced
-
-from kyu.engine.utils.data_utils import ClassificationImageData
+from ..datasets.common_imports import *
 
 
 class CUB(ClassificationImageData):
@@ -25,9 +18,9 @@ class CUB(ClassificationImageData):
         self.split_file = 'train_test_split.txt'
         self.build_image_label_lists()
         self.train_image_gen_configs = create_dict_by_given_kwargs(
-            rescaleshortedgeto=[224, 296], random_crop=True, horizontal_flip=True)
+            rescaleshortedgeto=449, random_crop=False, horizontal_flip=True)
         self.valid_image_gen_configs = create_dict_by_given_kwargs(
-            rescaleshortedgeto=224, random_crop=False, horizontal_flip=True)
+            rescaleshortedgeto=449, random_crop=False, horizontal_flip=True)
 
     def build_image_label_lists(self):
         # read the images.txt
@@ -42,8 +35,8 @@ class CUB(ClassificationImageData):
         split_lists = [int(self.decode(p)[1]) for p in split_lists]
         label_verify_lists = [int(self.decode(p)[1]) - 1 for p in label_verify_lists]
 
-        train_ind = np.where(np.asanyarray(split_lists) == 0)
-        test_ind = np.where(np.asanyarray(split_lists) == 1)
+        train_ind = np.where(np.asanyarray(split_lists) == 1)
+        test_ind = np.where(np.asanyarray(split_lists) == 0)
         file_lists = np.asanyarray(file_lists)
         label_verify_lists = np.asanyarray(label_verify_lists)
         self._set_train(file_lists[train_ind].tolist(), label_verify_lists[train_ind])

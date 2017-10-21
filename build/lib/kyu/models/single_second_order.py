@@ -119,16 +119,22 @@ def _compose_second_order_model(
 
 
 def VGG16_second_order(
-        input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None, **kwargs
+        input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None,
+        weight_decay=0,
+        **kwargs
 
 ):
     if load_weights in {"imagenet", "secondorder"}:
         base_model = VGG16_v2(include_top=False, input_shape=input_shape, pooling=pooling,
-                              weights=load_weights)
+                              weights=load_weights,
+                              weight_decay=weight_decay
+                              )
     elif load_weights is None:
-        base_model = VGG16_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
+        base_model = VGG16_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling,
+                              weight_decay=weight_decay)
     else:
-        base_model = VGG16_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling)
+        base_model = VGG16_v2(include_top=False, weights=None, input_shape=input_shape, pooling=pooling,
+                              weight_decay=weight_decay)
         base_model.load_weights(load_weights, by_name=True)
 
     return _compose_second_order_model(base_model, nb_class, cov_branch, **kwargs)

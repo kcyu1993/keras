@@ -896,8 +896,8 @@ class WeightedVectorization(Layer):
                 output /= variance
             else:
                 # output /= K.sum(K.pow(self.kernel, 2), axis=0)
-                raise NotImplementedError("You should only use batch norm moving variance to norm it")
-
+                # raise NotImplementedError("You should only use batch norm moving variance to norm it")
+                pass
         if self.output_sqrt:
             from kyu.tensorflow.ops import safe_sign_sqrt
             output = safe_sign_sqrt(2 * output)

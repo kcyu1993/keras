@@ -373,7 +373,6 @@ def get_new_wv_norm_general(exp=1):
     use_bias = True  # use bias for normalization additional
     input_shape = (224, 224, 3)
 
-
     # batch norm
     batch_norm_kwargs = {'scale': True}
     if exp == 1:
@@ -395,21 +394,27 @@ def get_new_wv_norm_general(exp=1):
         vectorization = 'wv'
         name = "BN-Cov-Pow-PV{}-mode1_complete".format(cov_branch_output)
     elif exp == 4:
-        nb_branch = 2
         last_conv_feature_maps = [512]
-        pow_norm = True
-        vectorization = None
-        name = "BN-Cov-Pow-PV{}-mode1_complete".format(cov_branch_output)
-    elif exp == 5:
-        nb_branch = 2
-        last_conv_feature_maps = [512]
-        pow_norm = False
-        vectorization = None
-        parametric = [256]
-        concat = 'concat'
         use_gamma = True
-        cov_branch_output = 512
-        name = "BN-Cov-O2T{}-PV{}-mode1_complete".format(parametric, cov_branch_output)
+        use_bias = True
+        batch_norm_end = False
+        normalization = True
+        cov_branch_output = 2048
+        name = "448-Conv-512-BN-Cov-PV{}".format(cov_branch_output)
+        input_shape = (448, 448, 3)
+        batch_size = 16
+
+    elif exp == 5:
+        last_conv_feature_maps = [512]
+        use_gamma = False
+        use_bias = False
+        batch_norm_end = True
+        normalization = True
+        cov_branch_output = 2048
+        name = "448-Conv-512-BN-Cov-PV{}-BN".format(cov_branch_output)
+        input_shape = (448, 448, 3)
+        batch_size = 16
+
     elif exp == 6:
         cov_branch_output = 2048
         use_gamma = True
@@ -478,9 +483,29 @@ def get_new_wv_norm_general(exp=1):
         normalization = True  # normalize to further fit Chi-square distribution
         use_bias = False  # use bias for normalization additional
         name = 'BN-Cov-PV{}_final-BN'.format(cov_branch_output)
+        # input_shape = (448, 448, 3)
+        # batch_size = 16
+    elif exp == 14:
+        cov_branch_output = 4096
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        name = 'BN-Cov-PV{}_final-BN-448'.format(cov_branch_output)
         input_shape = (448, 448, 3)
         batch_size = 16
-
+        # load_weights = None
+    elif exp == 15:
+        # from pretrained weights
+        cov_branch_output = 2048
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True
+        use_bias = False
+        name = 'BN-Cov-PY{}_final-BN-448-finetune'.format(cov_branch_output)
+        input_shape = (448, 448, 3)
+        batch_size = 16
+        load_weights = 'secondorder'
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -619,7 +644,7 @@ def get_pv_equivalent(exp=1):
         output_sqrt = True
 
         # Conv layer
-        use_bias = True
+        use_bias = False
 
     else:
         raise ValueError("exp not reg {}".format(exp))

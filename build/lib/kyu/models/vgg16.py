@@ -6,13 +6,15 @@ from keras import Input
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras.applications.vgg16 import WEIGHTS_PATH, WEIGHTS_PATH_NO_TOP
 from keras.engine import Model, get_source_inputs
-from keras.layers import Flatten, Dense, warnings, Conv2D, MaxPooling2D, GlobalAveragePooling2D, GlobalMaxPooling2D
+from keras.layers import Flatten, Dense, warnings, Conv2D, MaxPooling2D, GlobalAveragePooling2D, GlobalMaxPooling2D, \
+    regularizers
 from keras.utils import get_file, layer_utils
 
 
 def VGG16_v2(include_top=True, weights='imagenet',
              input_tensor=None, input_shape=None,
              pooling=None,
+             weight_decay=0,
              classes=1000):
     """Instantiates the VGG16 architecture.
 
@@ -86,32 +88,36 @@ def VGG16_v2(include_top=True, weights='imagenet',
             img_input = Input(tensor=input_tensor, shape=input_shape)
         else:
             img_input = input_tensor
+    if weight_decay > 0:
+        weight_decay = regularizers.l2(weight_decay)
+    else:
+        weight_decay = None
     # Block 1
-    x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(img_input)
-    x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(x)
+    x = Conv2D(64, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block1_conv1')(img_input)
+    x = Conv2D(64, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block1_conv2')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
 
     # Block 2
-    x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')(x)
-    x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2')(x)
+    x = Conv2D(128, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block2_conv1')(x)
+    x = Conv2D(128, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block2_conv2')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
 
     # Block 3
-    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')(x)
-    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2')(x)
-    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')(x)
+    x = Conv2D(256, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block3_conv1')(x)
+    x = Conv2D(256, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block3_conv2')(x)
+    x = Conv2D(256, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block3_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
 
     # Block 4
-    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
+    x = Conv2D(512, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block4_conv1')(x)
+    x = Conv2D(512, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block4_conv2')(x)
+    x = Conv2D(512, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block4_conv3')(x)
     x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
 
     # Block 5
-    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2')(x)
-    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3')(x)
+    x = Conv2D(512, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block5_conv1')(x)
+    x = Conv2D(512, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block5_conv2')(x)
+    x = Conv2D(512, (3, 3), kernel_regularizer=weight_decay, activation='relu', padding='same', name='block5_conv3')(x)
     # x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
 
     if include_top:

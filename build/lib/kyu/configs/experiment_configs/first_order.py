@@ -37,6 +37,7 @@ def get_fo_vgg_exp(exp=1):
             last_pooling=True,
             name='VGG-16-notop-baseline'
         )
+    # elif exp == 3:
 
 
 def get_fo_dense_exp(exp=1):

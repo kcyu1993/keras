@@ -149,6 +149,10 @@ class ClassificationImageData(ImageData):
         self.batch_size = 32
         self.channel = 'rgb'
 
+        self.train_n = 0
+        self.valid_n = 0
+        self.test_n = 0
+
         self.use_validation = use_validation
         self.train_image_gen_configs = train_image_gen_configs \
             if train_image_gen_configs else ImageDataGeneratorAdvanced.get_default_train_config()
@@ -262,14 +266,17 @@ class ClassificationImageData(ImageData):
     def _set_train(self, image_list, label_list, index=0):
         self.image_list['train' + str(index)] = image_list
         self.label_list['train' + str(index)] = label_list
+        self.train_n = len(image_list)
 
     def _set_valid(self, image_list, label_list, index=0):
         self.image_list['valid' + str(index)] = image_list
         self.label_list['valid' + str(index)] = label_list
+        self.valid_n = len(image_list)
 
     def _set_test(self, image_list, label_list, index=0):
         self.image_list['test' + str(index)] = image_list
         self.label_list['test' + str(index)] = label_list
+        self.test_n = len(image_list)
 
     def _load_image_location_from_txt(self, path):
         """

@@ -226,8 +226,9 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
         print("evaluation before re-training loss {} acc {}".format(history[0], history[1]))
 
     # Set the learning rate to 1/10 of original one during the finetune process.
-    running_config.optimizer = SGD(lr=running_config.lr / 10, momentum=0.9, decay=0.)
-    running_config.lr /= 10
+    trainer.running_config.lr /= 10
+    running_config.optimizer = SGD(lr=trainer.running_config.lr / 10, momentum=0.9, decay=0.)
+    # running_config.lr /= 10
     trainer.build()
     trainer.fit(verbose=running_config.verbose,
                 initial_epoch=None if nb_epoch_finetune == 0 else nb_epoch_finetune)

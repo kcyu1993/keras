@@ -273,7 +273,9 @@ class ProjectFile(object):
         return path
 
     @check_id_set
-    def get_weight_path(self):
+    def get_weight_path(self, info=None):
+        if info:
+            return os.path.join(self.get_weight_folder(), 'model_weights_' + info + '.h5')
         return os.path.join(self.get_weight_folder(), 'model_weights' + '.h5')
 
     @check_id_set
