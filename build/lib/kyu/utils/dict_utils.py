@@ -37,6 +37,21 @@ def update_source_dict_by_given_dict(source, target):
     return update_source_dict_by_given_kwargs(source, **target)
 
 
+def update_source_dict_by_defaults(source, **defaults):
+    """
+    Wrap the network with default keys. 
+    :param source:
+    :param keys:
+    :param defaults:
+    :return:
+    """
+    source = dict(source)
+    for key, default in defaults.items():
+        if not source.has_key(key):
+            source[key] = default
+    return source
+
+
 def update_source_dict_by_given_kwargs(source, **target_kwargs):
     """
 

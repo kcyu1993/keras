@@ -372,6 +372,7 @@ def get_new_wv_norm_general(exp=1):
     normalization = True  # normalize to further fit Chi-square distribution
     use_bias = True  # use bias for normalization additional
     input_shape = (224, 224, 3)
+    weight_decay = 0
 
     # batch norm
     batch_norm_kwargs = {'scale': True}
@@ -486,7 +487,7 @@ def get_new_wv_norm_general(exp=1):
         # input_shape = (448, 448, 3)
         # batch_size = 16
     elif exp == 14:
-        cov_branch_output = 4096
+        cov_branch_output = 2048
         batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution
@@ -494,6 +495,7 @@ def get_new_wv_norm_general(exp=1):
         name = 'BN-Cov-PV{}_final-BN-448'.format(cov_branch_output)
         input_shape = (448, 448, 3)
         batch_size = 16
+        # weight_decay = 1e-5
         # load_weights = None
     elif exp == 15:
         # from pretrained weights
@@ -506,6 +508,7 @@ def get_new_wv_norm_general(exp=1):
         input_shape = (448, 448, 3)
         batch_size = 16
         load_weights = 'secondorder'
+
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -558,6 +561,7 @@ def get_new_wv_norm_general(exp=1):
         cov_branch_output=cov_branch_output,
         dense_branch_output=dense_branch_output,
         load_weights=load_weights,
+        weight_decay=weight_decay,
         mode=mode,
         freeze_conv=False, name=name + '-{}_branch'.format(nb_branch),
         nb_branch=nb_branch,

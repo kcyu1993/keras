@@ -1048,10 +1048,7 @@ class GlobalSquarePooling(Layer):
         '''
         # logging.debug("prob_out: x_shape {}".format(K.shape(inputs)))
         # new_W = K.expand_dims(self.W, dim=1)
-        if K.backend() == 'tensorflow':
-            output = K.square(x=inputs)
-        else:
-            raise NotImplementedError("Not support for other backend. ")
+        output = K.square(x=inputs)
 
         # Implement the Global Average Pooling
         if self.data_format == 'channels_last':
@@ -1187,7 +1184,7 @@ class BiLinear(Layer):
         self.built = True
 
     def compute_output_shape(self, input_shape):
-        return input_shape[0], self.out_dim*self.out_dim
+        return input_shape[0], self.out_dim, self.out_dim
 
     def get_config(self):
         config = {
@@ -1205,15 +1202,10 @@ class BiLinear(Layer):
         xf = self.reshape_tensor3d(x)
         tx = K.batch_dot(xf, K.transpose(xf, [0,2,1]))
         if self.bilinear_mode == 'channel' or self.bilinear_mode == 'mean' or self.bilinear_mode == 'pmean':
-            bilinear_output = tx / (self.rows * self.cols - 1)
+            bilinear_output = tx / (self.rows * self.cols)
         #     # cov = tx / (self.rows * self.cols )
         else:
             bilinear_output = tx / (self.nb_filter - 1)
-        from kyu.tensorflow.ops import safe_sign_sqrt
-        bilinear_output = safe_sign_sqrt(bilinear_output)
-        # bilinear_output = K.sign(bilinear_output) * K.sqrt(K.abs(bilinear_output))
-        bilinear_output = Flatten()(bilinear_output)
-        bilinear_output = K.l2_normalize(bilinear_output, axis=1)
         return bilinear_output
 
     def reshape_tensor3d(self, x):
@@ -1237,128 +1229,6 @@ class BiLinear(Layer):
         else:
             return K.transpose(tx, (0, 2, 1))
 
-
-class BiLinear_v2(Layer):
-    """
-    BiLinear v2 is a layer which can take two inputs and group them in the interaction style, that can 
-    take from multiple layers like Merge.
-    
-    Add support for two input
-    
-    References : keras.layer.Regroup
-
-    into groups equally.
-
-        # Input shape
-            n 4D tensor with (nb_sample, x, y, z)
-        # Output shape
-            C(n,2) = n*(n-1)/2 4D tensor with (nb_sample, x, y, z/n) for tensorflow.
-        # Arguments
-               should make z/n an integer
-
-    """
-    def __init__(self, inputs, mode='bilinear', concat_axis=-1,
-                 output_shape=None, output_mask=None,
-                 arguments=None, node_indices=None, tensor_indices=None,
-                 name=None, version=1,
-                 ):
-        if K.backend() == 'theano' or K.image_dim_ordering() == 'th':
-            raise RuntimeError("Only support tensorflow backend or image ordering")
-
-        self.inputs = inputs
-        self.mode = mode
-        self.concat_axis = concat_axis
-        self._output_shape = output_shape
-        self.node_indices = node_indices
-        self._output_mask = output_mask
-        self.arguments = arguments if arguments else {}
-
-        # Layer parameters
-        self.inbound_nodes = []
-        self.outbound_nodes = []
-        self.constraints = {}
-        self._trainable_weights = []
-        self._non_trainable_weights = []
-        self.supports_masking = True
-        self.uses_learning_phase = False
-        self.input_spec = None
-
-        if not name:
-            prefix = self.__class__.__name__.lower()
-            name = prefix + '_' + str(K.get_uid(prefix))
-
-        self.name = name
-
-        if inputs:
-            # The inputs is a bunch of nodes shares the same input.
-            if not node_indices:
-                node_indices = [0 for _ in range(len(inputs))]
-            self.built = True
-            # self.add_inbound_node(inputs, node_indices, tensor_indices)
-        else:
-            self.built = False
-
-    # def build(self, input_shape):
-    #     self.output_dim = input_shape[3] / self.n
-    #     self.out_shape = input_shape[:2] + (self.output_dim,)
-    #     self.split_loc = [self.output_dim * i for i in range(self.n)]
-    #     self.split_loc.append(self.output_dim * self.n)
-    #     self.built = True
-
-    def call(self, inputs, mask=None):
-        import tensorflow as tf
-        if not isinstance(inputs, list) or len(inputs) <= 1:
-            raise TypeError("Regrouping must be taking more than one "
-                            "tensor, Got: " + str(inputs))
-        # Case: 'mode' is a lambda function or function
-        if callable(self.mode):
-            import inspect
-            arguments = self.arguments
-            arg_spec = inspect.getargspec(self.mode)
-            if 'mask' in arg_spec.args:
-                arguments['mask'] = mask
-            return self.mode(inputs, **arguments)
-
-        if self.mode == 'group':
-
-            outputs = []
-            n_inputs = len(inputs)
-            for i in range(n_inputs - 1):
-                for j in range(i + 1, n_inputs):
-                    with tf.device('/gpu:0'):
-                        outputs.append(K.concatenate([tf.identity(inputs[i]),tf.identity(inputs[j])], self.concat_axis))
-            # for i in range(0, n_inputs - 1, 2):
-            #     with tf.device('/gpu:0'):
-            #         conc = K.concatenate([tf.identity(inputs[i]), tf.identity(inputs[i+1])])
-            #     outputs.append(conc)
-            return outputs
-        else:
-            raise RuntimeError("Mode not recognized {}".format(self.mode))
-
-    def compute_mask(self, input, input_mask=None):
-        """ Override the compute mask to produce two masks """
-        n_inputs = len(input)
-        if input_mask is None or all([m is None for m in input_mask]):
-            # return [None for _ in range(0, n_inputs - 1, 2)]
-            return [None for _ in range(n_inputs * (n_inputs - 1) / 2)]
-        else:
-            raise ValueError("Not supporting mask for this layer {}".format(self.name))
-
-    def compute_output_shape(self, input_shape):
-        """ Return a list """
-        assert isinstance(input_shape, list)
-
-        output_shape = []
-        n_inputs = len(input_shape)
-        for i in range(0, n_inputs - 1):
-            for j in range(i, n_inputs - 1):
-                tmp_shape = list(input_shape[i])
-                tmp_shape[self.concat_axis] += input_shape[j][self.concat_axis]
-                output_shape.append(tmp_shape)
-            # tmp_shape = list(input_shape[i])
-            # tmp_shape[self.concat_axis] += input_shape[i+1][self.concat_axis]
-            # output_shape.append(tmp_shape)
-        return output_shape
 
 # Alias
 Cov = SecondaryStatistic

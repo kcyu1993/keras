@@ -3,6 +3,34 @@ Build CUB dataset loader
 
 """
 from ..datasets.common_imports import *
+import keras.backend as K
+
+
+def preprocess_image_for_cub(img):
+    """
+    Preprocess Image for CUB dataset
+
+    123.45574188,
+    125.84899902,
+    108.68376923,
+    :param img: ndarray with rank 3
+    :return: img: ndarray with same shape
+
+    """
+    data_format = K.image_data_format()
+    assert data_format in {'channels_last', 'channels_first'}
+    x = img
+    if data_format == 'channels_first':
+        # Zero-center by mean pixel
+        x[0, :, :] -= 123.45574188
+        x[1, :, :] -= 125.84899902
+        x[2, :, :] -= 108.68376923
+    else:
+        # Zero-center by mean pixel
+        x[:, :, 0] -= 123.45574188
+        x[:, :, 1] -= 125.84899902
+        x[:, :, 2] -= 108.68376923
+    return x
 
 
 class CUB(ClassificationImageData):
@@ -17,10 +45,16 @@ class CUB(ClassificationImageData):
         self.image_label_file = 'image_class_labels.txt'
         self.split_file = 'train_test_split.txt'
         self.build_image_label_lists()
+        print("CUB with preprocess")
         self.train_image_gen_configs = create_dict_by_given_kwargs(
-            rescaleshortedgeto=449, random_crop=False, horizontal_flip=True)
+            # rescaleshortedgeto=[449, 500], random_crop=True, horizontal_flip=True,
+            rescaleshortedgeto=[450,592], random_crop=True, horizontal_flip=True,
+            preprocessing_function=preprocess_image_for_cub,
+        )
         self.valid_image_gen_configs = create_dict_by_given_kwargs(
-            rescaleshortedgeto=449, random_crop=False, horizontal_flip=True)
+            rescaleshortedgeto=450, random_crop=False, horizontal_flip=True,
+            preprocessing_function=preprocess_image_for_cub,
+        )
 
     def build_image_label_lists(self):
         # read the images.txt

@@ -18,8 +18,8 @@ class MitIndoor(ClassificationImageData):
 
     def build_image_label_lists(self):
         i = 0
-        train_file = 'TrainImages.txt' # 'CompleteTrain or Train'
-        # train_file = 'NewTrain.txt' # 'CompleteTrain or Train'
+        # train_file = 'TrainImages.txt' # 'CompleteTrain or Train'
+        train_file = 'NewTrain.txt' # 'CompleteTrain or Train'
         test_file = 'TestImages.txt'
         train_mode = 'train'
         test_mode = 'test'

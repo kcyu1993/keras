@@ -20,7 +20,8 @@ class DCovConfig(ModelConfig):
                     'freeze_conv',
                     'load_weights',
                     'separate_conv_features',
-                    'nb_outputs']
+                    'nb_outputs',
+                    'weight_decay']
 
     def __init__(self,
                  input_shape,
@@ -44,6 +45,7 @@ class DCovConfig(ModelConfig):
                  upsample_method='conv',
                  separate_conv_features=True,
                  nb_outputs=1,
+                 weight_decay=0,
                  **kwargs
                  ):
         if nb_outputs > 1:

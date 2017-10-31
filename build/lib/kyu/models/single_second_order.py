@@ -141,7 +141,10 @@ def VGG16_second_order(
 
 
 def DenseNet121_second_order(
-        input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None, **kwargs
+
+        input_shape, nb_class, cov_branch, load_weights='imagenet', pooling=None,
+        weight_decay=0,
+        **kwargs
 
 ):
     if load_weights in {"imagenet", "secondorder"}:
@@ -159,6 +162,7 @@ def DenseNet121_second_order(
 def ResNet50_second_order(
         input_shape, nb_class, cov_branch, load_weights='imagenet',
         pooling=None, last_avg=False,
+        weight_decay=0,
         **kwargs
 ):
 

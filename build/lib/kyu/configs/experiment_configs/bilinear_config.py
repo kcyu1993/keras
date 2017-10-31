@@ -18,6 +18,13 @@ def get_bilinear_baseline_exp(exp=1):
             load_weights='imagenet',
             name='BCNN-Baseline',
         )
+    elif exp == 3:
+        return BilinearConfig(
+            nb_class=10,
+            input_shape=(448, 448, 3),
+            load_weights='imagenet',
+            name='BCNN-Baseline-448',
+        )
     else:
         raise NotImplementedError
 

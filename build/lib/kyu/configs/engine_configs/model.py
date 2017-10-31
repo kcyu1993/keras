@@ -17,6 +17,7 @@ class ModelConfig(KCConfig):
                  input_shape=(224, 224, 3),
                  nb_outputs=1,       # Add support for multiple losses implementation
                  loss_weights=[1.0,],  # weights passed in
+                 # weight_decay=0,
                  name=None,
                  batch_size=32):
         self.class_id = class_id
@@ -28,6 +29,8 @@ class ModelConfig(KCConfig):
         self.loss_weights = loss_weights
         self.name = name
         self.batch_size = batch_size
+        # TODO merge this weight decay into ModelConfig rather than DCovConfig
+        # self.weight_decay = weight_decay
 
     @property
     def target_size(self):

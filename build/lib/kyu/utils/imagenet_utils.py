@@ -71,7 +71,7 @@ def preprocess_image_for_imagenet(img):
     ----------
     img : ndarray with rank 3
 
-    Returns
+    Returnspv
     -------
     img : ndarray with same shape
     """

@@ -7,7 +7,7 @@ from scipy.misc import imresize
 import keras.backend as K
 from keras.preprocessing.image import DirectoryIterator, ImageDataGenerator, Iterator, load_img, img_to_array, \
     array_to_img
-from kyu.utils.dict_utils import create_dict_by_given_kwargs
+from kyu.utils.dict_utils import create_dict_by_given_kwargs, update_source_dict_by_defaults
 from kyu.utils.imagenet_utils import preprocess_image_for_imagenet_without_channel_reverse, \
     preprocess_image_for_imagenet_of_densenet, preprocess_image_for_imagenet
 
@@ -476,15 +476,24 @@ class ImageLoader(object):
 
 
 def get_densenet_image_gen(target_size, **kwargs):
+
     return ImageDataGeneratorAdvanced(
         target_size, preprocessing_function=preprocess_image_for_imagenet_of_densenet, **kwargs
     )
 
 
 def get_vgg_image_gen(target_size, **kwargs):
+    """
 
+    :param target_size:
+    :param kwargs:
+    :return:
+    """
+    new_kw = update_source_dict_by_defaults(
+        kwargs,
+        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse)
     return ImageDataGeneratorAdvanced(
-        target_size, preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse, **kwargs
+        target_size, **new_kw
         # preprocessing_function=preprocess_image_for_imagenet
     )
 

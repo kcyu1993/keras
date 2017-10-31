@@ -88,7 +88,7 @@ class Optimizer(object):
             weights: a list of Numpy arrays. The number
                 of arrays and their shape must match
                 number of the dimensions of the weights
-                of the optimizer (i.e. it should match the
+                of the optimizer  (i.e. it should match the
                 output of `get_weights`).
 
         # Raises

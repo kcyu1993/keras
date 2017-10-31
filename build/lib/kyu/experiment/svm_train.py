@@ -234,6 +234,11 @@ def train_svm(load_weights, dataset, **kwargs):
     if isinstance(dense_layer, Dense):
 
         dense_layer.activation = linear
+
+        weight = K.variable(dense_layer.kernel_initializer(K.int_shape(dense_layer.kernel)),
+                            name='kernel',
+                            constraint=dense_layer.kernel_constraint)
+
         dense_layer.kernel = dense_layer.add_weight(
             shape=K.int_shape(dense_layer.kernel),
             initializer=dense_layer.kernel_initializer,

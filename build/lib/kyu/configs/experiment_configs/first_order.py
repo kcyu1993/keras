@@ -11,7 +11,7 @@ from kyu.configs.model_configs.first_order import AlexNetFirstOrderConfig
 def get_fo_vgg_exp(exp=1):
     if exp == 1:
         return VggFirstOrderConfig(
-            nb_classes=0,
+            nb_class=0,
             input_shape=(224,224,3),
             denses=[],
             input_tensor=None,
@@ -23,7 +23,7 @@ def get_fo_vgg_exp(exp=1):
         )
     elif exp == 2:
         return VggFirstOrderConfig(
-            nb_classes=0,
+            nb_class=0,
             input_shape=(224, 224, 3),
             denses=[4096, 4096],
             # denses=[1024, 1024],
