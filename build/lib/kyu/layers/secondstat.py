@@ -378,7 +378,7 @@ class LogTransform(Layer):
 
     """
 
-    def __init__(self, epsilon=1e-4, **kwargs):
+    def __init__(self, epsilon=1e-3, **kwargs):
         self.input_spec = [InputSpec(ndim='3+')]
         self.eps = epsilon
         self.out_dim = None
@@ -431,12 +431,21 @@ class LogTransform(Layer):
         else:
             if self.built:
                 import tensorflow as tf
-                s, u = safe_matrix_eig_op(x)
-                eps = tf.identity(tf.zeros_like(s) + self.eps, name='eps')
-                inner = tf.where(tf.less(s, eps), eps, s, name='eps_inner')
-                inner = tf.log(inner, name='log_inner')
+                # s, u = safe_matrix_eig_op(x)
+                # s, u = tf.self_adjoint_eig(x)
+                # eps = tf.identity(tf.zeros_like(s) + self.eps, name='eps')
+                # inner = tf.where(tf.less(s, eps), eps, s, name='eps_inner')
+                # inner = tf.log(inner, name='log_inner')
+                # inner = tf.matrix_diag(inner)
+                # tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])), name='tf_log')
+
+                s, u = tf.self_adjoint_eig(x)
+                s = tf.abs(s)
+                inner = s + self.eps
+                inner = tf.log(inner)
+                inner = tf.where(tf.is_nan(inner), tf.zeros_like(inner), inner)
                 inner = tf.matrix_diag(inner)
-                tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])), name='tf_log')
+                tf_log = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
                 return tf_log
 
             else:
@@ -491,7 +500,7 @@ class PowTransform(Layer):
 
     """
 
-    def __init__(self, alpha=0.5, epsilon=1e-7, normalization='frob', **kwargs):
+    def __init__(self, alpha=0.5, epsilon=1e-7, normalization=None, **kwargs):
         self.input_spec = [InputSpec(ndim='3+')]
         self.eps = epsilon
         self.out_dim = None
@@ -538,23 +547,42 @@ class PowTransform(Layer):
             raise NotImplementedError("This is not implemented for theano anymore.")
         else:
             if self.built:
+                # import tensorflow as tf
+                # from kyu.tensorflow.ops import safe_truncated_sqrt, safe_sign_sqrt
+                # with tf.device('/cpu:0'):
+                #     s, u = safe_matrix_eig_op(x)
+                #     # s, u = tf.self_adjoint_eig(x)
+                # inner = safe_sign_sqrt(s)
+                # if self.norm == 'l2':
+                #     inner /= tf.reduce_max(inner)
+                # elif self.norm == 'frob' or self.norm == 'Frob':
+                #     inner /= tf.sqrt(tf.reduce_sum(s))
+                # elif self.norm is None:
+                #     pass
+                # else:
+                #     raise ValueError("PowTransform: Normalization not supported {}".format(self.norm))
+                # # inner = tf.Print(inner, [inner], message='power inner', summarize=65)
+                # inner = tf.matrix_diag(inner)
+                # tf_pow = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
+                # return tf_pow
+
                 import tensorflow as tf
-                from kyu.tensorflow.ops import safe_truncated_sqrt
-                with tf.device('/cpu:0'):
-                    s, u = safe_matrix_eig_op(x)
-                inner = safe_truncated_sqrt(s)
+
+
+                s, u = tf.self_adjoint_eig(x)
+                comp = tf.zeros_like(s) + self.eps
+                inner = tf.where(tf.less(s, comp), comp, s)
+                inner = inner + self.eps
+                inner = tf.sqrt(inner)
                 if self.norm == 'l2':
-                    inner /= tf.reduce_max(inner)
-                elif self.norm == 'frob' or self.norm == 'Frob':
-                    inner /= tf.sqrt(tf.reduce_sum(s))
-                elif self.norm is None:
                     pass
-                else:
-                    raise ValueError("PowTransform: Normalization not supported {}".format(self.norm))
+                elif self.norm == 'frob' or self.norm == 'Frob':
+                    inner /= tf.norm(s)
                 # inner = tf.Print(inner, [inner], message='power inner', summarize=65)
                 inner = tf.matrix_diag(inner)
                 tf_pow = tf.matmul(u, tf.matmul(inner, tf.transpose(u, [0, 2, 1])))
                 return tf_pow
+
             else:
                 raise RuntimeError("PowTransform layer should be built before using")
 
@@ -812,6 +840,7 @@ class WeightedVectorization(Layer):
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        print("PV with reg {}".format(self.kernel_regularizer))
 
         self.use_bias = use_bias
         self.bias_initializer = initializers.get(bias_initializer)
@@ -900,7 +929,8 @@ class WeightedVectorization(Layer):
                 pass
         if self.output_sqrt:
             from kyu.tensorflow.ops import safe_sign_sqrt
-            output = safe_sign_sqrt(2 * output)
+            # output = safe_sign_sqrt(2 * output)
+            output = K.pow(output, 1.0/3)
 
         if self.use_gamma:
             output *= self.gamma

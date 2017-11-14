@@ -33,6 +33,7 @@ Keras Trainer based on Example Engine
 """
 import os
 import sys
+import re
 
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, TensorBoard
@@ -70,8 +71,12 @@ def load_history_from_log(filename):
         hist['val_loss'] = []
         hist['acc'] = []
         hist['val_acc'] = []
+        hist['top_k_categorical_accuracy'] = []
+        hist['val_top_k_categorical_accuracy'] = []
+
         for line in lines:
-            if not line.startswith('Epoch'):
+            # if not line.startswith('Epoch'):
+            if re.search('[0-9]*s - loss', line) is not None:
                 for i, patch in enumerate(line.replace(' ', '').split('-')[1:]):
                     n, val = patch.split(":")
                     hist[n].append(float(val))
@@ -203,10 +208,10 @@ class ClassificationTrainer(object):
         if isinstance(self.running_config.lr_decay, bool):
             if self.running_config.lr_decay:
                 print("Reduce LR on DEMAND")
-                self.cbks.append(ReduceLROnDemand(min_lr=1e-7, verbose=1, sequence=self.running_config.sequence))
+                self.cbks.append(ReduceLROnDemand(min_lr=1e-6, verbose=1, sequence=self.running_config.sequence))
             else:
                 print("Reduce LR on PLATEAU")
-                self.cbks.append(ReduceLROnPlateau(min_lr=1e-7, verbose=1, patience=self.running_config.patience))
+                self.cbks.append(ReduceLROnPlateau(min_lr=1e-6, verbose=1, patience=self.running_config.patience))
         elif isinstance(self.running_config.lr_decay, (ReduceLROnDemand, ReduceLROnPlateau)):
             self.cbks.append(self.running_config.lr_decay)
 

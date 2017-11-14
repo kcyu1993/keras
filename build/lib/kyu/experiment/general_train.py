@@ -12,7 +12,7 @@ from kyu.utils.io_utils import ProjectFile
 
 def get_dirhelper(dataset_name, model_category, **kwargs):
     """ Finalize the experiments with different datasets """
-    return ProjectFile(root_path='/home/kyu/cvkyu/secondstat_final',
+    return ProjectFile(root_path='/home/kyu/cvkyu/secondstat_final2',
                        dataset=dataset_name,
                        model_category=model_category,
                        **kwargs)
@@ -46,6 +46,7 @@ def get_argparser(description='default'):
     parser.add_argument('-lr', '--learning_rate', help='learning rate initial', default=0.01, type=float)
     parser.add_argument('--channel_reverse', help='enable channel transform from RGB to BGR', default=False, type=bool)
     parser.add_argument('-init_weight', '--init_weights_location', help='init weights location', default='', type=str)
+    parser.add_argument('-batch', '--batch_size', help='batch size', type=int, default=16)
 
     parser.add_argument('-tb', '--tensorboard', action='store_true',
                         help='Enable Tensorboard monitoring', dest='tensorboard')
@@ -169,8 +170,8 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
             batch_gen=valid, nb_steps=20,
             # watch_layer_keys=get_tensorboard_layer_name_keys(),
             log_dir=dirhelper.get_tensorboard_path(),
-            histogram_freq=1,
-            batch_size=running_config.batch_size,
+            # histogram_freq=1,
+            # batch_size=running_config.batch_size,
             # write_graph=True,
             # write_grads=True,
             # write_images=True

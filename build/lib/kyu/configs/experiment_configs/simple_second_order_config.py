@@ -1,5 +1,6 @@
 from kyu.configs.model_configs.second_order import NewNormWVBranchConfig, PVEquivalentConfig
 from kyu.layers.secondstat import get_default_secondstat_args
+# from kyu.tensorflow.ops.cov_reg import L2InnerNorm
 from kyu.utils.dict_utils import update_source_dict_by_given_kwargs, create_dict_by_given_kwargs
 from kyu.utils.inspect_util import get_default_args
 from ..model_configs import O2TBranchConfig, NoWVBranchConfig, NormWVBranchConfig
@@ -369,6 +370,7 @@ def get_new_wv_norm_general(exp=1):
     pow_norm = False
     use_gamma = True
     batch_norm_end = False
+    pv_reg = None
     normalization = True  # normalize to further fit Chi-square distribution
     use_bias = True  # use bias for normalization additional
     input_shape = (224, 224, 3)
@@ -478,7 +480,7 @@ def get_new_wv_norm_general(exp=1):
         batch_norm_kwargs['scale'] = True
 
     elif exp == 13:
-        cov_branch_output = 2048
+        cov_branch_output = 64
         batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution
@@ -487,7 +489,7 @@ def get_new_wv_norm_general(exp=1):
         # input_shape = (448, 448, 3)
         # batch_size = 16
     elif exp == 14:
-        cov_branch_output = 2048
+        cov_branch_output = 32
         batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution
@@ -499,7 +501,7 @@ def get_new_wv_norm_general(exp=1):
         # load_weights = None
     elif exp == 15:
         # from pretrained weights
-        cov_branch_output = 2048
+        cov_branch_output = 512
         batch_norm_end = True
         use_gamma = False
         normalization = True
@@ -508,7 +510,57 @@ def get_new_wv_norm_general(exp=1):
         input_shape = (448, 448, 3)
         batch_size = 16
         load_weights = 'secondorder'
+    elif exp == 16:
+        cov_branch_output = [128, 256, 512, ]
+        # cov_branch_output = [4096, 8192]
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True
+        use_bias = False
+        name = 'BN-Cov-PV_final-BN-compare pv'
+    elif exp == 17:
+        cov_branch_output = [4096]
+        # cov_branch_output = [512, 1024, 4096, 8192]
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True
+        use_bias = False
+        input_shape = (448, 448, 3)
+        batch_size = 16
+        name = 'BN-Cov-PV_final-BN-448-compare pv'
+    elif exp == 18:
+        cov_branch_output = 512
+        pv_reg = 'l2'
+        # pv_reg = L2InnerNorm(0.01)
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        name = 'BN-Cov-PV{}_final-BN-448'.format(cov_branch_output)
+        input_shape = (448, 448, 3)
+        batch_size = 16
 
+    elif exp == 19:
+        cov_branch_output = 2048
+        # pv_reg = 'l2'
+        # pv_reg = L2InnerNorm(0.01)
+        last_conv_feature_maps = []
+        batch_norm_end = False
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        name = 'BN-Cov-PV{}_final-BN-448'.format(cov_branch_output)
+        input_shape = (448, 448, 3)
+        batch_size = 16
+    elif exp == 20:
+        cov_branch_output = 2048
+        batch_norm_end = False
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        name = 'BN-Cov-PV{}_final'.format(cov_branch_output)
+        # input_shape = (448, 448, 3)
+        # batch_size = 16
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -532,7 +584,7 @@ def get_new_wv_norm_general(exp=1):
         output_sqrt=True,  # Normalization
         normalization=normalization,  # normalize to further fit Chi-square distribution
         kernel_initializer='glorot_uniform',
-        kernel_regularizer=None,
+        kernel_regularizer=pv_reg,
         use_bias=use_bias,  # use bias for normalization additional
         bias_initializer='zeros',
         bias_regularizer=None,

@@ -60,6 +60,21 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
     wrap_running_config(config=running_config, **kwargs)
     if model_config.class_id == 'alexnet':
         model_config.load_weights = None
+    if hasattr(model_config, 'cov_branch_output'):
+        cov_branch_output = getattr(model_config, 'cov_branch_output')
+        if isinstance(cov_branch_output, (list, tuple)):
+            for cov_b_output in cov_branch_output:
+                print ("============================================\n")
+                print ("Cross validate PV {}".format(cov_b_output))
+                print ("============================================\n")
+                running_config.comments = 'pv {}'.format(cov_b_output)
+                model_config.cov_branch_output = cov_b_output
+                running_config.init_weights_location = None
+                data_finetune_with_model(data,
+                                         model_config=model_config,
+                                         nb_epoch_finetune=nb_epoch_finetune,
+                                         running_config=running_config)
+            return
 
     data_finetune_with_model(data,
                              model_config=model_config,
@@ -99,7 +114,7 @@ def so_pv_equivelent(dataset, model_class, **kwargs):
 
 if __name__ == '__main__':
     parser = get_argparser(description='SO-CNN architecture testing')
-    parser.add_argument('-b', '--branch', help='second-order branch', default='o2t_original',
+    parser.add_argument('-b', '--branch', help='second-order branch', default='o2t_wv_new_norm',
                         choices=BRANCH_CHOICES)
 
     args = parser.parse_args()

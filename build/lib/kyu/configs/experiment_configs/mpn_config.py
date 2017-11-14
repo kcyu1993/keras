@@ -79,6 +79,23 @@ def get_basic_mpn_model_and_run(exp):
             name='MPN-Cov-baseline-BN-448',
             batch_size=16
         )
+    elif exp == 5:
+        mpn_config = MPNConfig(
+            input_shape=(224, 224, 3),
+            nb_class=67,
+            parametric=[],
+            activation='relu',
+            cov_mode='channel',
+            vectorization='mat_flatten',
+            epsilon=1e-5,
+            use_bias=False,
+            cov_alpha=0.1,
+            cov_beta=0.3,
+            normalization=None,
+            mode=1,
+            last_conv_feature_maps=[],
+            name='MPN-Cov-baseline-BN'
+        )
     else:
         raise ValueError
     return mpn_config

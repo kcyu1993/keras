@@ -491,7 +491,9 @@ def get_vgg_image_gen(target_size, **kwargs):
     """
     new_kw = update_source_dict_by_defaults(
         kwargs,
-        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse)
+        # preprocessing_function=preprocess_image_for_imagenet
+        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse
+    )
     return ImageDataGeneratorAdvanced(
         target_size, **new_kw
         # preprocessing_function=preprocess_image_for_imagenet

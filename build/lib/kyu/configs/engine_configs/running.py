@@ -47,7 +47,7 @@ class RunningConfig(KCConfig):
                  batch_size=32,
                  verbose=2,
                  lr_decay=True,
-                 sequence=8,
+                 sequence=30,
                  patience=8,
                  early_stop=True,
                  save_weights=True,
@@ -149,6 +149,7 @@ def wrap_running_config(config, **kwargs):
     approved_keys = dict(config.__dict__).keys()
     for key, value in kwargs.items():
         if key in approved_keys:
+            print('wrap key {} with {}'.format(key, value))
             config.__dict__[key] = value
         elif key == 'rescaleshortedgeto':
             import ast
@@ -159,6 +160,8 @@ def wrap_running_config(config, **kwargs):
             config.valid_image_gen_configs = dict_utils.update_source_dict_by_given_kwargs(
                 config.valid_image_gen_configs, rescaleshortedgeto=value
             )
+        elif key == 'init_weights_location':
+            config.init_weights_location = value
         else:
             print("RunningConfigWrapper: Key not supported {}".format(key))
 

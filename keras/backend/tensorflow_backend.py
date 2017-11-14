@@ -157,6 +157,7 @@ def get_session():
         if _SESSION is None:
             if not os.environ.get('OMP_NUM_THREADS'):
                 config = tf.ConfigProto(allow_soft_placement=True,
+                                        # log_device_placement=True,
                                         )
                 config.gpu_options.allow_growth = True
             else:

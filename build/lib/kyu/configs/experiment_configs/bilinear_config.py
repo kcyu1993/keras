@@ -16,12 +16,20 @@ def get_bilinear_baseline_exp(exp=1):
             input_shape=(224, 224, 3),
             last_conv_kernel=[256],
             load_weights='imagenet',
-            name='BCNN-Baseline',
+            name='BCNN-512-Baseline',
         )
     elif exp == 3:
         return BilinearConfig(
             nb_class=10,
             input_shape=(448, 448, 3),
+            load_weights='imagenet',
+            name='BCNN-Baseline-448',
+        )
+    elif exp == 4:
+        return BilinearConfig(
+            nb_class=10,
+            input_shape=(448, 448, 3),
+            last_conv_kernel=[256],
             load_weights='imagenet',
             name='BCNN-Baseline-448',
         )

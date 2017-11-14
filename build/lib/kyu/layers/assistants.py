@@ -50,6 +50,51 @@ def block_diagonal(matrices, dtype=tf.float32):
     return blocked
 
 
+class SignedSqrt(Layer):
+
+    def __init__(self, **kwargs):
+        super(SignedSqrt, self).__init__(**kwargs)
+        self.input_spec = [InputSpec(min_ndim=2)]
+
+    def build(self, input_shape):
+        self.built = True
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def call(self, inputs, **kwargs):
+        from kyu.tensorflow.ops import safe_sign_sqrt
+        return safe_sign_sqrt(inputs)
+
+
+class L2Norm(Layer):
+
+    def __init__(self, axis=1, **kwargs):
+        super(L2Norm, self).__init__(**kwargs)
+        self.axis = axis
+        self.input_spec = [InputSpec(min_ndim=2)]
+
+    def build(self, input_shape):
+        self.built = True
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def call(self, inputs, **kwargs):
+        return K.l2_normalize(inputs, self.axis)
+
+    def get_config(self):
+        """
+        To serialize the model given and generate all related parameters
+        Returns
+        -------
+
+        """
+        config = {'axis': self.axis}
+        base_config = super(L2Norm, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class FlattenSymmetric(Layer):
     """
     Flatten Symmetric is a layer to flatten the previous layer with symmetric matrix.

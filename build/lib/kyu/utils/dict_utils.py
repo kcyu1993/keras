@@ -4,6 +4,7 @@ Define the system utils
 """
 from logging import warning
 import json
+import copy
 
 
 def merge_dicts(*dict_args):
@@ -15,6 +16,21 @@ def merge_dicts(*dict_args):
     for dictionary in dict_args:
         if dictionary is not None:
             result.update(dictionary)
+    return result
+
+
+def merge_history(*hist_args):
+    result = {}
+    keys = None
+    for dictionary in hist_args:
+        if keys is None:
+            # Init the result
+            keys = dictionary.keys()
+            for key in keys:
+                result[key] = []
+        for key in keys:
+            result[key].extend(dictionary[key])
+
     return result
 
 

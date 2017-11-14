@@ -122,6 +122,7 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
                              xlabel='', ylabel='', filename='', linestyle=('dotted', '-'),
                              significant=None, sig_color=None,
                              showLegend=True,
+                             title=None,
                              xlim=[0, 200], ylim=[0.01, 0.5]):
     assert len(train_errors) == len(test_errors) == len(modelnames)
     if x_factor is None:
@@ -148,6 +149,7 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
     else:
         tr_err = train_errors
         te_err = test_errors
+        model_n = modelnames
 
     for i in range(len(tr_err)):
         # if significant is not None:
@@ -167,7 +169,9 @@ def plot_multiple_train_test(train_errors, test_errors, modelnames, x_factor=Non
     axes.set_xlim(xlim)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(filename)
+    if title is None:
+        title = filename
+    plt.title(title)
     if showLegend:
         leg = plt.legend(loc=1, shadow=True)
         leg.draw_frame(False)

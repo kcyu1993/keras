@@ -168,14 +168,20 @@ class TensorBoardWrapper(TensorBoard):
         for s in range(self.nb_steps):
             ib, tb = next(self.batch_gen)
             if imgs is None and tags is None:
+                self.batch_size = self.batch_gen.batch_size # Batch gen is a iterator (which has a batch size)
+                if ib.shape[0] != self.batch_size:
+                    self.batch_gen.reset()
+                    ib, tb = next(self.batch_gen)
+                    assert ib.shape[0] == self.batch_size
                 imgs = np.zeros(((self.nb_steps * ib.shape[0],) + ib.shape[1:]), dtype=np.float32)
                 tags = np.zeros(((self.nb_steps * tb.shape[0],) + tb.shape[1:]), dtype=np.uint8)
-                self.batch_size = self.batch_gen.batch_size # Batch gen is a iterator (which has a batch size)
 
             if ib.shape[0] < self.batch_size:
                 # Assert the correctness
                 s -= 1
                 continue
+            if (s + 1) * ib.shape[0] > self.nb_steps * self.batch_size:
+                break
             imgs[s * ib.shape[0]:(s + 1) * ib.shape[0]] = ib
             tags[s * tb.shape[0]:(s + 1) * tb.shape[0]] = tb
 

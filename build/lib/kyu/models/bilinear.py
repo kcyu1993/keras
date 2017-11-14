@@ -3,6 +3,7 @@ from keras.applications import VGG16, ResNet50
 from keras.layers import Dense, Conv2D, BatchNormalization
 from keras.models import Model
 from kyu.layers.secondstat import BiLinear
+from kyu.layers.assistants import FlattenSymmetric, SignedSqrt, L2Norm
 from kyu.models.densenet121 import DenseNet121
 from kyu.utils.train_utils import toggle_trainable_layers
 
@@ -12,10 +13,12 @@ def _compose_bilinear_model(base_model, nb_class, freeze_conv=False, last_conv_k
     x = base_model.output
     for k in last_conv_kernel:
         x = Conv2D(k, (1, 1), name='1x1_stage5_{}'.format(k))(x)
-        # add for baseline
 
     # x = BatchNormalization(axis=3, name='last_BN')(x)
     x = BiLinear(eps=0, activation='linear')(x)
+    x = FlattenSymmetric()(x)
+    x = SignedSqrt()(x)
+    x = L2Norm(axis=1)(x)
     x = Dense(nb_class, activation='softmax')(x)
     if freeze_conv:
         toggle_trainable_layers(base_model, trainable=False)

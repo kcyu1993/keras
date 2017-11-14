@@ -8,7 +8,7 @@ def get_running_config_no_debug_withSGD(title='general-testing', model_config=No
 
     config = RunningConfig(
         _title=title,
-        nb_epoch=150,
+        nb_epoch=120,
         batch_size=getattr(model_config,'batch_size') if hasattr(model_config, 'batch_size') else 32,
         verbose=2,
         lr_decay=False,

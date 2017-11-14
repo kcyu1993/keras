@@ -23,6 +23,27 @@ def robust_estimate_eigenvalues(s, alpha):
     return K.sqrt(K.pow((1 - alpha) / 2 / alpha, 2) + s / alpha) - (1-alpha) / (2*alpha)
 
 
+class L2InnerNorm(Regularizer):
+    """Regularizer for L1 and L2 regularization.
+
+    # Arguments
+        l1: Float; L1 regularization factor.
+        l2: Float; L2 regularization factor.
+    """
+
+    def __init__(self, l2=0.):
+        self.l2 = K.cast_to_floatx(l2)
+
+    def __call__(self, x):
+        regularization = 0.
+        regularization += K.sum(self.l2 * K.square(K.dot(x, K.transpose(x))))
+        return regularization
+
+    def get_config(self):
+        return {
+                'l2': float(self.l2)}
+
+
 class FrobNormRegularizer(Regularizer):
     def __init__(self, dim, alpha=0.01):
         self.alpha = alpha
