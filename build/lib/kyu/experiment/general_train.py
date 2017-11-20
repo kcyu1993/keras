@@ -78,6 +78,19 @@ def get_argparser(description='default'):
 
 
 def get_data_generator_flags(flag, target_size, data_config, mode='train'):
+    """
+    Return the data generator with flags
+    Parameters
+    ----------
+    flag: model class name flag
+    target_size
+    data_config
+    mode
+
+    Returns
+    -------
+
+    """
     image_gen_kwargs = data_config.train_image_gen_configs \
         if mode == 'train' else data_config.valid_image_gen_configs
 

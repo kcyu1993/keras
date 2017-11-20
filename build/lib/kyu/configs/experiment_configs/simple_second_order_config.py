@@ -480,7 +480,7 @@ def get_new_wv_norm_general(exp=1):
         batch_norm_kwargs['scale'] = True
 
     elif exp == 13:
-        cov_branch_output = 64
+        cov_branch_output = 16
         batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution
@@ -489,7 +489,7 @@ def get_new_wv_norm_general(exp=1):
         # input_shape = (448, 448, 3)
         # batch_size = 16
     elif exp == 14:
-        cov_branch_output = 32
+        cov_branch_output = 16
         batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution

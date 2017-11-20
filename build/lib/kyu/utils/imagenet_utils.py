@@ -1,5 +1,7 @@
-from keras import backend as K
+from numpy.ma import copy
 
+from keras import backend as K
+import numpy as np
 
 def preprocess_image_for_imagenet_of_densenet(img):
     """
@@ -58,6 +60,21 @@ def preprocess_image_for_imagenet_without_channel_reverse(img):
         x[:, :, 2] -= 123.68
     return x
 
+
+def deprocess_imagenet_for_visualization_without_channel_reverse(img):
+    data_format = K.image_data_format()
+    x = np.copy(img)
+    if data_format == 'channels_first':
+        # Zero-center by mean pixel
+        x[0, :, :] += 103.939
+        x[1, :, :] += 116.779
+        x[2, :, :] += 123.68
+    else:
+        # Zero-center by mean pixel
+        x[:, :, 0] += 103.939
+        x[:, :, 1] += 116.779
+        x[:, :, 2] += 123.68
+    return x
 
 def preprocess_image_for_imagenet(img):
     """
