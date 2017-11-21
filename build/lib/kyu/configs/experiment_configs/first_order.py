@@ -76,13 +76,19 @@ def get_fo_resnet_exp(exp=1):
             class_id='resnet50',
             name='ResNet50-FO'
         )
-    elif exp == 2:
+
+    else:
+        raise ValueError("FO-ResNet: Not supported exp number {}".format(exp))
+
+
+def get_multilabel_resnet_exp(exp=1):
+    if exp == 1:
         return ResNetFirstOrderConfig(
             nb_class=0,
             denses=[],
             include_top=False,
             input_shape=(224, 224, 3),
-            weights='imagenet',
+            weights=None,
             input_tensor=None,
             pooling=None,
             last_avg=True,
@@ -90,10 +96,31 @@ def get_fo_resnet_exp(exp=1):
             freeze_conv=True,
             pred_activation='sigmoid',
             class_id='resnet50',
-            name='ResNet50-FO'
+            name='ResNet50-FO-MtL'
         )
     else:
-        raise ValueError("FO-ResNet: Not supported exp number {}".format(exp))
+        raise ValueError("FO-ResNet: not supported exp number {}".format(exp))
+
+
+def get_fo_multilabel_dense_exp(exp=1):
+    if exp == 1:
+        return DenseNetFirstOrderConfig(
+            nb_class=0,
+            input_shape=(224, 224, 3),
+            nb_dense_block=4,
+            growth_rate=32,
+            nb_filter=64,
+            reduction=0.5,
+            dropout_rate=0.0,
+            weight_decay=1e-4,
+            weights_path='imagenet',
+            pred_activation='sigmoid',
+            freeze_conv=True,
+            last_pooling=True,
+            name='DenseNet121-FO'
+        )
+    else:
+        raise ValueError("Not supported exp number {}".format(exp))
 
 
 def get_fo_alexnet_exp(exp=1):

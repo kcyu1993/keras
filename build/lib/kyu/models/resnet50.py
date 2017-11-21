@@ -318,6 +318,7 @@ def ResNet50_first_order(nb_class, denses=[], include_top=False, pred_activation
         x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind + 1)),
                   kernel_initializer='glorot_uniform')(x)
     pred_name = 'new_pred'
-    x = Dense(nb_class, activation=pred_activation, name=pred_name)(x)
+    x = Dense(nb_class, name=pred_name)(x)
+    x = Activation(pred_activation)(x)
     model = Model(base_model.input, x, name='resnet50-fo-{}-{}'.format(denses, pred_activation))
     return model

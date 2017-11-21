@@ -8,7 +8,26 @@ from kyu.experiment.general_train import get_argparser
 from kyu.experiment.so_train import so_cnn_train
 
 
+def baseline_first_order_train_multilabel(model_class, **kwargs):
+    """
+    Multiple label first order train environment
+    Parameters
+    ----------
+    model_class
+    kwargs
+
+    Returns
+    -------
+
+    """
+
+
+
+
 def baseline_first_order_train(model_class, **kwargs):
+    if 'chest' in kwargs['dataset']:
+        baseline_first_order_train_multilabel(model_class, **kwargs)
+        return
 
     if str(model_class).lower() == 'vgg16':
         model_exp_fn = get_fo_vgg_exp

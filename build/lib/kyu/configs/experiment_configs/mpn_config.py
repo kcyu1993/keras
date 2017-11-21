@@ -75,7 +75,7 @@ def get_basic_mpn_model_and_run(exp):
             cov_beta=0.3,
             normalization=None,
             mode=1,
-            last_conv_feature_maps=[256],
+            last_conv_feature_maps=[],
             name='MPN-Cov-baseline-BN-448',
             batch_size=16
         )

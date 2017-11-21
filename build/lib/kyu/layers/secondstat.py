@@ -929,8 +929,8 @@ class WeightedVectorization(Layer):
                 pass
         if self.output_sqrt:
             from kyu.tensorflow.ops import safe_sign_sqrt
-            # output = safe_sign_sqrt(2 * output)
-            output = K.pow(output, 1.0/3)
+            output = safe_sign_sqrt(2 * output)
+            # output = K.pow(output, 1.0/3)
 
         if self.use_gamma:
             output *= self.gamma
@@ -988,9 +988,6 @@ class GlobalSquarePooling(Layer):
                  eps=1e-8,
                  output_sqrt=False,  # Normalization
                  normalization=False,  # normalize to further fit Chi-square distribution
-                 # kernel_initializer='glorot_uniform',
-                 # kernel_constraint=None,
-                 # kernel_regularizer=None,
                  use_bias=False,  # use bias for normalization additional
                  bias_initializer='zeros',
                  bias_regularizer=None,
@@ -1015,10 +1012,6 @@ class GlobalSquarePooling(Layer):
             self.activation_regularizer = regularizers.get(activation_regularizer)
         else:
             raise ValueError("Activation regularizer only support l1, l2, None. Got {}".format(activation_regularizer))
-
-        # self.kernel_initializer = initializers.get(kernel_initializer)
-        # self.kernel_constraint = constraints.get(kernel_constraint)
-        # self.kernel_regularizer = regularizers.get(kernel_regularizer)
 
         self.use_beta = use_bias
         self.bias_initializer = initializers.get(bias_initializer)
@@ -1092,7 +1085,8 @@ class GlobalSquarePooling(Layer):
 
         if self.output_sqrt:
             from kyu.tensorflow.ops import safe_sign_sqrt
-            output = safe_sign_sqrt(output)
+            output = safe_sign_sqrt(2 * output)
+
         if self.use_gamma:
             output *= self.gamma
 

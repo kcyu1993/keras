@@ -134,7 +134,6 @@ def finetune_with_model_data(data, model_config, dirhelper, nb_epoch_finetune, r
     -------
 
     """
-    # TODO Add the distributed to running_config if it works
     try:
         import horovod.tensorflow as hvd
         enable_distributed = True

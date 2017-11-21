@@ -101,7 +101,6 @@ class ResNetFirstOrderConfig(ModelConfig):
                  input_tensor=None,
                  pooling=None,
                  last_avg=True,
-                 pred_activation='softmax',
                  weight_decay=1e-4,
                  freeze_conv=False,
                  class_id='resnet50',

@@ -387,6 +387,7 @@ def covariance_block_pv_equivelent(input_tensor, nb_class, stage, block,
 
     x = Conv2D(filters=nb_class, kernel_size=(1,1), name=conv_name_base, **conv_kwargs)(x)
     x = GlobalSquarePooling(nb_class, name=gsp_name_base, **gsp_kwargs)(x)
+
     if batch_norm_end:
         print(batch_norm_kwargs)
         x = Reshape((1, 1, nb_class))(x)

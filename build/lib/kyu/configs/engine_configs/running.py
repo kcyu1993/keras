@@ -55,8 +55,11 @@ class RunningConfig(KCConfig):
                  init_weights_location=None,
                  save_per_epoch=True,
                  tensorboard=None,
+                 # For model.compile
                  optimizer=None,
                  lr=0.01,
+                 loss=None,
+                 metrics=None,
                  model_config=None, # possibly
                  # Image Generator Configs
                  train_image_gen_configs=create_dict_by_given_kwargs(
@@ -95,15 +98,19 @@ class RunningConfig(KCConfig):
         self.save_weights = save_weights
         self.save_per_epoch = save_per_epoch
 
+        # for model compile
         self.lr = lr
         self.optimizer = optimizer if optimizer else SGD(lr=float(self.lr), momentum=0.9, decay=1e-5)
-        # self.optimizer = optimizer
+        self.loss = loss if loss else 'categorical_crossentropy'
+        self.metrics = metrics
+
         self.tensorboard = tensorboard
 
         self.train_image_gen_configs = train_image_gen_configs
         self.valid_image_gen_configs = valid_image_gen_configs
         self.comments = comments
 
+        # Debug purpose
         self.debug = debug
         self.tf_debug = tf_debug
         self.tf_debug_filters_func = tf_debug_filters_func

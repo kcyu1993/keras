@@ -41,7 +41,7 @@ def first_order(config):
     # TODO Change to ResENtFirstConfig
     compulsory = ['nb_class', 'input_shape']
     optional = ['include_top', 'weights', 'input_tensor', 'denses', 'pooling',
-                'last_avg', 'weight_decay', 'freeze_conv']
+                'last_avg', 'weight_decay', 'freeze_conv', 'pred_activation']
     if config.class_id == RESNET_SUPPORTED_MODEL[0]:
         return get_model_from_config(ResNet50_first_order, config, compulsory, optional)
     else:
