@@ -501,8 +501,13 @@ def get_vgg_image_gen(target_size, **kwargs):
 
 
 def get_resnet_image_gen(target_size, **kwargs):
+    new_kw = update_source_dict_by_defaults(
+        kwargs,
+        # preprocessing_function=preprocess_image_for_imagenet
+        preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse
+    )
     return ImageDataGeneratorAdvanced(
-        target_size, preprocessing_function=preprocess_image_for_imagenet_without_channel_reverse, **kwargs
+        target_size,  **new_kw
     )
 
 

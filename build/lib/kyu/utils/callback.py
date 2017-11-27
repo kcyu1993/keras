@@ -47,6 +47,7 @@ class ModelCheckpoint_v2(ModelCheckpoint):
             filepath = self.filepath.format(epoch=epoch, **logs)
             if self.save_best_only:
                 current = logs.get(self.monitor)
+                current = logs.get('val_loss') if current is None else current
                 if current is None:
                     warnings.warn('Can save best model only with %s available, '
                                   'skipping.' % (self.monitor), RuntimeWarning)

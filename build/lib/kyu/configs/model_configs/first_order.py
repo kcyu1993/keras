@@ -48,15 +48,21 @@ class AlexNetFirstOrderConfig(ModelConfig):
 
 
 class VggFirstOrderConfig(ModelConfig):
-    # TODO Fix nb-class
+
+    compulsory = ['nb_class', 'input_shape']
+    optional = ['denses', 'convs', 'input_tensor', 'weights', 'include_top',
+                'freeze_conv', 'last_pooling', 'global_average_pooling']
+
     def __init__(self,
-                 nb_class, input_shape,
+                 nb_class, input_shape, # TODO Fix nb-class
                  denses=[],
+                 convs=[],
                  input_tensor=None,
                  weights='imagenet',
                  include_top=True,
                  freeze_conv=False,
                  last_pooling=True,
+                 global_average_pooling=False,
                  **kwargs
                  ):
         class_id = 'vgg'

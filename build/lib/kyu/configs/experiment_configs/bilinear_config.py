@@ -14,7 +14,7 @@ def get_bilinear_baseline_exp(exp=1):
         return BilinearConfig(
             nb_class=10,
             input_shape=(224, 224, 3),
-            last_conv_kernel=[256],
+            last_conv_kernel=[512],
             load_weights='imagenet',
             name='BCNN-512-Baseline',
         )

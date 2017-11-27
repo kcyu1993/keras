@@ -7,6 +7,15 @@ import json
 import copy
 
 
+def dict_value_to_key(value, dictionary):
+    """ Given the value, get corresponding dictionary key """
+    dictionary = dict(dictionary)
+    for k, v in dictionary.items():
+        if value == v:
+            return k
+    return None
+
+
 def merge_dicts(*dict_args):
     """
         Given any number of dicts, shallow copy and merge into a new dict,

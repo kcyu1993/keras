@@ -4,7 +4,7 @@ Define the Second-order training
 from kyu import CUB
 from kyu.configs.engine_configs.running import wrap_running_config
 from kyu.configs.experiment_configs.running_configs import get_running_config_no_debug_withSGD, \
-    get_running_config_for_cub
+    get_running_config_for_cub, get_running_config_for_chest
 from kyu.configs.experiment_configs import simple_second_order_config as SOConfig
 from kyu.datasets import get_dataset_by_name
 from kyu.engine.utils.callbacks import TensorBoardWrapper
@@ -44,6 +44,11 @@ def so_cnn_train(dataset, model_class, model_exp_fn, model_exp, nb_epoch_finetun
     data = get_dataset_by_name(dataset)
     if 'cub' in dataset:
         running_config = get_running_config_for_cub(
+            title=title,
+            model_config=model_config
+        )
+    elif 'chest' in dataset:
+        running_config = get_running_config_for_chest(
             title=title,
             model_config=model_config
         )

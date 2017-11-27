@@ -10,9 +10,10 @@ from keras import Input
 from keras.applications.imagenet_utils import _obtain_input_shape
 from keras.applications.vgg16 import WEIGHTS_PATH, WEIGHTS_PATH_NO_TOP
 from keras.engine import Model, get_source_inputs
-from keras.layers import Flatten, Dense, warnings, Conv2D, MaxPooling2D
+from keras.layers import Flatten, Dense, warnings, Conv2D, MaxPooling2D, GlobalAveragePooling2D
 from keras.utils import get_file, layer_utils
 from kyu.configs.engine_configs import ModelConfig
+from kyu.configs.model_configs import VggFirstOrderConfig
 from kyu.configs.model_configs.second_order import DCovConfig
 from kyu.legacy.vgg16 import VGG16_o2
 from kyu.models.bilinear import VGG16_bilinear
@@ -24,12 +25,16 @@ VGG_SUPPORTED_MODEL = ['vgg16',]
 
 
 def VGG16_first_order(
-        denses=[], nb_class=1000, input_shape=None,
+        denses=[],
+        convs=[],
+        nb_class=1000, input_shape=None,
         input_tensor=None,
         weights='imagenet',
         include_top=True,
         freeze_conv=False,
-        last_pooling=True):
+        last_pooling=True,
+        global_average_pooling=False,
+):
     if weights not in {'imagenet', None}:
         raise ValueError('The `weights` argument should be either '
                          '`None` (random initialization) or `imagenet` '
@@ -99,7 +104,17 @@ def VGG16_first_order(
     else:
         base_model = Model(inputs, x, name='vgg16_notop')
         toggle_trainable_layers(base_model, not freeze_conv)
-        x = Flatten(name='flatten')(x)
+        # add convs
+        kernel_size=(3,3)
+        for ind, para in enumerate(convs):
+            x = Conv2D(para, kernel_size=kernel_size, activation='relu', name='new_conv{}'.format(str(ind+1)),
+                       kernel_initializer='glorot_uniform', padding='same')(x)
+
+        if global_average_pooling:
+           x = GlobalAveragePooling2D()(x)
+        else:
+            x = Flatten()(x)
+
         for ind, para in enumerate(denses):
             x = Dense(para, activation='relu', name='new_fc{}'.format(str(ind+1)),
                       kernel_initializer='glorot_uniform')(x)
@@ -181,10 +196,11 @@ def bilinear(config):
 
 def first_order(config):
     """ Create for first order VGG """
-    if not isinstance(config, ModelConfig):
-        raise ValueError("VGG_first_order: only support First_order_Config")
-    compulsory = ['nb_class', 'input_shape']
-    optional = ['denses', 'input_tensor', 'weights', 'include_top', 'last_pooling', 'freeze_conv']
+    if not isinstance(config, VggFirstOrderConfig):
+        raise ValueError("VGG_first_order: only support VggFirstOrderConfig")
+
+    compulsory = VggFirstOrderConfig.compulsory
+    optional = VggFirstOrderConfig.optional
     return get_model_from_config(VGG16_first_order, config, compulsory, optional)
 
 

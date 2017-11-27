@@ -14,6 +14,10 @@ import json
 import keras.backend as K
 
 
+def chestxray_labels():
+    return [u'Atelectasis', u'Cardiomegaly', u'Consolidation', u'Edema', u'Effusion', u'Emphysema', u'Fibrosis', u'Hernia', u'Infiltration', u'Mass', u'Nodule', u'Pleural_Thickening', u'Pneumonia', u'Pneumothorax']
+
+
 def preprocess_image_for_chestxray(img):
     """
         Preprocess Image for CUB dataset
@@ -164,7 +168,20 @@ class ChestXray14(ClassificationImageData):
                  image_dir='images', label_dir=None,
                  category='category.json',
                  config_file='Data_Entry_2017.h5',
+                 single_label=None,
                  **kwargs):
+        """
+
+        Parameters
+        ----------
+        dirpath
+        image_dir
+        label_dir
+        category
+        config_file
+        single_label : to become a binary classification problem!
+        kwargs
+        """
         super(ChestXray14, self).__init__(root_folder=dirpath, image_dir=image_dir,
                                           category=category, name='Chest-Xray-14',
                                           **kwargs)
@@ -174,7 +191,7 @@ class ChestXray14(ClassificationImageData):
             rescaleshortedgeto=[256, 296], random_crop=True, horizontal_flip=True)
         self.valid_image_gen_configs = create_dict_by_given_kwargs(
             rescaleshortedgeto=296, random_crop=False, horizontal_flip=True)
-
+        self.single_label = single_label
 
     def _build_category_dict(self):
         # Load category

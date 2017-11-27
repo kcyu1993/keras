@@ -37,7 +37,24 @@ def get_fo_vgg_exp(exp=1):
             last_pooling=True,
             name='VGG-16-notop-baseline'
         )
-    # elif exp == 3:
+    elif exp == 3:
+        return VggFirstOrderConfig(
+            nb_class=0,
+            input_shape=(224, 224, 3),
+            denses=[],
+            convs=[1024],
+            # denses=[1024, 1024],
+            # denses=[256, 256],
+            # denses=[512, 512],
+            # denses=[],
+            input_tensor=None,
+            weights='imagenet',
+            include_top=False,
+            freeze_conv=True,
+            last_pooling=False,
+            global_average_pooling=True,
+            name='VGG-16-Conv{}-GAP'.format(1024)
+        )
 
 
 def get_fo_dense_exp(exp=1):
@@ -81,7 +98,7 @@ def get_fo_resnet_exp(exp=1):
         raise ValueError("FO-ResNet: Not supported exp number {}".format(exp))
 
 
-def get_multilabel_resnet_exp(exp=1):
+def get_fo_multilabel_resnet_exp(exp=1):
     if exp == 1:
         return ResNetFirstOrderConfig(
             nb_class=0,
@@ -113,7 +130,7 @@ def get_fo_multilabel_dense_exp(exp=1):
             reduction=0.5,
             dropout_rate=0.0,
             weight_decay=1e-4,
-            weights_path='imagenet',
+            weights_path=None,
             pred_activation='sigmoid',
             freeze_conv=True,
             last_pooling=True,

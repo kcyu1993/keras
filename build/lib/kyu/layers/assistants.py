@@ -52,9 +52,10 @@ def block_diagonal(matrices, dtype=tf.float32):
 
 class SignedSqrt(Layer):
 
-    def __init__(self, **kwargs):
+    def __init__(self, scale=1, **kwargs):
         super(SignedSqrt, self).__init__(**kwargs)
         self.input_spec = [InputSpec(min_ndim=2)]
+        self.scale = scale
 
     def build(self, input_shape):
         self.built = True
@@ -64,7 +65,7 @@ class SignedSqrt(Layer):
 
     def call(self, inputs, **kwargs):
         from kyu.tensorflow.ops import safe_sign_sqrt
-        return safe_sign_sqrt(inputs)
+        return safe_sign_sqrt(self.scale * inputs)
 
 
 class L2Norm(Layer):

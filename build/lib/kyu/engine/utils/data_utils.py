@@ -7,6 +7,7 @@ from abc import abstractmethod
 import os
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
+from kyu.utils.dict_utils import dict_value_to_key
 
 from kyu.utils.image import ImageIterator, ImageDataGeneratorAdvanced
 
@@ -318,4 +319,15 @@ class ClassificationImageData(ImageData):
         self.nb_class = len(cate_list)
         return dict(zip(cate_list, range(len(cate_list))))
 
+    def decode_nnid(self, nnid):
+        """
 
+        Parameters
+        ----------
+        nnid : network_id
+
+        Returns
+        -------
+
+        """
+        return dict_value_to_key(nnid, self.category_dict)

@@ -66,7 +66,7 @@ def get_dataset(config):
         config.dirpath = config.dirpath if config.dirpath is not None \
             else '/home/kyu/.keras/datasets/ILSVRC2015'
         dataset = ImageNet(config.dirpath)
-    elif identifier in ['chestxray', 'chest-xray', 'chest-xray14']:
+    elif identifier in ['chest','chestxray', 'chest-xray', 'chest-xray14']:
         config.dirpath = config.dirpath if config.dirpath is not None \
             else '/home/kyu/.keras/datasets/chest-xray14'
         dataset = ChestXray14(config.dirpath)

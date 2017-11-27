@@ -25,6 +25,14 @@ class TmpMinc(ClassificationImageData):
     def fool(self):
         print("FOOL")
 
+CATEGORY = '/home/kyu/.keras/datasets/minc-2500/categories.txt'
+
+
+def decode_minc_nnid(nnid):
+    with open(CATEGORY, 'r') as f:
+        cate_list = f.read().splitlines()
+    return cate_list[nnid]
+
 
 class Minc2500_v2(ClassificationImageData):
     """ Define the classification data for minc 2500 """

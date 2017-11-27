@@ -160,6 +160,12 @@ def visualize_class_activation_map(model, final_conv_layer, original_img, img, o
     cv2.imwrite(output_path, img)
     return predictions
 
+
+def test_keras_vis():
+    from vis.visualization import visualize_cam
+    visualize_cam()
+
+
 if __name__ == '__main__':
     # valid the installation
     print(cv2.__version__)

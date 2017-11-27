@@ -229,7 +229,7 @@ class ImageNetTools(object):
 
     def synset_to_id(self, synset):
         a = next((s[0] for s in self.synsets if s[1] == synset), None)
-        # a = next((i for (i, s) in self.synsets_imagenet_sorted if s == synset), None)
+        # a = next((i for (i, s) in self.synsets_idatamagenet_sorted if s == synset), None)
         return int(a)
 
     def id_to_synset(self, id_):

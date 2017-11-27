@@ -1,4 +1,4 @@
-from kyu.datasets.chestxray14 import preprocess_image_for_chestxray
+from kyu.datasets.chestxray14 import preprocess_image_for_chestxray, chestxray_labels
 from kyu.datasets.cub import preprocess_image_for_cub
 from kyu.tensorflow.metrics import IndexBinaryAccuracy
 from kyu.utils.dict_utils import create_dict_by_given_kwargs
@@ -23,6 +23,7 @@ def get_running_config_no_debug_withSGD(title='general-testing', model_config=No
         save_per_epoch=True,
         tensorboard=None,
         lr=0.01,
+        metrics=['acc'],
         optimizer=None,
         model_config=model_config,
         # Image Generator Config
@@ -79,6 +80,12 @@ def get_running_config_for_cub(title='general-cub', model_config=None):
 
 
 def get_running_config_for_chest(title='general-chestxray', model_config=None):
+
+    metrics = ['binary_accuracy']
+    categories = chestxray_labels()
+    for ind, cate in enumerate(categories):
+        metrics.append(IndexBinaryAccuracy(ind, '{}_{}'.format(ind, cate[:4])))
+
     config = RunningConfig(
         _title=title,
         nb_epoch=200,
@@ -108,7 +115,7 @@ def get_running_config_for_chest(title='general-chestxray', model_config=None):
 
     config.train_image_gen_configs = create_dict_by_given_kwargs(
         # rescaleshortedgeto=[449, 500], random_crop=True, horizontal_flip=True,
-        rescaleshortedgeto=[224, 256], random_crop=True, horizontal_flip=True,
+        rescaleshortedgeto=[225, 256], random_crop=True, horizontal_flip=True,
         preprocessing_function=preprocess_image_for_chestxray,
     )
     config.valid_image_gen_configs = create_dict_by_given_kwargs(

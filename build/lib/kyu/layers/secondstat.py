@@ -927,9 +927,9 @@ class WeightedVectorization(Layer):
                 # output /= K.sum(K.pow(self.kernel, 2), axis=0)
                 # raise NotImplementedError("You should only use batch norm moving variance to norm it")
                 pass
-        if self.output_sqrt:
-            from kyu.tensorflow.ops import safe_sign_sqrt
-            output = safe_sign_sqrt(2 * output)
+        # if self.output_sqrt:
+        #     from kyu.tensorflow.ops import safe_sign_sqrt
+        #     output = safe_sign_sqrt(2 * output)
             # output = K.pow(output, 1.0/3)
 
         if self.use_gamma:
@@ -1084,8 +1084,9 @@ class GlobalSquarePooling(Layer):
             # output /= K.sum(K.pow(self.kernel, 2), axis=0)
 
         if self.output_sqrt:
-            from kyu.tensorflow.ops import safe_sign_sqrt
-            output = safe_sign_sqrt(2 * output)
+            # from kyu.tensorflow.ops import safe_sign_sqrt
+            # output = safe_sign_sqrt(2 * output)
+            pass
 
         if self.use_gamma:
             output *= self.gamma

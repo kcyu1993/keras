@@ -6,7 +6,7 @@ from keras.layers import Flatten, Dense, Conv2D, Conv2DTranspose, Reshape, Batch
 from keras.layers import concatenate, add, average
 from kyu.layers.secondstat import SecondaryStatistic, O2Transform, WeightedVectorization, LogTransform, \
     PowTransform, BiLinear, GlobalSquarePooling
-from kyu.layers.assistants import FlattenSymmetric, MatrixConcat, MatrixReLU
+from kyu.layers.assistants import FlattenSymmetric, MatrixConcat, MatrixReLU, SignedSqrt
 from kyu.legacy.so_cnn_helper import covariance_block_multi_o2t, covariance_block_sobn_multi_o2t, \
     covariance_block_batch, covariance_block_corr, covariance_block_vector_space, covariance_block_mix, \
     covariance_block_residual
@@ -360,6 +360,9 @@ def covariance_block_newn_wv(input_tensor, nb_class, stage, block,
         x = WeightedVectorization(nb_class,
                                   name=wp_name_base,
                                   **pv_kwargs)(x)
+        use_sqrt = pv_kwargs['output_sqrt']
+        if use_sqrt:
+            x = SignedSqrt(2)(x)
         if batch_norm_end:
             x = Reshape((1,1, nb_class))(x)
             x = BatchNormalization(axis=3, name='BN-end{}_{}'.format(stage, block),
@@ -387,7 +390,9 @@ def covariance_block_pv_equivelent(input_tensor, nb_class, stage, block,
 
     x = Conv2D(filters=nb_class, kernel_size=(1,1), name=conv_name_base, **conv_kwargs)(x)
     x = GlobalSquarePooling(nb_class, name=gsp_name_base, **gsp_kwargs)(x)
-
+    use_sqrt = gsp_kwargs['output_sqrt']
+    if use_sqrt:
+        x = SignedSqrt(2)(x)
     if batch_norm_end:
         print(batch_norm_kwargs)
         x = Reshape((1, 1, nb_class))(x)

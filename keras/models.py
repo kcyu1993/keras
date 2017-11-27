@@ -204,7 +204,8 @@ def load_model(filepath, custom_objects=None, compile=True):
         raise ImportError('`load_model` requires h5py.')
 
     if not custom_objects:
-        custom_objects = {}
+        from kyu.layers import get_custom_objects
+        custom_objects = get_custom_objects()
 
     def convert_custom_objects(obj):
         """Handles custom object lookup.

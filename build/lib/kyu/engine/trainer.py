@@ -201,7 +201,8 @@ class ClassificationTrainer(object):
         if self.running_config.save_weights and self.running_config.save_per_epoch:
             self.cbks.append(ModelCheckpoint_v2(
                 filepath=self.dirhelper.get_monitor_model_save_path(),
-                verbose=1, monitor='val_acc', save_best_only=True,
+                verbose=1, monitor='val_' + self.running_config.metrics[0],
+                save_best_only=True,
                 save_weights_only=self.enable_distributed))
 
         # Add learning rate scheduler
@@ -271,17 +272,17 @@ class ClassificationTrainer(object):
         # For single model
         if len(self.model.outputs) == 1:
             self.model.compile(optimizer=self.running_config.optimizer,
-                               loss=categorical_crossentropy,
-                               metrics=['accuracy', top_k_categorical_accuracy])
+                               loss=self.running_config.loss,
+                               metrics=self.running_config.metrics)
         else:
             # Create the loss
             nb_loss = len(self.model.outputs)
-            loss_list = nb_loss * [categorical_crossentropy]
+            loss_list = nb_loss * [self.running_config.loss]
             weights_list = self.model_config.loss_weights
             self.model.compile(optimizer=self.running_config.optimizer,
                                loss=loss_list,
                                loss_weights=weights_list,
-                               metrics=['accuracy', top_k_categorical_accuracy])
+                               metrics=self.running_config.metrics)
 
         self._built = True
 

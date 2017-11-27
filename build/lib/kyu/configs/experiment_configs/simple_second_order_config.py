@@ -480,7 +480,7 @@ def get_new_wv_norm_general(exp=1):
         batch_norm_kwargs['scale'] = True
 
     elif exp == 13:
-        cov_branch_output = 16
+        cov_branch_output = 2048
         batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution
@@ -489,7 +489,7 @@ def get_new_wv_norm_general(exp=1):
         # input_shape = (448, 448, 3)
         # batch_size = 16
     elif exp == 14:
-        cov_branch_output = 16
+        cov_branch_output = 512
         batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution
@@ -539,13 +539,12 @@ def get_new_wv_norm_general(exp=1):
         name = 'BN-Cov-PV{}_final-BN-448'.format(cov_branch_output)
         input_shape = (448, 448, 3)
         batch_size = 16
-
     elif exp == 19:
         cov_branch_output = 2048
         # pv_reg = 'l2'
         # pv_reg = L2InnerNorm(0.01)
-        last_conv_feature_maps = []
-        batch_norm_end = False
+        last_conv_feature_maps = [512]
+        batch_norm_end = True
         use_gamma = False
         normalization = True  # normalize to further fit Chi-square distribution
         use_bias = False  # use bias for normalization additional
@@ -561,6 +560,16 @@ def get_new_wv_norm_general(exp=1):
         name = 'BN-Cov-PV{}_final'.format(cov_branch_output)
         # input_shape = (448, 448, 3)
         # batch_size = 16
+    elif exp == 21:
+        cov_branch_output = 2048
+        # pv_reg = 'l2'
+        # pv_reg = L2InnerNorm(0.01)
+        last_conv_feature_maps = [512]
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        name = 'BN-Cov-PV{}_final-BN'.format(cov_branch_output)
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -676,7 +685,7 @@ def get_pv_equivalent(exp=1):
         mode = 1
         load_weights = None
     elif exp == 4:
-        cov_branch_output = 2048
+        cov_branch_output = 512
         name = 'BN-1x1_{}-GSP-FC_mode1-gsplayer'.format(cov_branch_output, use_gamma)
         mode = 1
 
@@ -701,7 +710,22 @@ def get_pv_equivalent(exp=1):
 
         # Conv layer
         use_bias = False
+    elif exp == 6:
+        cov_branch_output = 2048
+        mode = 1
+        name = '1x1_{}-BN-GSP-BN-FC'.format(cov_branch_output)
 
+        # GSP layer
+        gsp_use_bias = False
+        use_gamma = False
+        output_sqrt = True
+        batch_norm_end = True
+
+        # Conv layer
+        use_bias = False
+
+        # Training from scratch
+        load_weights = None
     else:
         raise ValueError("exp not reg {}".format(exp))
 

@@ -138,6 +138,7 @@ def VGG16(include_top=True, weights='imagenet',
 
     if include_top:
         # Classification block
+        x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
         x = Flatten(name='flatten')(x)
         x = Dense(4096, activation='relu', name='fc1')(x)
         x = Dense(4096, activation='relu', name='fc2')(x)
