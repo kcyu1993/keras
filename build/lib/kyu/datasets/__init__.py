@@ -1,12 +1,13 @@
 from kyu.configs.dataset_config import DatasetConfig
 
 from airplane import Aircraft
-from chestxray14 import ChestXray14
+from chestxray14 import ChestXray14, ChestXray14SingleLabel
 from cub import CUB
 from dtd import DTD
 from imagenet import ImageNetData as ImageNet
 from kyu.datasets.food101 import Food101
 from kyu.datasets.stanford_car import StanfordCar
+from kyu.utils.dict_utils import dict_value_to_key
 from minc import Minc2500_v2 as Minc2500
 from mit import MitIndoor
 from sun import SUN397_v2 as SUN397
@@ -70,6 +71,14 @@ def get_dataset(config):
         config.dirpath = config.dirpath if config.dirpath is not None \
             else '/home/kyu/.keras/datasets/chest-xray14'
         dataset = ChestXray14(config.dirpath)
+    elif 'singlechest' in identifier:
+        index = int(identifier.split('_')[1])
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/chest-xray14'
+        orig_data = ChestXray14(config.dirpath)
+        dataset = ChestXray14SingleLabel(index, config.dirpath)
+        print("ChestXray with dataset label: {} {}".format(
+            index, dict_value_to_key(index, orig_data.category_dict)))
     elif identifier in ['cub', 'cub2001', 'cub200']:
         config.dirpath = config.dirpath if config.dirpath is not None \
             else '/home/kyu/.keras/datasets/cub/CUB_200_2011'

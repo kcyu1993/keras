@@ -376,6 +376,8 @@ def get_new_wv_norm_general(exp=1):
     input_shape = (224, 224, 3)
     weight_decay = 0
 
+    pred_activation = 'softmax'
+
     # batch norm
     batch_norm_kwargs = {'scale': True}
     if exp == 1:
@@ -443,7 +445,10 @@ def get_new_wv_norm_general(exp=1):
     elif exp == 9:
         cov_branch_output = 2048
         use_gamma = True
-        name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
+        batch_norm_end = True
+        normalization = True
+        use_bias = False
+        name = 'BN-Cov-PV{}-FromFO-gamma{}'.format(cov_branch_output, use_gamma)
         mode = 1
         load_weights = 'secondorder'
     elif exp == 10:
@@ -570,6 +575,14 @@ def get_new_wv_norm_general(exp=1):
         normalization = True  # normalize to further fit Chi-square distribution
         use_bias = False  # use bias for normalization additional
         name = 'BN-Cov-PV{}_final-BN'.format(cov_branch_output)
+    elif exp == 22:
+        cov_branch_output = 2048
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        name = 'BN-Cov-PV{}_final-BN'.format(cov_branch_output)
+        pred_activation = 'sigmoid'
     else:
         raise ValueError("exp not reg {}".format(exp))
 
@@ -633,6 +646,7 @@ def get_new_wv_norm_general(exp=1):
         separate_conv_features=separate_conv_features,
         upsample_method='conv',
         batch_size=batch_size,
+        pred_activation=pred_activation,
     )
     return model_config
 

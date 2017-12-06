@@ -124,3 +124,14 @@ def get_running_config_for_chest(title='general-chestxray', model_config=None):
     )
 
     return config
+
+
+def get_custom_metrics_objects_for_chest():
+    """
+    Define the custom objects
+    Returns
+    -------
+
+    """
+
+    return {'0_Atele_acc': IndexBinaryAccuracy(0, '0_Atele')}

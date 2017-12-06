@@ -47,7 +47,6 @@ class MyApp(QtGui.QMainWindow, Ui_MainWindow):
         self.pred_label = None
 
     def browseModel(self):
-        self.model = None
         self.fname = None
         self.layer = None
         self.filePath = QtGui.QFileDialog.getOpenFileName(self, '*.')

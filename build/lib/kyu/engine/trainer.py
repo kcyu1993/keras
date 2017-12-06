@@ -458,14 +458,14 @@ class ClassificationTrainer(object):
             return
 
         history = self.history.history
-
+        history = dict(history)
         if dictionary is not None:
             history = dictionary
         if isinstance(metric, str):
-            if metric is 'acc':
+            if metric is 'acc' and 'acc' in history:
                 train = history['acc']
                 valid = history['val_acc']
-            elif metric is 'loss':
+            elif metric is 'loss' and 'loss' in history:
                 train = history['loss']
                 valid = history['val_loss']
             else:
@@ -483,8 +483,15 @@ class ClassificationTrainer(object):
                 print("Catch the Tcl Error, save the history accordingly")
                 self.save_history(history)
                 return
+            except KeyError as e:
+                print(e)
+                self.save_history(history)
+                return
         else:
             assert len(metric) == 2
+            if not 'acc' in history:
+                self.save_history(history)
+                return
             tr_loss = history['loss']
             tr_acc = history['acc']
             va_loss = history['val_loss']
@@ -499,6 +506,10 @@ class ClassificationTrainer(object):
                 self.save_history(history)
             except TclError:
                 print("Catch the Tcl Error, save the history accordingly")
+                self.save_history(history)
+                return
+            except KeyError as e:
+                print(e)
                 self.save_history(history)
                 return
 

@@ -21,7 +21,8 @@ class DCovConfig(ModelConfig):
                     'load_weights',
                     'separate_conv_features',
                     'nb_outputs',
-                    'weight_decay']
+                    'weight_decay',
+                    'pred_activation']
 
     def __init__(self,
                  input_shape,

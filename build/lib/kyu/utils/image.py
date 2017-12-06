@@ -20,6 +20,8 @@ def correct_rescale_short_with_target_size(rescaleshortedgeto, target_size):
         while max(rescaleshortedgeto) < min(*target_size):
             for i in range(len(rescaleshortedgeto)):
                 rescaleshortedgeto[i] *= 2
+    elif rescaleshortedgeto is None:
+        return None
     else:
         raise ValueError("Rescaleshortedge cannot accept {}".
                          format(type(rescaleshortedgeto)))
@@ -300,6 +302,8 @@ class ImageDataGeneratorAdvanced(ImageDataGenerator):
                ]
         if data_format == 'channels_last':
             tx = tx.transpose(1,2,0)
+        # print("cornor {}, new image_shape ({},{})".format(cornor, new_width, new_height))
+
         return tx
 
 
@@ -534,6 +538,9 @@ class ImageIterator(Iterator):
         One should obtain all location regarding to the images before use the iterator.
         Use next() to generate a batch.
 
+        For binary classmode
+            everything is about the category_dict, change to label dict. Match with img-cate-list.
+
         Parameters
         ----------
         imgloc_list : list      contains image paths list
@@ -646,7 +653,15 @@ class ImageIterator(Iterator):
             raise NotImplementedError
             # batch_y = self.classes[index_array]
         elif self.class_mode == 'binary':
-            raise NotImplementedError
+            assert self.nb_class == 2
+            batch_y = np.zeros((len(batch_x), self.nb_class), dtype='float32')
+            for i, j in enumerate(index_array):
+                label = self.img_cate_list[j]
+                if len(label) == 0:
+                    label = 0
+                else:
+                    label = 1 if any([self.category_dict[l] for l in label]) else 0
+                batch_y[i, label] = 1.
             # batch_y = self.classes[index_array].astype('float32')
         elif self.class_mode == 'categorical':
             batch_y = np.zeros((len(batch_x), self.nb_class), dtype='float32')

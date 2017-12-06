@@ -840,8 +840,7 @@ class WeightedVectorization(Layer):
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
-        print("PV with reg {}".format(self.kernel_regularizer))
-
+        # print("PV with reg {}".format(self.kernel_regularizer))
         self.use_bias = use_bias
         self.bias_initializer = initializers.get(bias_initializer)
         self.bias_constraint = constraints.get(bias_constraint)

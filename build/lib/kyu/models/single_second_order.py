@@ -4,7 +4,8 @@ Define single stream SO-CNN for both ResNet and VGG and others with wrapper.
 """
 
 import keras.backend as K
-from keras.layers import Flatten, Dense, merge, MaxPooling2D, GlobalAveragePooling2D, Reshape, BatchNormalization
+from keras.layers import Flatten, Dense, merge, MaxPooling2D, GlobalAveragePooling2D, Reshape, BatchNormalization, \
+    Activation
 from keras.layers.merge import add, average, concatenate
 from keras.models import Model
 from kyu.layers.secondstat import WeightedVectorization
@@ -33,9 +34,38 @@ def _compose_second_order_model(
         last_conv_kernel=[1,1],
         upsample_method='conv',
         separate_conv_features=True,
+        pred_activation='softmax',
         # pass to the cov_branch_fn
         **kwargs
 ):
+    """
+    Get the second order model
+
+    Parameters
+    ----------
+    base_model
+    nb_class
+    cov_branch
+    cov_branch_kwargs
+    mode
+    cov_branch_output
+    dense_branch_output
+    freeze_conv
+    name
+    nb_branch
+    nb_outputs
+    concat
+    cov_output_vectorization
+    last_conv_feature_maps
+    last_conv_kernel
+    upsample_method
+    separate_conv_features
+    kwargs
+
+    Returns
+    -------
+
+    """
     if nb_outputs > 1:
         raise ValueError("Compose second order doesn't support nb_outputs larger than 1")
     cov_branch_fn = get_cov_block(cov_branch)
@@ -112,7 +142,8 @@ def _compose_second_order_model(
         else:
             x = Flatten()(x)
 
-    x = Dense(nb_class, activation='softmax')(x)
+    x = Dense(nb_class)(x)
+    x = Activation(pred_activation, name=pred_activation)(x)
 
     model = Model(base_model.input, x, name=name)
     return model

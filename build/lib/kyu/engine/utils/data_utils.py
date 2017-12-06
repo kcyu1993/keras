@@ -12,6 +12,85 @@ from kyu.utils.dict_utils import dict_value_to_key
 from kyu.utils.image import ImageIterator, ImageDataGeneratorAdvanced
 
 
+def transform_coordinate():
+    pass
+
+
+def crop_value(value, target_range):
+    """
+    Crop value and return the value cropped.
+
+    Parameters
+    ----------
+    value
+    target_range
+
+    Returns
+    -------
+
+    """
+    original_value = value
+    value = value if value > target_range[0] else target_range[0]
+    value = value if value < target_range[1] else target_range[1]
+    residual = abs(original_value - value)
+    return value, residual
+
+
+class BoundingBox(object):
+    center = (0,0)
+    width = 0
+    height = 0
+    # Define the meta data
+    image_width = 0
+    image_height = 0
+
+    def __init__(self, center, width, height, image_width=0, image_height=0, original_image_w=0, original_image_h=0):
+        assert len(center) == 2
+        self.center = (float(center[0]), float(center[1]))
+        self.width = float(width)
+        self.height = float(height)
+        self.image_height = float(image_height)
+        self.image_width = float(image_width)
+
+        self.original_image_h = original_image_h
+        self.original_image_w = original_image_w
+
+    def set_image_parameter(self, height, width):
+        self.image_width = width
+        self.image_height = height
+
+    # def transform_
+
+    def plot_parameter_matplotlib(self, plot_size=(224, 224), canvas_shape=None, cornor=(0,0)):
+        """
+        Compute the plot bounding box for matplotlib.
+
+        Parameters
+        ----------
+        plot_size
+        canvas_shape : image reshape dimension
+        cornor : cornor of the plot cutting size
+        Returns
+        -------
+
+        """
+
+        if canvas_shape is None:
+            canvas_shape = plot_size
+        aspect_ratio = [canvas_shape[0] / self.image_width, canvas_shape[1] / self.image_height]
+
+        center_x = (self.center[0]) * aspect_ratio[0] - cornor[0]
+        center_y = (self.center[1]) * aspect_ratio[1] - cornor[1]
+
+        center_x, res_x = crop_value(center_x, (0, plot_size[0] - 1))
+        center_y, res_y = crop_value(center_y, (0, plot_size[1] - 1))
+
+        width = self.width * aspect_ratio[0] - res_x
+        height = self.height * aspect_ratio[1] - res_y
+        print(center_x, center_y, res_x, res_y, width, height)
+        return (center_x, center_y), width, height
+
+
 class ImageData(object):
     """
     Stores the metadata for a Image Data groups.
@@ -331,3 +410,4 @@ class ClassificationImageData(ImageData):
 
         """
         return dict_value_to_key(nnid, self.category_dict)
+
