@@ -307,6 +307,7 @@ class ChestXray14Inference(ClassificationImageData):
             self.nb_class = len(self.category_dict)
         else:
             raise NotImplementedError
+        self.category_dict['Infiltrate'] = 8
         return self.category_dict
 
     def absolute_image_path(self, path):

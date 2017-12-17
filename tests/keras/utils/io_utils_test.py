@@ -1,7 +1,8 @@
 '''Tests for functions in io_utils.py.
 '''
 import os
-import pytest
+# import pytest
+import json
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.utils.io_utils import HDF5Matrix
@@ -76,5 +77,5 @@ def test_io_utils(in_tmpdir):
     os.remove(h5_path)
 
 
-if __name__ == '__main__':
-    pytest.main([__file__])
+# if __name__ == '__main__':
+    # pytest.main([__file__])

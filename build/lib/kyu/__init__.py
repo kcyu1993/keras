@@ -6,3 +6,5 @@ from experiment import *
 from layers import *
 from tensorflow import *
 from utils import *
+
+from visualize import *

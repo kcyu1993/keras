@@ -471,6 +471,53 @@ def get_plot_path_with_subdir(filename, subdir, dir='project'):
     return os.path.join(path, filename)
 
 
+
+def save_list_to_file(py_list, filename, force=True):
+    """
+    Save a list to json, for example
+
+    Parameters
+    ----------
+    py_list : list to be serialize
+    filename : target filename
+    Returns
+    -------
+    file_name
+    """
+
+    if os.path.exists(filename):
+        if force:
+            os.remove(filename)
+        else:
+            return filename
+    with open(filename, 'w') as f:
+        s = json.dumps(py_list)
+        json.dump(s, f)
+    return filename
+
+
+def load_list_from_file(filename):
+    """
+    Recover the list from Json file.
+
+    Parameters
+    ----------
+    filename : string
+
+    Returns
+    -------
+    list
+    """
+    with open(filename, 'r') as f:
+        s = json.load(f)
+        py_list = json.loads(s)
+    if isinstance(py_list, list):
+        return py_list
+    else:
+        return None
+
+
+
 if __name__ == '__main__':
     getProjectPath()
     f_manage = ProjectFile(getProjectPath(), getProjectPath())

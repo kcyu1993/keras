@@ -5,6 +5,7 @@ from chestxray14 import ChestXray14, ChestXray14SingleLabel
 from cub import CUB
 from dtd import DTD
 from imagenet import ImageNetData as ImageNet
+from kyu.datasets.amazon_shoes import AmazonBestSellerSmallrank
 from kyu.datasets.food101 import Food101
 from kyu.datasets.stanford_car import StanfordCar
 from kyu.utils.dict_utils import dict_value_to_key
@@ -95,6 +96,10 @@ def get_dataset(config):
         config.dirpath = config.dirpath if config.dirpath is not None \
             else '/home/kyu/.keras/datasets/food-101/food-101'
         dataset = Food101(config.dirpath)
+    elif identifier in ['shoes', 'amazon-shoes']:
+        config.dirpath = config.dirpath if config.dirpath is not None \
+            else '/home/kyu/.keras/datasets/amazon/'
+        dataset = AmazonBestSellerSmallrank(config.dirpath)
     else:
         raise ValueError("Dataset Name Not recognized {}".format(identifier))
 
