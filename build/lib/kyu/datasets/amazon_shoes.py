@@ -61,7 +61,7 @@ def clean_csv(csv_file):
 class AmazonBestSellerSmallrank(ClassificationImageData):
 
     def __init__(self, dir="/home/kyu/.keras/datasets/amazon",
-                 threshold=30,
+                 threshold=50,
                  meta_file='20171214-Shoes_smallrank-cleaned.csv',
                  generate_random_indices=True,
                  **kwargs):
