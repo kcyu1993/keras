@@ -47,3 +47,12 @@ class IndexBinaryAccuracy(object):
         return K.cast(K.equal(y_true[:, index],
                               K.round(y_pred[:, index])),
                       K.floatx())
+
+
+class ConfusionMatrix(object):
+    def __init__(self):
+        self.__name__ = "confusion_mat"
+
+    def __call__(self, y_true, y_pred):
+        from tensorflow.contrib.metrics import confusion_matrix
+        return confusion_matrix(y_true, y_pred)

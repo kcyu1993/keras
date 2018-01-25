@@ -120,7 +120,8 @@ class SecondOrderBatchNormalization(BatchNormalization):
             x_norm = tf.reshape(x_norm, [-1,]+shape[1:])
             if self.so_mode == 1:
                 x_norm = tf.matrix_band_part(x_norm, 0, -1)
-                x_norm = x_norm + K.transpose(x_norm, [0, 2, 1]) - \
+
+                x_norm = x_norm + K.permute_dimensions(x_norm, [0, 2, 1]) - \
                          tf.matrix_diag(tf.matrix_diag_part(x_norm))
         elif self.so_mode == 2:
             """ Apply the log and exp mapping of the matrix """
@@ -132,7 +133,7 @@ class SecondOrderBatchNormalization(BatchNormalization):
             x_norm = tf.reshape(x_norm, [-1,] + shape[1:])
             x_norm = matrix_exp(x_norm)
             x_norm = tf.matrix_band_part(x_norm, 0, -1)
-            x_norm = x_norm + K.transpose(x_norm, [0, 2, 1]) - \
+            x_norm = x_norm + K.permute_dimensions(x_norm, [0, 2, 1]) - \
                      tf.matrix_diag(tf.matrix_diag_part(x_norm))
         elif self.so_mode == 3:
             pass

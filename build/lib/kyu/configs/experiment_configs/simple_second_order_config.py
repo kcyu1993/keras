@@ -375,6 +375,7 @@ def get_new_wv_norm_general(exp=1):
     use_bias = True  # use bias for normalization additional
     input_shape = (224, 224, 3)
     weight_decay = 0
+    output_sqrt = True
 
     pred_activation = 'softmax'
 
@@ -426,11 +427,13 @@ def get_new_wv_norm_general(exp=1):
         load_weights = None
         name = 'Scratch-BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
         mode = 1
+
     elif exp == 7:
         cov_branch_output = 2048
         use_gamma = True
         name = 'BN-Cov-PV{}-mode1_complete-gamma{}'.format(cov_branch_output, use_gamma)
         batch_norm_kwargs['scale'] = False
+
     elif exp == 8:
         cov_branch_output = 2048
         use_gamma = False
@@ -442,6 +445,7 @@ def get_new_wv_norm_general(exp=1):
         concat = 'sum'
         vectorization = None
         batch_norm_kwargs['scale'] = True
+
     elif exp == 9:
         cov_branch_output = 2048
         use_gamma = True
@@ -451,6 +455,7 @@ def get_new_wv_norm_general(exp=1):
         name = 'BN-Cov-PV{}-FromFO-gamma{}'.format(cov_branch_output, use_gamma)
         mode = 1
         load_weights = 'secondorder'
+
     elif exp == 10:
         cov_branch_output = 2048
         use_gamma = False
@@ -464,6 +469,7 @@ def get_new_wv_norm_general(exp=1):
         vectorization = None
         batch_norm_kwargs['scale'] = True
         name = 'BN-Cov-PV{}-BN-mode1-gamma_{}-br_{}'.format(cov_branch_output, use_gamma, nb_branch)
+
     elif exp == 11:
         # Test with the new parameterized covariance layer with the simplest structure
         cov_branch_output = 2048
@@ -506,7 +512,7 @@ def get_new_wv_norm_general(exp=1):
         # load_weights = None
     elif exp == 15:
         # from pretrained weights
-        cov_branch_output = 512
+        cov_branch_output = 64
         batch_norm_end = True
         use_gamma = False
         normalization = True
@@ -583,8 +589,17 @@ def get_new_wv_norm_general(exp=1):
         use_bias = False  # use bias for normalization additional
         name = 'BN-Cov-PV{}_final-BN'.format(cov_branch_output)
         pred_activation = 'sigmoid'
+    elif exp == 23:
+        input_shape = (448, 448, 3)
+        cov_branch_output = 2048
+        batch_norm_end = True
+        use_gamma = False
+        normalization = True  # normalize to further fit Chi-square distribution
+        use_bias = False  # use bias for normalization additional
+        output_sqrt = False
+        name = 'BN-Cov-PV{}_{}-BN'.format(cov_branch_output, "")
     else:
-        raise ValueError("exp not reg {}".format(exp))
+        raise ValueError("Experiment config does not exists {}".format(exp))
 
     cov_kwargs = update_source_dict_by_given_kwargs(
         cov_kwargs,
@@ -603,7 +618,7 @@ def get_new_wv_norm_general(exp=1):
         pv_kwargs,
         activation='linear',
         eps=1e-8,
-        output_sqrt=True,  # Normalization
+        output_sqrt=output_sqrt,  # Normalization
         normalization=normalization,  # normalize to further fit Chi-square distribution
         kernel_initializer='glorot_uniform',
         kernel_regularizer=pv_reg,

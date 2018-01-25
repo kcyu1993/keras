@@ -202,10 +202,10 @@ class SecondaryStatistic(Layer):
             addition_array /= addition_array # Make it 1
             if self.cov_mode == 'pmean':
                 x_mean = self.mean_p * x_mean
-                new_cov = K.concatenate([cov_mat + K.batch_dot(x_mean, K.transpose(x_mean, (0,2,1))), x_mean])
+                new_cov = K.concatenate([cov_mat + K.batch_dot(x_mean, K.permute_dimensions(x_mean, (0,2,1))), x_mean])
             else:
                 new_cov = K.concatenate([cov_mat, x_mean])
-            tmp = K.concatenate([K.transpose(x_mean, axes=(0,2,1)), addition_array])
+            tmp = K.concatenate([K.permute_dimensions(x_mean, (0,2,1)), addition_array])
             new_cov = K.concatenate([new_cov, tmp], axis=1)
             cov_mat = K.identity(new_cov, 'final_cov_mat')
 
@@ -243,11 +243,11 @@ class SecondaryStatistic(Layer):
             tx = K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
         else:
             tx = K.reshape(x, (-1, self.cols * self.rows, self.nb_filter))
-            tx = K.transpose(tx, (0,2,1))
+            tx = K.permute_dimensions(tx, (0,2,1))
         if self.cov_mode == 'channel' or self.cov_mode =='mean' or self.cov_mode =='pmean':
             return tx
         else:
-            return K.transpose(tx, (0,2,1))
+            return K.permute_dimensions(tx, (0,2,1))
 
     def calculate_pre_cov(self, x):
         """1
@@ -266,7 +266,7 @@ class SecondaryStatistic(Layer):
             tx = K.dot(xf_normal, tf.matrix_diag(self.kernel))
             tx = K.batch_dot(tx, K.permute_dimensions(xf_normal, [0,2,1]))
         else:
-            tx = K.batch_dot(xf_normal, K.transpose(xf_normal, [0,2,1]))
+            tx = K.batch_dot(xf_normal, K.permute_dimensions(xf_normal, [0,2,1]))
         # tx = K.sum(K.multiply(K.expand_dims(xf_normal, dim=1),
         #                       K.expand_dims(xf_normal, dim=2)),
         #            axis=3)
@@ -669,7 +669,7 @@ class O2Transform(Layer):
         #                         sequences=[x],
         #                         non_sequences=None)
         #
-        com = K.dot(K.transpose(K.dot(inputs, self.kernel),[0,2,1]), self.kernel)
+        com = K.dot(K.permute_dimensions(K.dot(inputs, self.kernel),[0,2,1]), self.kernel)
         # print("O2Transform shape" + com.eval().shape)
         return com
 
@@ -1224,7 +1224,7 @@ class BiLinear(Layer):
         if not self.built:
             raise Exception("BiLinear layer not built")
         xf = self.reshape_tensor3d(x)
-        tx = K.batch_dot(xf, K.transpose(xf, [0,2,1]))
+        tx = K.batch_dot(xf, K.permute_dimensions(xf, [0,2,1]))
         if self.bilinear_mode == 'channel' or self.bilinear_mode == 'mean' or self.bilinear_mode == 'pmean':
             bilinear_output = tx / (self.rows * self.cols)
         #     # cov = tx / (self.rows * self.cols )
@@ -1247,11 +1247,11 @@ class BiLinear(Layer):
             tx = K.reshape(x, (-1, self.nb_filter, self.cols * self.rows))
         else:
             tx = K.reshape(x, (-1, self.cols * self.rows, self.nb_filter))
-            tx = K.transpose(tx, (0, 2, 1))
+            tx = K.permute_dimensions(tx, (0, 2, 1))
         if self.bilinear_mode == 'channel' or self.bilinear_mode == 'mean' or self.bilinear_mode == 'pmean':
             return tx
         else:
-            return K.transpose(tx, (0, 2, 1))
+            return K.permute_dimensions(tx, (0, 2, 1))
 
 
 # Alias

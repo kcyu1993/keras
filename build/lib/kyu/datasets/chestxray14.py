@@ -592,7 +592,6 @@ class ChestXray14SingleLabel(ClassificationImageData):
         return gen
 
 
-
 if __name__ == '__main__':
     # make_dataset_random()
     # gen = ImageDataGeneratorAdvanced()
